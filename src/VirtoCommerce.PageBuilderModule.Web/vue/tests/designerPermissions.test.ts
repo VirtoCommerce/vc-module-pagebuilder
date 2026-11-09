@@ -18,7 +18,6 @@ test("each part is saved and discarded with the permission the server checks for
 test("a refused Save names the parts the editor may not save, once each", () => {
   assert.deepEqual(refusedParts(["page", "header", "rules", "header", "brand"], false, only(PERMISSIONS.update)), ["header", "rules", "brand"]);
   assert.deepEqual(refusedParts(["page", "rules"], true, only(PERMISSIONS.update, PERMISSIONS.theme)), ["page", "rules"]);
-  // a refusal for a reason the parts don't explain names none
   assert.deepEqual(refusedParts(["page"], false, only(PERMISSIONS.update)), []);
 });
 
@@ -30,7 +29,6 @@ test("Discard offers the page's draft ticked and each theme part's unticked; onl
     { part: "header", checked: false, allowed: true },
     { part: "brand", checked: false, allowed: true },
   ]);
-  // an open template is a theme file: builder:templates
   assert.deepEqual(discardOptions({ page: true, theme: [], template: true, hasAccess: only(PERMISSIONS.update) }), [{ part: "page", checked: false, allowed: false }]);
   assert.deepEqual(discardOptions({ page: false, theme: [], template: false, hasAccess: only() }), []);
 });

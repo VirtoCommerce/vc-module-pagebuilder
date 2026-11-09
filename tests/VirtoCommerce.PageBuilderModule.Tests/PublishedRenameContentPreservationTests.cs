@@ -339,7 +339,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 return Task.CompletedTask;
             }
 
-            /// <summary>Thrown by every content read, as a read the caller cancelled.</summary>
             public Exception LoadContentException { get; set; }
 
             public Task<string> LoadContent(string pageId, CancellationToken cancellationToken = default)

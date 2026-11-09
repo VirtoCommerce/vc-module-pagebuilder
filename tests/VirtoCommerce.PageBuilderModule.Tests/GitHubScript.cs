@@ -10,7 +10,6 @@ using Xunit.Sdk;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>Plays GitHub: each request must be the next expected one.</summary>
 internal sealed class GitHubScript(params (string Method, string Url, Func<HttpRequestMessage, string, HttpResponseMessage> Respond)[] script)
     : HttpMessageHandler, IHttpClientFactory
 {

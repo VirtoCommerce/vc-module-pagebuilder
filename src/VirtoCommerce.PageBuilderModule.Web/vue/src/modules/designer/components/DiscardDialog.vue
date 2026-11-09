@@ -52,8 +52,6 @@
 </template>
 
 <script setup lang="ts">
-// Discard's confirmation: which saved drafts go. The page's is ticked; a theme part's draft is shared by every page, so
-// it goes only when ticked, and only one the editor may edit can be.
 import { computed, ref } from "vue";
 import { VcButton, VcPopup } from "@vc-shell/framework/ui";
 import { discardChoice, type DiscardOption } from "../discard";
@@ -61,9 +59,7 @@ import { partLabel, type HistoryFile, type ThemePart } from "../history";
 
 const props = defineProps<{
   options: DiscardOption[];
-  /** the page part is a template */
   template: boolean;
-  /** unsaved edits, which go whatever is ticked */
   unsaved: boolean;
 }>();
 const emit = defineEmits<{ discard: [choice: { page: boolean; theme: ThemePart[] }]; close: [] }>();

@@ -31,7 +31,6 @@ public class ThemeSnapshotBuilderTests
         Assert.Equal(2, rules.Value<int>("version"));
         Assert.Equal(["category-0", "kept"], rules["category"]!.Select(x => x.Value<string>("id")));
         Assert.Empty((JArray)rules["page"]!);
-        // no product list: the default rule, which gives B2C products their template
         Assert.Equal("default-b2c", rules["product"]![0]!.Value<string>("id"));
         Assert.Equal(["inCategory", "property"], rules["conditions"]!.Values<string>());
     }
@@ -127,7 +126,6 @@ public class ThemeSnapshotBuilderTests
         var at = Section(set.Files["de-AT"], "page");
         Assert.Equal("Kaufen", at.Value<string>("part"));
         Assert.Equal("Warenkorb", at.Value<string>("same"));
-        // objects without a culture name with a subtag are not dictionaries
         Assert.Equal("X1", at["skus"]![0]!.Value<string>("sku"));
         Assert.Equal("kurz", at["skus"]![1]!.Value<string>("de"));
     }
@@ -225,7 +223,6 @@ public class ThemeSnapshotBuilderTests
                 "sections/header-group.json: 'x' has a type the storefront does not have, 'nope'",
             ],
             errors);
-        // without a catalog only the shape counts
         Assert.Single(_builder.Validate(source, null));
     }
 
@@ -269,7 +266,6 @@ public class ThemeSnapshotBuilderTests
                 "sections/header-group.json: 'bad' has a value in 'background' the storefront does not have, a list",
             ],
             errors);
-        // without a catalog only the shape counts
         Assert.Empty(_builder.Validate(Source(header: header), null));
     }
 
@@ -327,7 +323,7 @@ public class ThemeSnapshotBuilderTests
     [Fact]
     public void Validate_SharedComponentInThemeFile_ReturnsErrors()
     {
-        // a snapshot is read as it is: the placement would reach the storefront unresolved
+        // A snapshot is read as it is, so the placement would reach the storefront unresolved.
         var catalog = JObject.Parse("""{ "sections": { "product-info": {} } }""");
 
         Assert.Equal(
@@ -340,7 +336,7 @@ public class ThemeSnapshotBuilderTests
     [Fact]
     public void Build_SharedComponentWithoutCatalog_LeavesItOut()
     {
-        // live files may predate the check
+        // Live files may predate the check.
         var source = WithSharedComponent();
 
         Assert.Empty(_builder.Validate(source, null));

@@ -61,7 +61,7 @@
         :hint="field.info"
         @update:model-value="set(field, $event)"
       />
-      <!-- the hint below the box (VcSelect's own has one line's room, a longer one ran into the next field) -->
+      <!-- VcSelect's own hint has room for one line, so a longer one would run into the next field. -->
       <div
         v-else-if="field.type === 'select'"
         class="pd-fields__select"
@@ -81,7 +81,6 @@
         />
         <VcHint v-if="field.info">{{ field.info }}</VcHint>
       </div>
-      <!-- a store link list, by its name -->
       <div
         v-else-if="field.type === 'menu'"
         class="pd-fields__select"
@@ -108,7 +107,6 @@
           {{ $t("PAGE_BUILDER.DESIGNER.WHITE_LABELING") }}
         </VcHint>
       </div>
-      <!-- a palette token, so that the color follows the light and dark theme; no color of its own -->
       <div
         v-else-if="field.type === 'color-token'"
         class="pd-fields__select"
@@ -245,7 +243,6 @@
         </details>
       </div>
 
-      <!-- the Angular designer's search: a query (or a button) runs the field's request; its answer is the setting's value -->
       <div
         v-else-if="field.type === 'search'"
         class="pd-fields__select"
@@ -312,7 +309,6 @@
         @update:model-value="setText(field, $event)"
       />
 
-      <!-- a translatable text: which language it is, and the others' -->
       <p
         v-if="translationNote(field)"
         class="pd-fields__translation"
@@ -324,8 +320,6 @@
 </template>
 
 <script setup lang="ts">
-// A schema's fields as form controls (the Angular designer's control registry), editing `values`; nested objects
-// and lists render this component again. Changes go up as update(id, value): nothing is mutated here.
 import { computed, inject, onBeforeUnmount, reactive, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { Extension } from "@tiptap/core";
@@ -344,26 +338,20 @@ import { getAuthHeaders } from "../../page-builder/composables/usePageContentApi
 const props = defineProps<{
   fields: Field[];
   values: Record<string, unknown>;
-  /** what visibility expressions see as `this` */
   context: Record<string, unknown>;
-  /** the item edited, when it is a header's or footer's: white-labeling may replace it or some of its `menu` settings */
   groupItem?: GroupItem;
-  /** the item is a theme file's: its translatable texts are edited in this language */
   translation?: Translating;
 }>();
 
-/** the rich-text editor (tiptap) the toolbar items act on */
 type Editor = Parameters<CustomToolbarButton["action"]>[0];
 
-// rich text is HTML, which the storefront renders as such. VcEditor writes Markdown while its "markdown" extension is
-// loaded and the text doesn't look like HTML (an empty or plain one never does): an empty extension of that name
-// takes its place, and the editor writes HTML.
+// The storefront renders rich text as HTML, but VcEditor writes Markdown while a "markdown" extension is loaded and
+// the text does not look like HTML. An empty extension of that name takes its place, so the editor writes HTML.
 const htmlOnly = [Extension.create({ name: "markdown" })];
-/** an editor left without text ("<p></p>") is an empty text: a translation falls back again */
+/** An editor left without text holds "<p></p>", which counts as empty so that a translation falls back again. */
 const richText = (value: unknown) => (typeof value === "string" && /^(\s*<p>(\s|&nbsp;|<br\s*\/?>)*<\/p>)*\s*$/i.test(value) ? "" : value);
 
-// rich text: a link to a place on the page (a section, a block, an anchor in some text), as #anchor; same tab (the
-// editor's links open a new one by default)
+// Anchor links stay in the same tab: the editor's links open a new one by default.
 const anchors = inject(PageAnchorsKey, undefined);
 const anchorPicker = computed<CustomToolbarItem[]>(() =>
   anchors?.value.length
@@ -371,7 +359,6 @@ const anchorPicker = computed<CustomToolbarItem[]>(() =>
         {
           id: "anchor",
           label: t("PAGE_BUILDER.DESIGNER.LINK_ANCHOR"),
-          // the first option names the list; it shows while the selection has no link to an anchor
           options: [
             { value: "", label: t("PAGE_BUILDER.DESIGNER.LINK_ANCHOR"), action: () => undefined },
             ...anchors.value.map((anchor) => ({
@@ -397,7 +384,6 @@ const openRow = ref<string>();
 const palette = inject(PaletteTokensKey, undefined);
 const overridden = inject(WhiteLabelingKey, undefined);
 
-// the store's link lists, read once the fields show a `menu` setting (another tab's fields may be the first to)
 const loadStoreMenus = inject(StoreMenusKey, undefined);
 const storeMenus = ref<unknown[]>();
 const menuFailed = ref(false);
@@ -424,9 +410,7 @@ const shown = computed(() => props.fields.filter((field) => isVisible(field, pro
 
 const set = (field: Field, value: unknown) => field.id && emit("update", field.id, value);
 
-// a translatable text of a theme file: its own text in the language edited, the others' kept
 const TEXT_TYPES = ["string", "markdown", "text"];
-// a text that holds a text per language is edited per language even where the schema doesn't say it is translatable
 const translated = (field: Field) =>
   props.translation && TEXT_TYPES.includes(field.type) && (field.translatable || isTranslations(props.values[field.id!])) ? props.translation : undefined;
 const text = (field: Field) => {
@@ -439,10 +423,8 @@ function setText(field: Field, value: unknown) {
   const at = translated(field);
   set(field, at ? withTranslation(props.values[field.id!], at, String(value ?? "")) : value);
 }
-// the language shows only where the store has several
 const manyLanguages = computed(() => (props.translation?.languages?.length ?? 0) > 1);
 const label = (field: Field) => (translated(field) && manyLanguages.value && field.label ? `${field.label} · ${props.translation!.language}` : field.label);
-/** a language without its own text shows the text it falls back to */
 const placeholder = (field: Field) => {
   const at = translated(field);
   return (at && translationOf(props.values[field.id!], at).fallback?.text) || field.placeholder;
@@ -460,7 +442,6 @@ const objectOf = (field: Field) => ({ ...valuesOf(field.element ?? []), ...((pro
 const listOf = (field: Field) => (Array.isArray(props.values[field.id!]) ? (props.values[field.id!] as unknown[]) : []);
 const rowOf = (row: unknown) => (row && typeof row === "object" ? (row as Record<string, unknown>) : {});
 
-// a translatable label shows in the language edited
 const shownText = (value: unknown) => (props.translation && value && typeof value === "object" ? translationOf(value, props.translation).own ?? translationOf(value, props.translation).fallback?.text : value);
 function rowTitle(field: Field, row: unknown, index: number) {
   const byField = field.displayField ? shownText(pick(row, field.displayField)) : undefined;
@@ -490,21 +471,19 @@ function moveRow(field: Field, index: number, by: number) {
   openRow.value = undefined;
 }
 
-// a select whose options come from a request (e.g. the categories of the store, by GraphQL); one loader per field,
-// so the select doesn't reload whenever another field changes
+// One loader per field, so the select does not reload whenever another field changes.
 const loaders = new Map<Field, (keyword?: string, skip?: number, ids?: string[]) => Promise<{ results: NonNullable<Field["options"]>; totalCount: number }>>();
 function remoteOptions(field: Field) {
   if (!loaders.has(field)) loaders.set(field, createLoader(field));
   return loaders.get(field)!;
 }
-/** A schema's request with the context filled in; none when its URL isn't http(s) */
 async function schemaFetch(request: RemoteRequest, context: Record<string, unknown>): Promise<Response | undefined> {
   const target = schemaRequest(fill(request.url, context), window.location);
   if (!target) return undefined;
   const body = fill(request.body, context);
   return fetch(target.url, {
     method: (request.method ?? "get").toUpperCase(),
-    // the platform's API wants the user's token (a store's link lists, say); the theme's requests elsewhere go without it
+    // Only the platform's API gets the user's token; the theme's requests elsewhere go without it.
     headers: { ...(target.platform ? await getAuthHeaders() : {}), ...(body ? { "Content-Type": "application/json" } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   });
@@ -519,12 +498,11 @@ function createLoader(field: Field) {
     let results = requestResult(request, json) as Record<string, unknown>[] | undefined;
     results = Array.isArray(results) ? results : [];
     if (ids?.length) results = results.filter((x) => ids.includes(String(x[request.value ?? "value"])));
-    // rows keyed by request.label / request.value (option-label / option-value say which)
     return { results: results as unknown as NonNullable<Field["options"]>, totalCount: results.length };
   };
 }
 
-// a `search` field: its query runs once typing pauses; a later query wins over an answer still on its way
+// A later query wins over an answer still on its way.
 const searching = reactive(new Set<Field>());
 const searchFailed = reactive(new Set<Field>());
 const searchRuns = new Map<Field, number>();
@@ -568,19 +546,18 @@ async function search(field: SearchField, query: string | null) {
     set(field, null);
   } finally {
     if (searchRuns.get(field) === run) searching.delete(field);
-    // the query typed shows until the answer to it is in
     if (query !== null && typedQueries.get(field) === query) typedQueries.delete(field);
   }
 }
 </script>
 
 <style lang="scss" scoped>
-// the rich-text editor's header (formatting buttons, then view buttons) is wider than the settings panel: let it wrap
+// The rich-text editor's header is wider than the settings panel, so it has to wrap.
 :deep(.vc-editor__header) {
   flex-wrap: wrap;
 }
 
-// the rich-text toolbar's "Link to anchor" list, looking like the toolbar's buttons (VcEditor leaves it unstyled)
+// VcEditor leaves the "Link to anchor" list unstyled.
 :deep(.vc-editor-dropdown select) {
   max-width: 11rem;
   height: 2rem;
@@ -602,7 +579,6 @@ async function search(field: SearchField, query: string | null) {
   flex-direction: column;
   gap: 14px;
 
-  // the controls' labels at the rail's size (the framework's are 14px)
   :deep(.vc-label__content) {
     font-size: 13px;
   }
@@ -613,7 +589,6 @@ async function search(field: SearchField, query: string | null) {
     gap: 4px;
   }
 
-  // a group of settings, labelled as the tree labels its groups (HEADER, TEMPLATE…)
   &__header {
     margin: 10px 0 -4px;
     color: var(--neutrals-700);
@@ -634,7 +609,6 @@ async function search(field: SearchField, query: string | null) {
     }
   }
 
-  // the token's color in the theme's light palette; empty when the palette leaves it to the storefront's preset
   &__swatch {
     flex: none;
     width: 28px;
@@ -650,14 +624,12 @@ async function search(field: SearchField, query: string | null) {
     color: var(--warning-600);
   }
 
-  // under its control: the gap between fields is the next field's
   &__translation {
     margin: -10px 0 0;
     font-size: 12px;
     color: var(--neutrals-500);
   }
 
-  // what a search found
   &__found {
     margin: 0;
     padding: 8px;

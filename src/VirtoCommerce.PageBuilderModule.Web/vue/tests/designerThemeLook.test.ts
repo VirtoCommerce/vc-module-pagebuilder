@@ -19,14 +19,11 @@ import { brandField, isOverridden, itemField, menuField } from "../src/modules/d
 
 const look = (part: Partial<ThemeLook> = {}): ThemeLook => ({ brand: {}, light: {}, dark: {}, ...part });
 
-// ── brand and palette files ──────────────────────────────────────────────────
-
 test("the brand is the brand file's; a theme without one starts from the logos of its settings file", () => {
   const logos = { logo_image: "/l.svg", logo_inverted_image: "/d.svg", favicon_image: " ", other: "x" };
   const settingsData = { current: logos };
   assert.deepEqual(readBrand({ logoUrl: "/a.svg", secondaryLogoUrl: "", faviconUrl: "/f.ico", extra: 1 }, settingsData), { logoUrl: "/a.svg", faviconUrl: "/f.ico" });
   assert.deepEqual(readBrand(undefined, settingsData), { logoUrl: "/l.svg", secondaryLogoUrl: "/d.svg" });
-  // an empty brand file is a brand without logos, not a missing one
   assert.deepEqual(readBrand({}, settingsData), {});
   assert.deepEqual(readBrand([], undefined), {});
 });
@@ -55,9 +52,7 @@ test("Save writes the files of the parts changed: the brand without its empty fi
     { part: "brand", file: { path: "default/config/brand.json", content: { logoUrl: "/b.svg", faviconUrl: "/f.ico" } } },
     { part: "dark", file: { path: "default/config/palette.dark.json", content: { color_primary_500: "#222222" } } },
   ]);
-  // clearing every light color writes an empty palette: the theme then has none
   assert.deepEqual(lookFiles("default", look({ brand: saved.brand }), saved), [{ part: "light", file: { path: "default/config/palette.json", content: {} } }]);
-  // each part is saved as its theme part, which the history and Discard name
   assert.deepEqual(LOOK_FILES, { brand: "brand", light: "palette", dark: "darkPalette" });
   assert.deepEqual(brandFile({ logoUrl: "", secondaryLogoUrl: " /d.svg" }), { secondaryLogoUrl: "/d.svg" });
 });
@@ -68,19 +63,16 @@ test("the preview gets a brand with a logo, a palette only with light colors, it
   assert.deepEqual(lookDraft(look({ light: { a: "#111111" }, dark: { a: "#222222" } })), {
     palette: { light: { a: "#111111" }, dark: { a: "#222222" } },
   });
-  // a dark palette without a light one is not published, so the preview shows none either
+  // A dark palette without a light one is not published, so the preview shows none either.
   assert.deepEqual(lookDraft(look({ dark: { a: "#222222" } })), { palette: null });
 });
 
 test("a theme without a brand leaves the published one in the preview; without light colors it has no palette", () => {
-  // a store without white-labeling then keeps its published logo: an empty brand would hide it
+  // An empty brand would hide the published logo of a store without white-labeling.
   assert.deepEqual(lookDraft(look()), { palette: null });
   assert.deepEqual(lookDraft(look({ brand: { logoUrl: " ", secondaryLogoUrl: "" } })), { palette: null });
-  // the theme's own empty brand (a brand file, or logos cleared): no logos, not the published ones
   assert.deepEqual(lookDraft(look(), true), { brand: {}, palette: null });
 });
-
-// ── palette tokens ───────────────────────────────────────────────────────────
 
 test("tokens read as words, in families by their name without the shade", () => {
   assert.equal(tokenLabel("color_primary_500"), "Primary 500");
@@ -111,13 +103,10 @@ test("a color-token setting offers the light tokens with the theme's colors, and
     { value: "color_neutral_900", label: "Neutral 900" },
     { value: "color_primary_500", label: "Primary 500", color: "#f99e24" },
   ]);
-  // a hex typed before: shown, to be replaced by a token
   assert.deepEqual(tokenOptions(tokens, {}, "#ff0000")[0], { value: "#ff0000", label: "#ff0000", unknown: true });
   assert.equal(tokenOptions(tokens, {}, undefined).length, 2);
   assert.deepEqual(tokenOptions([], {}, undefined), []);
 });
-
-// ── store menus ──────────────────────────────────────────────────────────────
 
 test("a menu setting offers each store link list once by its name, with its languages", () => {
   assert.equal(storeMenusUrl("B2B store"), "/api/cms/B2B%20store/menu");
@@ -132,14 +121,12 @@ test("a menu setting offers each store link list once by its name, with its lang
     { value: "Footer", label: "Footer" },
     { value: "main menu", label: "main menu (de-DE, en-US)" },
   ]);
-  // the storefront matches names ignoring case: a value in another case is the list
+  // The storefront matches names ignoring case, so a value in another case is still the list.
   assert.equal(menuOptions(lists, "MAIN MENU").length, 2);
   assert.deepEqual(menuOptions(lists, "Gone")[0], { value: "Gone", label: "Gone", unknown: true });
-  // the Content module answers an empty body for a store without lists
+  // The Content module answers an empty body for a store without lists.
   assert.deepEqual(menuOptions(undefined), []);
 });
-
-// ── white-labeling ───────────────────────────────────────────────────────────
 
 test("a field white-labeling sets for the visitor is marked: the logos, the palette, the menus it replaces", () => {
   const overridden = ["brand.logoUrl", "palette", "menus.footer"];
@@ -148,18 +135,14 @@ test("a field white-labeling sets for the visitor is marked: the logos, the pale
   assert.equal(isOverridden(overridden, brandField("logoUrl")), true);
   assert.equal(isOverridden(overridden, brandField("faviconUrl")), false);
   assert.equal(isOverridden(overridden, "palette"), true);
-  // the footer links replace a footer-menu block whole, not only its menu
   assert.equal(isOverridden(overridden, itemField(footerMenu)), true);
   assert.equal(isOverridden(overridden, menuField(footerMenu, "menu")), false);
   assert.equal(isOverridden(overridden, menuField(header, "catalog_menu")), false);
-  // the main menu replaces the header's category menu only: the icons menu stays the theme's
   assert.equal(isOverridden(["menus.header"], menuField(header, "catalog_menu")), true);
   assert.equal(isOverridden(["menus.header"], menuField(header, "icons_menu")), false);
-  // another section of the header, or a menu of a footer section of its own, is the theme's
   assert.equal(isOverridden(["menus.header"], menuField({ ...header, type: "announcement-bar" }, "catalog_menu")), false);
   assert.equal(isOverridden(["menus.footer"], itemField({ ...footerMenu, kind: "section" })), false);
   assert.equal(isOverridden(["menus.header"], itemField(header)), false);
-  // a page's own section has no group: white-labeling does not replace its menus
   assert.equal(isOverridden([...overridden, "menus.header"], menuField(undefined, "catalog_menu")), false);
   assert.equal(isOverridden(overridden, itemField(undefined)), false);
   assert.equal(isOverridden(undefined, "palette"), false);

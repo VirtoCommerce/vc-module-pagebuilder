@@ -3,7 +3,6 @@ using Newtonsoft.Json;
 
 namespace VirtoCommerce.PageBuilderModule.Core.GitContent;
 
-/// <summary>GitHub App manifest of the one-click setup.</summary>
 public class GitHubAppManifest
 {
     [JsonProperty("name")]

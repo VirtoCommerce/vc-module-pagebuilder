@@ -89,8 +89,6 @@ public class RepositoryOwnershipConflictAttributeTests
         await Assert.ThrowsAsync<GitRepositoryOwnershipException>(() => controller.ConnectSite("s1", Ct));
     }
 
-    // ── helpers ────────────────────────────────────────────────────────────────────────────────
-
     private static ExceptionContext Context(Exception exception) =>
         new(new ActionContext(new DefaultHttpContext(), new RouteData(), new ActionDescriptor()), []) { Exception = exception };
 
@@ -103,6 +101,5 @@ public class RepositoryOwnershipConflictAttributeTests
         GraphQlUrl = new Uri("https://api.github.test/graphql"),
     });
 
-    // the store's repository in the organization is another store's
     private static GitContentPolicy Policy() => GitHubConnections.CreatePolicy(Options(), new FakeSettingsManager(true), new FakeGitContentOwnership("another-store"));
 }

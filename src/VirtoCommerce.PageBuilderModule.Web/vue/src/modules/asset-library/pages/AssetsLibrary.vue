@@ -5,7 +5,6 @@
 <script lang="ts" setup>
 import AssetsLibraryBlade from "../components/AssetsLibraryBlade.vue";
 
-// the standalone app's workspace; the Admin Shell UI opens the same body as PageBuilderAssets
 defineBlade({
   name: "AssetsLibrary",
   url: "/page-builder-assets",

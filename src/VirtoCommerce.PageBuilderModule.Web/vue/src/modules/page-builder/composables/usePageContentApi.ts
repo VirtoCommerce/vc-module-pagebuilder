@@ -15,7 +15,6 @@ export interface PageExportData {
   content: unknown;
 }
 
-/** The shell user's bearer token as a header, for raw fetch calls (the generated client can't do some of them). */
 export async function getAuthHeaders(): Promise<Record<string, string>> {
   const client = await getApiClient();
   const headers: Record<string, string> = {};
@@ -25,7 +24,6 @@ export async function getAuthHeaders(): Promise<Record<string, string>> {
   return headers;
 }
 
-/** Download page metadata + content as a single JSON file */
 export async function downloadPageContent(groupId: string, page: GroupedPageBuilderPage): Promise<void> {
   const headers = await getAuthHeaders();
   const url = `/api/page-builder-pages/grouped/${encodeURIComponent(groupId)}/content?draft=true`;
@@ -67,7 +65,6 @@ export async function downloadPageContent(groupId: string, page: GroupedPageBuil
   URL.revokeObjectURL(a.href);
 }
 
-/** Parse an imported JSON file into metadata + content */
 export async function parseImportFile(file: File): Promise<PageExportData> {
   const text = await file.text();
   const data = JSON.parse(text);

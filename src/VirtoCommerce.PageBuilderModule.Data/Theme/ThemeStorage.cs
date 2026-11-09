@@ -32,10 +32,9 @@ public class ThemeStorage(IBlobContentStorageProvider provider, IPublishingServi
 
     public string ThemeName { get; } = themeName;
 
-    /// <summary>Also taken by theme file saves.</summary>
     public static string GetLockResource(string storeId) => $"PageBuilder:Theme:{storeId}";
 
-    /// <summary>Whether the theme lock was lost, rather than the request cancelled: the lock's token is cancelled by either.</summary>
+    /// <summary>The lock's token is cancelled by either a lost lock or a cancelled request.</summary>
     public static bool IsLockLost(CancellationToken lockToken, CancellationToken requestToken) =>
         lockToken.IsCancellationRequested && !requestToken.IsCancellationRequested;
 
@@ -178,7 +177,6 @@ public class ThemeStorage(IBlobContentStorageProvider provider, IPublishingServi
             .ToList();
     }
 
-    /// <summary>Returns null when the content is missing or does not hold a <typeparamref name="T"/>.</summary>
     protected virtual T DeserializeJson<T>(string content) where T : class
     {
         if (content == null)

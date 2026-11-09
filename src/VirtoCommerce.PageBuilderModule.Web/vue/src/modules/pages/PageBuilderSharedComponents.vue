@@ -7,7 +7,6 @@ import { useBlade } from "@vc-shell/framework";
 import SharedComponentsBlade from "../shared-components/components/SharedComponentsBlade.vue";
 import { useUrlParams } from "../page-builder/composables";
 
-// a store's Shared Components (param = store id); the standalone app has it as the SharedComponents workspace
 defineBlade({
   name: "PageBuilderSharedComponents",
   url: "/page-builder-shared-components",

@@ -194,7 +194,6 @@ public class ThemePublisher(
         return source;
     }
 
-    /// <summary>Gets the files a publication reads: the theme's own files and every template.</summary>
     protected virtual async Task<IList<string>> GetThemeFilesAsync(IThemeStorage storage)
     {
         var templateKeys = await GetTemplateKeysAsync(storage);
@@ -202,7 +201,6 @@ public class ThemePublisher(
         return ThemeParts.Keys.Concat(templateKeys.Select(x => $"{ThemeStorage.TemplatesFolder}/{x}{JsonExtension}")).ToList();
     }
 
-    /// <summary>Puts a file into the source by its path in the theme; a file that is no part of the theme is left out.</summary>
     protected virtual void AddThemeFile(ThemeSource source, string file, JToken content)
     {
         if (ThemeParts.TryGetValue(file, out var setPart))
@@ -215,7 +213,6 @@ public class ThemePublisher(
         }
     }
 
-    /// <summary>Gets the template key of a file in the templates folder; null for any other file.</summary>
     protected virtual string GetTemplateKey(string file)
     {
         var folder = ThemeStorage.TemplatesFolder + "/";
@@ -237,7 +234,6 @@ public class ThemePublisher(
         return drafts;
     }
 
-    /// <summary>The drafts with no live file.</summary>
     protected virtual async Task<IList<string>> GetNewDraftsAsync(IThemeStorage storage, IEnumerable<string> drafts)
     {
         var newDrafts = new List<string>();
@@ -252,7 +248,6 @@ public class ThemePublisher(
         return newDrafts;
     }
 
-    /// <summary>Reads the draft when there is one, otherwise the live file.</summary>
     protected virtual async Task<JToken> ReadThemeFileAsync(IThemeStorage storage, ThemeSource source, string file, bool includeDrafts)
     {
         var draft = includeDrafts ? await storage.ReadAsync(storage.GetDraftPath(file)) : null;
@@ -289,7 +284,7 @@ public class ThemePublisher(
             .ToList();
     }
 
-    /// <summary>Writes each draft over its live file, adding the live file as it was to <paramref name="replaced"/> before writing it.</summary>
+    /// <summary>Adds each live file to <paramref name="replaced"/> before writing over it, so a failure can put it back.</summary>
     protected virtual async Task WriteLiveFilesAsync(IThemeStorage storage, IDictionary<string, string> drafts, IList<LiveFile> replaced, CancellationToken cancellationToken)
     {
         foreach (var (file, content) in drafts)
@@ -300,7 +295,6 @@ public class ThemePublisher(
         }
     }
 
-    /// <summary>Puts the live files back as they were, the last written first.</summary>
     protected virtual async Task RestoreLiveFilesAsync(string storeId, IThemeStorage storage, IList<LiveFile> files)
     {
         foreach (var file in files.Reverse())
@@ -324,7 +318,7 @@ public class ThemePublisher(
         }
     }
 
-    /// <summary>Removes the drafts of a current publication. A draft left behind holds what is live, so a failure does not fail the publication.</summary>
+    /// <summary>A draft left behind holds what is live, so a failure does not fail the publication.</summary>
     protected virtual async Task RemoveDraftsAsync(string storeId, IThemeStorage storage, ICollection<string> files)
     {
         if (files.Count == 0)
@@ -403,6 +397,5 @@ public class ThemePublisher(
         }
     }
 
-    /// <summary>A live theme file as it was before the publication wrote its draft over it; null content when there was none.</summary>
     protected sealed record LiveFile(string File, string Content);
 }

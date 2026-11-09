@@ -30,7 +30,6 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
 
     private static readonly Regex TemplateKeyPattern = new("^(product|category|page)(\\.[a-z0-9]+(?:-[a-z0-9]+)*)?$", RegexOptions.None, TimeSpan.FromSeconds(1));
 
-    // A culture name of BCP-47 shape: en, en-US, sr-Latn-RS.
     private static readonly Regex CultureNamePattern = new("^[a-z]{2,3}(-[a-z0-9]{2,8})*$", RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
 
     // A dictionary has a culture name with a subtag, so that a row such as { "sku": "X1" } stays a row.
@@ -178,7 +177,6 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
         return result;
     }
 
-    /// <summary>Normalizes the template rules: assigns missing rule ids, and takes the default rules of a page type the file does not list.</summary>
     protected virtual ThemeTemplateRules GetTemplateRules(JToken rules)
     {
         var source = rules as JObject ?? new JObject();
@@ -232,7 +230,6 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
         return result;
     }
 
-    /// <summary>Whether the storefront reads the rule: it has a template and its conditions, if any, are an object.</summary>
     protected virtual bool IsTemplateRule(JObject rule)
     {
         return rule["template"]?.Type == JTokenType.String && rule["when"] is null or JObject;
@@ -267,10 +264,6 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
             && dictionary.Properties().All(x => CultureNamePattern.IsMatch(x.Name) && x.Value.Type == JTokenType.String);
     }
 
-    /// <summary>
-    /// The text of the language, culture names compared ignoring case: the exact culture, else its language part
-    /// (<c>de</c> for <c>de-AT</c>), else a culture of that language, else the store default language, else the first text.
-    /// </summary>
     protected virtual string GetTranslation(JObject dictionary, string language, string defaultLanguage)
     {
         var languagePart = GetLanguagePart(language);
@@ -425,7 +418,7 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
 
             if (type == ModuleConstants.SharedComponents.ReferenceType)
             {
-                // A first publication removes shared components instead of failing.
+                // A first publication checks the shape only and removes shared components without failing.
                 if (catalog != null)
                 {
                     errors.Add($"{file}: '{id}' places a shared component, which only a page can hold");
@@ -471,10 +464,6 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
         });
     }
 
-    /// <summary>
-    /// Why the storefront can't use the value of a field with a closed set of values: a <c>color-token</c> holds a palette
-    /// token the catalog announces, a <c>select</c> one of its options (each of them, when <c>multiple</c>). Null when it can.
-    /// </summary>
     protected virtual string GetValueError(JObject field, JToken value, string path, JObject catalog)
     {
         var type = GetString(field, "type");
@@ -497,7 +486,6 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
         return bad == null ? null : $"has a value in '{path}' the storefront does not have, {DescribeValue(bad)}";
     }
 
-    /// <summary>The palette tokens the catalog announces, light and dark; null when it announces none.</summary>
     protected virtual IList<JToken> GetPaletteTokens(JObject catalog)
     {
         if (catalog?[PaletteTokensKey] is not JObject tokens)
@@ -571,7 +559,6 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
         });
     }
 
-    /// <summary>Visits each field's value, and the fields of a list's rows or of an object; the path names the field, a row by its index.</summary>
     private static void VisitValues(JObject values, IList<JObject> fields, string path, Action<JObject, JToken, string> visit)
     {
         foreach (var field in fields)

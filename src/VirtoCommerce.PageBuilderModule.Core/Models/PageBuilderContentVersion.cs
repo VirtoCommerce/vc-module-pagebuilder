@@ -29,7 +29,6 @@ public static class PageBuilderContentVersion
         return CreateFromContentHash(group, HashContent(content));
     }
 
-    /// <summary>A theme file's version: of its content in the store's theme file at the path; a file that does not exist (null) has its own.</summary>
     public static string CreateForThemeFile(string storeId, string path, string content)
     {
         return Hash(new

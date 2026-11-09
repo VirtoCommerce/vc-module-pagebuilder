@@ -46,7 +46,6 @@ public class ContentPermissionService(IAuthorizationService authorizationService
         return authorizationResult.Succeeded && group.StoreId.EqualsIgnoreCase(storeId);
     }
 
-    /// <summary>A template or the template rules: the files the templates permission edits.</summary>
     protected virtual bool IsTemplateFile(string path)
     {
         var pathInTheme = PageBuilderContentPaths.GetPathInTheme(path);

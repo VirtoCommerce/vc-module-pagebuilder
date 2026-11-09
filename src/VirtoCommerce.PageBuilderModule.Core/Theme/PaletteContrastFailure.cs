@@ -1,9 +1,7 @@
 namespace VirtoCommerce.PageBuilderModule.Core.Theme;
 
-/// <summary>A contrast pair below its minimum ratio.</summary>
 public class PaletteContrastFailure
 {
-    /// <summary><c>light</c> or <c>dark</c>.</summary>
     public string Scheme { get; set; }
 
     public string Pair { get; set; }

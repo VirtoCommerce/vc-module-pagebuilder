@@ -55,7 +55,6 @@
 </template>
 
 <script setup lang="ts">
-// Several images or files: a list of URLs. An item saved as an asset object is shown by its url and stays as it is until replaced.
 import { computed, inject } from "vue";
 import { VcButton, VcHint } from "@vc-shell/framework/ui";
 import { isRecord } from "../json";

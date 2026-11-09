@@ -67,7 +67,6 @@
           :class="{ 'pd-tree__badge--missing': designer.components.get(section.componentRef) === null }"
           >{{ $t(designer.components.get(section.componentRef) === null ? "PAGE_BUILDER.DESIGNER.MISSING" : "PAGE_BUILDER.DESIGNER.SHARED") }}</span
         >
-        <!-- the open template's main section stays shown -->
         <button
           v-else
           type="button"
@@ -109,7 +108,6 @@
               class="pd-tree__icon"
             />
             <span class="pd-tree__name">{{ itemTitle(block, designer.blockSchema(block.type)) }}</span>
-            <!-- as in Shopify's tree: a block goes in one click (Undo brings it back) -->
             <button
               type="button"
               class="pd-tree__eye"
@@ -175,8 +173,6 @@
 </template>
 
 <script setup lang="ts">
-// One list of the tree: the page's sections, or a section group's (the header's, the footer's). Each row has its
-// blocks and "Add block"; drag a row by its handle to reorder (within this list).
 import { nextTick, reactive, ref, useTemplateRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useSortable } from "@vueuse/integrations/useSortable";
@@ -189,9 +185,7 @@ import { isComponentRef } from "../document";
 const props = defineProps<{
   designer: Designer;
   sections: Item[];
-  /** where the list's first section is in the document (the sections before it are the other lists') */
   offset: number;
-  /** select mode: checkboxes instead of handles */
   selecting?: boolean;
 }>();
 const emit = defineEmits<{ hover: [sectionId: string | null] }>();
@@ -214,7 +208,7 @@ const blockTypes = (section: Item) =>
     .map((type) => ({ type, schema: props.designer.blockSchema(type) ?? { name: type } }))
     .filter((x) => !x.schema.hidden);
 
-// the menu closes on a pick (it stays open on its own and covers the rows below)
+// The menu stays open on its own and would cover the rows below.
 function addBlock(sectionId: string, type: string) {
   blockMenu.value = undefined;
   props.designer.addBlock(sectionId, type);
@@ -229,7 +223,6 @@ function select(sel: Selection) {
   props.designer.selection.value = sel;
 }
 
-// a selected block's section opens; a new section with blocks too
 watch(
   () => props.designer.selection.value,
   (sel) => {
@@ -237,7 +230,7 @@ watch(
   },
 );
 
-// drag sections by their handle; Sortable moves the DOM, the document is the truth: put the DOM back and move the data
+// Sortable moves the DOM but the document is the source of truth, so put the DOM back and move the data.
 const list = useTemplateRef<HTMLElement>("list");
 useSortable(list, [], {
   handle: ".pd-tree__handle",

@@ -9,7 +9,6 @@ using VirtoCommerce.Platform.Core.Common;
 
 namespace VirtoCommerce.PageBuilderModule.Data.GitContent;
 
-/// <summary>Creates, takes over, archives and unarchives the repositories of the sites in the organization, over the GitHub API.</summary>
 public class GitHubContentProvisioner(
     IGitHubApiClient gitHubApiClient,
     IGitHubConnectionService gitHubConnectionService,
@@ -51,7 +50,6 @@ public class GitHubContentProvisioner(
 
             if (repositoryInfo == null && storeRepository?.Source == GitRepositorySource.Site)
             {
-                // not created yet: check that the organization is reachable
                 await EnsureOrganizationReachableAsync(connection.Organization, cancellationToken);
             }
 
@@ -155,7 +153,6 @@ public class GitHubContentProvisioner(
         logger.LogInformation("Store {StoreId} was deleted; its repository {Repository} is archived.", storeId, repository);
     }
 
-    /// <summary>Creates the store repository: private, with a first commit, without issues, projects and wiki.</summary>
     protected virtual async Task<GitHubRepositoryInfo> CreateRepositoryAsync(string repository, string storeId, CancellationToken cancellationToken)
     {
         var settings = new JObject
@@ -173,7 +170,7 @@ public class GitHubContentProvisioner(
         var repositoryInfo = await gitHubApiClient.CreateRepositoryAsync(repository, settings, cancellationToken);
         if (repositoryInfo == null)
         {
-            // created concurrently
+            // another request created it first
             return await gitHubApiClient.GetRepositoryAsync(repository, cancellationToken)
                    ?? throw new GitContentException($"GitHub reports \"{repository}\" exists but does not show it.");
         }
@@ -182,7 +179,6 @@ public class GitHubContentProvisioner(
         return repositoryInfo;
     }
 
-    /// <summary>Marks an existing repository as the store's and brings it back from the archive.</summary>
     protected virtual async Task AdoptRepositoryAsync(string repository, GitHubRepositoryInfo repositoryInfo, string storeId, CancellationToken cancellationToken)
     {
         var changes = new JObject();
@@ -203,7 +199,6 @@ public class GitHubContentProvisioner(
         }
     }
 
-    /// <summary>Creates the base branch from the default one, and the release branch from the base one.</summary>
     protected virtual async Task CreateBranchesAsync(string repository, string defaultBranch, string baseBranch, CancellationToken cancellationToken)
     {
         await WaitForBranchAsync(repository, defaultBranch, cancellationToken);
@@ -219,7 +214,6 @@ public class GitHubContentProvisioner(
         }
     }
 
-    /// <summary>Waits for the first commit of a new repository.</summary>
     protected virtual async Task WaitForBranchAsync(string repository, string branch, CancellationToken cancellationToken)
     {
         for (var attempt = 0; attempt < BranchWaitAttempts; attempt++)

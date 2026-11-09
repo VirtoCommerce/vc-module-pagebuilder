@@ -3,7 +3,6 @@ using VirtoCommerce.PageBuilderModule.Core.Models;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Validation;
 
-/// <summary>The shape of a designer discard. The paths are checked as every content request's are.</summary>
 public class DesignerDiscardRequestValidator : AbstractValidator<DesignerDiscardRequest>
 {
     public DesignerDiscardRequestValidator(IValidator<DesignerSavePage> pageValidator)

@@ -4,15 +4,11 @@ import { PageBuilderPageClient, PermalinkUsageRequest } from "../../../../api_cl
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
 
-/**
- * Two active pages with the same permalink and language make the storefront serve only one of them,
- * so saving such a page asks for confirmation instead of failing.
- */
+/** Two active pages with the same permalink and language make the storefront serve only one, so a save asks for confirmation. */
 export function usePermalinkUsage() {
   const { t } = useI18n({ useScope: "global" });
   const { showConfirmation } = usePopup();
 
-  /** @returns whether to go on with the save. */
   async function confirmPermalinkUsage(request: PermalinkUsageRequest): Promise<boolean> {
     if (!request.storeId || !request.permalink) {
       return true;

@@ -62,7 +62,6 @@ public class GitContentSetupController(
         </html>
         """;
 
-    /// <summary>Get git content status of the store</summary>
     [HttpGet]
     [Route("site")]
     public async Task<ActionResult<GitContentSiteStatus>> GetSite(string storeId, CancellationToken cancellationToken = default)
@@ -75,7 +74,6 @@ public class GitContentSetupController(
         return Ok(await gitContentSetupService.GetSiteStatusAsync(storeId, cancellationToken));
     }
 
-    /// <summary>Enable git content for the store</summary>
     [HttpPost]
     [Route("site/connect")]
     public async Task<ActionResult<GitContentSiteStatus>> ConnectSite(string storeId, CancellationToken cancellationToken = default)
@@ -98,7 +96,6 @@ public class GitContentSetupController(
         return Ok(await gitContentSetupService.GetSiteStatusAsync(storeId, cancellationToken));
     }
 
-    /// <summary>Disable git content for the store</summary>
     [HttpPost]
     [Route("site/disconnect")]
     public async Task<ActionResult<GitContentSiteStatus>> DisconnectSite(string storeId, CancellationToken cancellationToken = default)
@@ -114,8 +111,6 @@ public class GitContentSetupController(
         return Ok(await gitContentSetupService.GetSiteStatusAsync(storeId, cancellationToken));
     }
 
-    /// <summary>Get GitHub connection status</summary>
-    /// <param name="live">Check the connection on GitHub and list the sites</param>
     [HttpGet]
     [Route("connection")]
     public async Task<ActionResult<GitContentConnectionStatus>> GetConnection([FromQuery] bool live = true, CancellationToken cancellationToken = default)
@@ -137,7 +132,6 @@ public class GitContentSetupController(
         return Ok(status);
     }
 
-    /// <summary>Start GitHub App setup for the organization</summary>
     [HttpGet]
     [Route("app/setup")]
     [Authorize(PlatformConstants.Security.Permissions.SettingUpdate)]
@@ -160,7 +154,7 @@ public class GitContentSetupController(
         return Ok(result);
     }
 
-    /// <summary>Post the GitHub App manifest (anonymous: opened in a new tab, authorized by the state)</summary>
+    /// <summary>Anonymous: opened in a new tab, authorized by the state</summary>
     [HttpGet]
     [Route("app/new")]
     [AllowAnonymous]
@@ -190,7 +184,6 @@ public class GitContentSetupController(
         return Content(page, "text/html; charset=utf-8");
     }
 
-    /// <summary>GitHub App created callback</summary>
     [HttpGet]
     [Route("app/created")]
     [AllowAnonymous]
@@ -224,7 +217,6 @@ public class GitContentSetupController(
         return Redirect(await gitContentSetupService.GetAppInstallUrlAsync(app, cancellationToken));
     }
 
-    /// <summary>GitHub App installed callback</summary>
     [HttpGet]
     [Route("app/installed")]
     [AllowAnonymous]

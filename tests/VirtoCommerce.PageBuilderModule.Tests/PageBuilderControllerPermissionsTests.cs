@@ -14,7 +14,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
     /// </summary>
     public class PageBuilderControllerPermissionsTests
     {
-        // no policy: builder:read, which can be scoped to stores, is checked in the action with the store
+        // builder:read can be scoped to stores, so it has no policy here and is checked in the action with the store.
         private static readonly Dictionary<string, string[]> Expected = new()
         {
             { nameof(PageBuilderController.GetTemplate), [] },
@@ -25,7 +25,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             { nameof(PageBuilderController.GetSchemasCatalog), [] },
             { nameof(PageBuilderController.GetSchemaByKey), [] },
             { nameof(PageBuilderController.Search), [] },
-            // and the permission that edits each theme file, in the action
             { nameof(PageBuilderController.SaveTemplates), [Permissions.Update] },
             { nameof(PageBuilderController.GetDesignerThemeFile), [] },
             { nameof(PageBuilderController.SaveDesignerChanges), [Permissions.Update] },

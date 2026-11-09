@@ -174,8 +174,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             options.Validate();
         }
 
-        // ── one repository per site ──────────────────────────────────────────────────────────────────
-
         private static GitContentOptions PerSite() => new()
         {
             Enabled = true,
@@ -223,7 +221,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [Fact]
         public async Task IsEnabledForStoreAsync_StoreOnWithMalformedSetting_Throws()
         {
-            // treating it as off would send the store's publications straight to production
+            // Treating it as off would send the store's publications straight to production.
             var policy = Policy(PerSite(), new FakeSettingsManager(value: true, repository: "https://github.com/acme/website"));
 
             await Assert.ThrowsAsync<GitContentException>(() => policy.IsEnabledForStoreAsync("b2b-store", TestContext.Current.CancellationToken));
@@ -255,13 +253,12 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var configuration = new ConfigurationBuilder()
                 .AddInMemoryCollection(new Dictionary<string, string> { [$"{GitContentOptions.SectionName}:Enabled"] = "false" })
                 .Build();
-            // a null settings manager would throw if the policy consulted it
+            // A null settings manager would throw if the policy consulted it.
             var policy = AppPolicy(storeSettings: null, configuration);
 
             Assert.False(await policy.IsEnabledForStoreAsync("b2b-store", TestContext.Current.CancellationToken));
         }
 
-        // the one-click App connection, whose saved setting the database does not return
         private static GitContentPolicy AppPolicy(ISettingsManager storeSettings, IConfiguration configuration = null)
         {
             var options = new GitContentOptions();
@@ -274,7 +271,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [Fact]
         public async Task GetRepositoryAsync_RepositoryOfAnotherStore_ThrowsOwnershipException()
         {
-            // "B2B Store" and "b2b-store" name the same repository
+            // "B2B Store" and "b2b-store" are different stores that name the same repository.
             var policy = Policy(PerSite(), new FakeSettingsManager(value: true), new FakeGitContentOwnership("b2b-store"));
 
             await Assert.ThrowsAsync<GitRepositoryOwnershipException>(() => policy.GetRepositoryAsync("B2B Store", TestContext.Current.CancellationToken));
@@ -346,7 +343,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [InlineData("acme/website/contents")]
         public async Task GetConfiguredRepositoryAsync_SettingNotOwnerAndName_Throws(string configured)
         {
-            // the setting ends up in API urls, and is never replaced by the computed name
+            // The setting ends up in API urls and is never replaced by the computed name.
             await Assert.ThrowsAsync<GitContentException>(() =>
                 Policy(PerSite(), settings: null).GetConfiguredRepositoryAsync("b2b-store", configured, TestContext.Current.CancellationToken));
         }

@@ -4,7 +4,6 @@ using VirtoCommerce.PageBuilderModule.Core.GitContent;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 
-/// <summary>Returns 409 Conflict for <see cref="GitRepositoryOwnershipException"/>.</summary>
 public sealed class RepositoryOwnershipConflictAttribute : ExceptionFilterAttribute
 {
     public override void OnException(ExceptionContext context)

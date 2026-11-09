@@ -22,7 +22,6 @@ using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Data.GitContent;
 
-/// <summary>History of database pages and theme files in the repository the module created for the store: a version is a commit.</summary>
 public class GitHubSiteHistory(
     IGitContentPolicy gitContentPolicy,
     IGitContentRepository gitContentRepository,
@@ -176,7 +175,6 @@ public class GitHubSiteHistory(
         return repository == null ? null : await gitContentRepository.ReadFileAsync(repository, path, sha, cancellationToken);
     }
 
-    /// <summary>Computes the git blob id of the content.</summary>
     public static string ComputeBlobOid(string content)
     {
         if (content == null)
@@ -191,7 +189,6 @@ public class GitHubSiteHistory(
 #pragma warning restore CA5350
     }
 
-    /// <summary>Gets the store repository when it keeps the history.</summary>
     protected virtual async Task<string> GetHistoryRepositoryAsync(string storeId, CancellationToken cancellationToken)
     {
         return await GetStatusAsync(storeId, cancellationToken) == ContentHistoryStatus.Enabled
@@ -199,7 +196,6 @@ public class GitHubSiteHistory(
             : null;
     }
 
-    /// <summary>Gets the file of the item in the repository; <c>null</c> for an item the history does not keep.</summary>
     protected virtual string GetFilePath(HistoryItem item) => item?.Type switch
     {
         HistoryItemType.Page when PageBuilderContentPaths.IsFolderName(item.Key) => $"{PagesFolder}/{item.Key}.json",
@@ -221,7 +217,7 @@ public class GitHubSiteHistory(
         return files;
     }
 
-    /// <summary>Commits the files to the branch as one commit. Returns its sha; <c>null</c> when no file changed.</summary>
+    /// <summary>Returns the commit sha; <c>null</c> when no file changed.</summary>
     protected virtual async Task<string> CommitFilesAsync(string storeId, string repository, string branch, IDictionary<string, string> files, string message,
         GitCommitAuthor author, CancellationToken cancellationToken)
     {
@@ -268,7 +264,6 @@ public class GitHubSiteHistory(
         return author;
     }
 
-    /// <summary>Gets the content the site shows: the published page, the live theme file.</summary>
     protected virtual async Task<string> GetLiveContentAsync(string storeId, HistoryItem item, CancellationToken cancellationToken)
     {
         if (item.Type == HistoryItemType.Page)
@@ -281,7 +276,6 @@ public class GitHubSiteHistory(
         return await themeStorageFactory.Open(storeId, PageBuilderContentPaths.GetThemeName(item.Key)).ReadAsync(PageBuilderContentPaths.GetPathInTheme(item.Key));
     }
 
-    /// <summary>Reads the histories of the files in one request, from the head of the branch or from the commit a first page read.</summary>
     protected virtual Task<JObject> QueryHistoriesAsync(string repository, string branch, string head, IList<HistorySource> sources, int take,
         CancellationToken cancellationToken)
     {
@@ -325,10 +319,7 @@ public class GitHubSiteHistory(
         return gitHubApiClient.PostGraphQlAsync(options.Value.GraphQlUrl, owner, request, $"read the history of \"{repository}\"", cancellationToken);
     }
 
-    /// <summary>
-    /// Merges the files' histories into versions, newest first: a commit is one version listing the files it changed. Stops where a
-    /// file has older changes not read yet.
-    /// </summary>
+    /// <summary>Stops where a file has older changes not read yet.</summary>
     protected virtual IList<ContentVersion> MergeVersions(IList<HistorySource> sources, int take)
     {
         var versions = new List<ContentVersion>();
@@ -389,7 +380,6 @@ public class GitHubSiteHistory(
 
     protected virtual string GetVersionId(string sha) => Base64Url.EncodeToString(Convert.FromHexString(sha));
 
-    /// <summary>Gets the commit a version id names; <c>null</c> for anything but a version id.</summary>
     protected virtual string GetCommitSha(string versionId)
     {
         if (!PageBuilderContentPaths.IsHistoryVersionId(versionId))
@@ -408,7 +398,6 @@ public class GitHubSiteHistory(
         }
     }
 
-    /// <exception cref="ArgumentException">The cursor is not one this history wrote.</exception>
     protected virtual HistoryCursor ReadCursor(string cursor)
     {
         if (string.IsNullOrEmpty(cursor))
@@ -426,7 +415,6 @@ public class GitHubSiteHistory(
         }
     }
 
-    /// <summary>Writes where each file's history continues; <c>null</c> when every one is read to the end.</summary>
     protected virtual string WriteCursor(string head, IDictionary<string, HistoryPosition> positions, IList<HistorySource> sources)
     {
         foreach (var source in sources)
@@ -446,10 +434,7 @@ public class GitHubSiteHistory(
             : _cursorProtector.Protect(JsonConvert.SerializeObject(new HistoryCursor { Head = head, Positions = new Dictionary<string, HistoryPosition>(positions, StringComparer.Ordinal) }));
     }
 
-    /// <summary>
-    /// Names a file's position in the cursor by a short hash of its path, so the cursor's length does not grow with the paths:
-    /// the request validator caps it.
-    /// </summary>
+    /// <summary>A short hash of the path, so the cursor's length does not grow with the paths: the request validator caps it.</summary>
     protected virtual string GetPositionKey(string path) =>
         Base64Url.EncodeToString(SHA256.HashData(Encoding.UTF8.GetBytes(path)).AsSpan(0, PositionKeyBytes));
 
@@ -466,7 +451,6 @@ public class GitHubSiteHistory(
         source.Read++;
     }
 
-    /// <summary>Where the listing continues: the commit its first page read, and each file's position in that commit's history.</summary>
     protected class HistoryCursor
     {
         [JsonProperty("h")]
@@ -476,7 +460,6 @@ public class GitHubSiteHistory(
         public Dictionary<string, HistoryPosition> Positions { get; set; } = new(StringComparer.Ordinal);
     }
 
-    /// <summary>Where a file's history continues.</summary>
     protected class HistoryPosition
     {
         [JsonProperty("a")]
@@ -492,7 +475,6 @@ public class GitHubSiteHistory(
         public bool Done { get; set; }
     }
 
-    /// <summary>A file's history as far as it is read.</summary>
     protected class HistorySource(HistoryItem item, string path, HistoryPosition position)
     {
         public HistoryItem Item { get; } = item;

@@ -6,7 +6,6 @@ public static class ColorContrast
     public static double GetRelativeLuminance(PaletteColor color) =>
         (0.2126 * Linearize(color.R)) + (0.7152 * Linearize(color.G)) + (0.0722 * Linearize(color.B));
 
-    /// <summary>From 1 (the same luminance) to 21 (black on white).</summary>
     public static double GetContrastRatio(PaletteColor first, PaletteColor second)
     {
         var firstLuminance = GetRelativeLuminance(first);

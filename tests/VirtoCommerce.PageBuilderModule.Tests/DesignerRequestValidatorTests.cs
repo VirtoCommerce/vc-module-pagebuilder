@@ -30,7 +30,7 @@ public class DesignerRequestValidatorTests
     public static TheoryData<string, DesignerSaveRequest> ValidSaves => new()
     {
         { "a database page", Save(new DesignerSavePage { GroupId = "g1", Content = Envelope, ETag = $" {Version} " }) },
-        // its version is required where the save is made (428)
+        // The save itself requires the version and answers 428.
         { "a database page without its version", Save(new DesignerSavePage { GroupId = "g1", Content = Envelope }) },
         { "a file page", Save(new DesignerSavePage { Path = "home.page", Type = "pages", Content = "{}" }) },
         { "theme files", new DesignerSaveRequest { ThemeFiles = [File(Header, Version), File("default/templates/product.json")] } },

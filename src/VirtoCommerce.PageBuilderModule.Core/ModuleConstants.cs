@@ -54,13 +54,11 @@ namespace VirtoCommerce.PageBuilderModule.Core
             public const string DiscardedSummary = "Discarded unpublished changes";
             public const string RestoredSummary = "Restored";
 
-            /// <summary>Characters of the version id a restored version is named by.</summary>
             public const int RestoredVersionLength = 7;
         }
 
         public static class Headers
         {
-            /// <summary>Id of the designer save a request belongs to.</summary>
             public const string SaveId = "X-PageBuilder-Save";
         }
 
@@ -255,11 +253,7 @@ namespace VirtoCommerce.PageBuilderModule.Core
                     DefaultValue = "",
                 };
 
-                /// <summary>
-                /// Moves the store to the new Page Builder: its pages open in the Vue designer and the storefront reads
-                /// the published theme snapshot. Off by default: the store keeps the Angular designer and the storefront
-                /// works as before. Public, so the storefront sees it in the store's module settings.
-                /// </summary>
+                /// <summary>Public, so the storefront sees it in the store's module settings.</summary>
                 public static SettingDescriptor NewPageBuilder { get; } = new()
                 {
                     Name = "VirtoCommerce.PageBuilderModule.Store.NewPageBuilder",
@@ -283,7 +277,7 @@ namespace VirtoCommerce.PageBuilderModule.Core
 
             public static class GitHub
             {
-                /// <summary>GitHub App of the one-click setup, encrypted with the data protection keys.</summary>
+                /// <summary>Encrypted with the data protection keys.</summary>
                 public static SettingDescriptor AppConnection { get; } = new()
                 {
                     Name = "VirtoCommerce.PageBuilderModule.GitHub.AppConnection",

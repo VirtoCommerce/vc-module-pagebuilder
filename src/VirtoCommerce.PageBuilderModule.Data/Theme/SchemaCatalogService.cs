@@ -11,8 +11,6 @@ public class SchemaCatalogService(IThemeStorageFactory themeStorageFactory) : IS
 {
     private const string HashProperty = "hash";
 
-    // The hash is used as a file name.
-
     private static readonly string[] SchemaKinds =
     [
         ModuleConstants.SchemaKinds.Sections,
@@ -49,7 +47,7 @@ public class SchemaCatalogService(IThemeStorageFactory themeStorageFactory) : IS
         return IsValidHash(hash) ? await ReadCatalogAsync(storage, hash) : null;
     }
 
-    /// <summary>The stored catalog; null for none and for a file cut off mid-write, which the next upload of the hash then replaces.</summary>
+    /// <summary>Null for none and for a file cut off mid-write, which the next upload of the hash then replaces.</summary>
     protected virtual async Task<string> ReadCatalogAsync(IThemeStorage storage, string hash)
     {
         var catalog = await storage.ReadAsync(GetCatalogPath(hash));
@@ -71,7 +69,6 @@ public class SchemaCatalogService(IThemeStorageFactory themeStorageFactory) : IS
 
     protected virtual bool IsValidHash(string hash) => PageBuilderContentPaths.IsCatalogHash(hash);
 
-    /// <summary>Throws <see cref="ArgumentException"/> for a catalog without a valid hash or with a malformed schema map.</summary>
     protected virtual JObject ParseCatalog(string catalogJson)
     {
         JObject catalog;

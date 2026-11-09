@@ -96,21 +96,15 @@
 </template>
 
 <script setup lang="ts">
-// The canvas bar's switcher, as Shopify's theme editor has it: the page being designed, then each page type's
-// templates (Default and its alternates) and "Create template". Picking one opens it in this designer.
 import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { VcDropdown, VcIcon } from "@vc-shell/framework/ui";
 import { PAGE_TYPES, alternateName, pageTypeOf, type PageType } from "../templates";
 
 const props = defineProps<{
-  /** the template open, or null for the page */
   current: string | null;
-  /** the page the designer was opened with (none: a template was) */
   page?: string;
-  /** the theme's templates */
   keys: string[];
-  /** how many rules pick each template */
   ruleCount: (key: string) => number;
   disabled?: boolean;
 }>();
@@ -126,7 +120,7 @@ const TYPE_LABELS: Record<PageType, string> = {
 };
 const TYPE_ICONS: Record<PageType, string> = { product: "lucide-package", category: "lucide-layout-grid", page: "lucide-layout-template" };
 
-/** a type's templates: its default (there even without a file: the site's built-in one), then its alternates */
+/** The default is listed even without a file, because the site has a built-in one. */
 const keysOf = (type: PageType) => [type, ...props.keys.filter((key) => key !== type && pageTypeOf(key) === type)];
 const nameOf = (key: string) => (key.includes(".") ? alternateName(key) : t("PAGE_BUILDER.DESIGNER.TEMPLATES.DEFAULT"));
 
@@ -138,7 +132,7 @@ function pick(key: string | null, close: () => void) {
 
 <style lang="scss" scoped>
 .pd-switch {
-  // VcDropdown fills its row by default
+  // VcDropdown fills its row by default.
   flex: none;
   width: auto;
 

@@ -39,7 +39,7 @@ public class GitHubContentOwnershipTests
     [Fact]
     public async Task GetStoreIdAsync_UnownedRepository_ExpiresSoonerThanOwnedOne()
     {
-        // the module may adopt an unowned repository on another server at any moment
+        // The module may adopt an unowned repository on another server at any moment.
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => Repository("Our web site")),
             ("GET", $"repos/{Repo}", (_, _) => Repository(GitHubContentOwnership.DescriptionPrefix + "s1")));
@@ -58,7 +58,7 @@ public class GitHubContentOwnershipTests
     [Fact]
     public async Task GetStoreIdAsync_NameInOtherCase_SharesCacheEntry()
     {
-        // GitHub repository names are case-insensitive
+        // GitHub repository names are case-insensitive.
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => Repository(GitHubContentOwnership.DescriptionPrefix + "s1")),
             ("GET", $"repos/{Repo}", (_, _) => Repository(GitHubContentOwnership.DescriptionPrefix + "s1")));

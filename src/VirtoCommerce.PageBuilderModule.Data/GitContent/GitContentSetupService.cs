@@ -121,7 +121,6 @@ public class GitContentSetupService(
         return GetAppInstallUrl(webUrl, app);
     }
 
-    /// <summary>Checks the organization on GitHub; returns why it cannot be used, or <c>null</c>.</summary>
     protected virtual async Task<string> GetOrganizationErrorAsync(CancellationToken cancellationToken)
     {
         try

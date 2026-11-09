@@ -3,10 +3,6 @@ using VirtoCommerce.PageBuilderModule.Core.Models;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Validation;
 
-/// <summary>
-/// The shape of a designer save. The paths are checked as every content request's are, once the files are read; a version a
-/// read returned is required (428) where the save is made.
-/// </summary>
 public class DesignerSaveRequestValidator : AbstractValidator<DesignerSaveRequest>
 {
     public DesignerSaveRequestValidator(IValidator<DesignerSavePage> pageValidator)

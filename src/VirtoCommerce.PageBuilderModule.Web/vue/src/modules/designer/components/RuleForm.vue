@@ -22,8 +22,6 @@
     />
 
     <p class="pd-rule-form__heading">{{ $t("PAGE_BUILDER.DESIGNER.RULES.CONDITIONS") }}</p>
-
-    <!-- the conditions the storefront announced for the page type, each edited as its value schema says -->
     <div
       v-for="condition in offered"
       :key="condition.descriptor.name"
@@ -75,7 +73,6 @@
         :context="{}"
         @update="set"
       />
-      <!-- a property of the product previewed, in one click -->
       <div
         v-if="condition.descriptor.name === 'property' && properties.length"
         class="pd-rule-form__chips"
@@ -99,7 +96,6 @@
       </p>
     </div>
 
-    <!-- conditions the storefront didn't announce for the page type: kept as they are (Edit as JSON changes them) -->
     <div
       v-for="{ name, value } in unknown"
       :key="name"
@@ -145,9 +141,7 @@
 </template>
 
 <script setup lang="ts">
-// Add rule / Edit rule: the template, then the conditions the storefront announced for the page type (all must hold),
-// each built from its value schema. The conditions object is edited in place, so conditions the storefront didn't
-// announce stay as they were; announced ones left empty are dropped.
+// The conditions object is edited in place, so conditions the storefront did not announce stay as they were.
 import { computed, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { VcButton, VcIcon, VcInput, VcSelect } from "@vc-shell/framework/ui";
@@ -176,13 +170,10 @@ const props = defineProps<{
   type: PageType;
   rule: TemplateRule;
   isNew?: boolean;
-  /** the theme's templates of this type */
   keys: string[];
   catalog: CatalogContext;
   names: Map<string, string>;
-  /** the conditions the storefront announced */
   conditions: ConditionDescriptor[];
-  /** the properties of the product previewed */
   properties: ProductFacts["properties"];
 }>();
 const emit = defineEmits<{ save: [rule: TemplateRule]; cancel: [] }>();
@@ -229,7 +220,6 @@ const categories = computed(() => categoryIds(when.value[CATEGORY_CONDITION]));
 const set = (name: string, value: unknown) => (when.value = { ...when.value, [name]: value });
 const drop = (name: string) => (when.value = Object.fromEntries(Object.entries(when.value).filter(([key]) => key !== name)));
 
-// a list typed with commas: the text as typed while it is edited, the list in the rule
 const typed = reactive(new Map<string, string>());
 const textsOf = (name: string) => typed.get(name) ?? (Array.isArray(when.value[name]) ? (when.value[name] as unknown[]).join(", ") : "");
 function setTexts(name: string, text: string) {
@@ -239,7 +229,6 @@ function setTexts(name: string, text: string) {
 
 const cleaned = computed(() => cleanWhen(when.value, props.conditions, props.type));
 const hasConditions = computed(() => Object.keys(cleaned.value).length > 0);
-/** what is wrong with the announced conditions the rule has, by name */
 const problems = computed(() => {
   const found: Record<string, ConditionProblem> = {};
   for (const { name, value, descriptor } of splitConditions(cleaned.value, props.conditions, props.type).known) {

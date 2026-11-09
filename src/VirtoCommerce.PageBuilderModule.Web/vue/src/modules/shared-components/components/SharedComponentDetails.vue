@@ -164,7 +164,6 @@ interface Props {
   canUpdate: boolean;
   canDelete: boolean;
   canOpenDesigner: boolean;
-  /** "Edit content": the Vue designer is the store's */
   canEditContent: boolean;
   loading: boolean;
   detailsLoading: boolean;

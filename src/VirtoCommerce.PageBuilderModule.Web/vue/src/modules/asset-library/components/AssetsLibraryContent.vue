@@ -228,7 +228,6 @@ export interface ExposedAssetsLibraryContent {
   reload: () => Promise<void>;
 }
 
-// pickable: a picker (the page designer's image fields): Select emits the chosen file's URL
 defineProps<{ pickable?: boolean }>();
 const emit = defineEmits<{ pick: [url: string] }>();
 

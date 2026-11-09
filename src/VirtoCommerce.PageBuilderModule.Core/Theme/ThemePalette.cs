@@ -4,7 +4,6 @@ namespace VirtoCommerce.PageBuilderModule.Core.Theme;
 
 public class ThemePalette : ICloneable
 {
-    /// <summary>Color tokens by name.</summary>
     public IDictionary<string, string> Light { get; set; }
 
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]

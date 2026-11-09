@@ -14,7 +14,6 @@ public interface IThemeStorage
 
     Task<bool> ExistsAsync(string file);
 
-    /// <summary>Returns null when the file does not exist.</summary>
     Task<string> ReadAsync(string file);
 
     Task WriteAsync(string file, string content);

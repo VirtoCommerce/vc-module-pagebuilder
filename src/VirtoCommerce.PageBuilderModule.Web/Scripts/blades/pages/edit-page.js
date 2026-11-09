@@ -28,8 +28,6 @@ angular.module('virtoCommerce.pageBuilderModule')
             // place under each, so it must never run on a guess.
             var flowResolved = false;
 
-            // The store's New Page Builder switch picks the designer: the Page Builder app (Vue) when on,
-            // the Angular designer when off.
             var newPageBuilderSetting = 'VirtoCommerce.PageBuilderModule.Store.NewPageBuilder';
             var designerReady = $q.resolve();
 
@@ -43,7 +41,6 @@ angular.module('virtoCommerce.pageBuilderModule')
                     var setting = _.find(store.settings || [], function (x) { return x.name === newPageBuilderSetting; });
                     if (setting && setting.value === true) {
                         blade.newPageBuilder = true;
-                        // the Page Builder app: its Vue designer opens the page from the link (see runDesigner)
                         blade.designerUrl = `${platformUrl}/apps/page-builder-shell/`;
                     }
                 }, angular.noop);
@@ -106,7 +103,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                     if (!blade.isNew) {
                         blade.published = status.published;
                         blade.hasChanges = status.hasChanges;
-                        // the live page is not where the production branch puts it (a merge done on GitHub)
+                        // A merge done on GitHub writes nothing live, so the live page can differ from the production branch.
                         blade.liveBehind = status.liveBehind;
                         blade.pending = status.pending;
                         // The open pull request is not going to merge itself — see inFlight below.
@@ -609,7 +606,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                 if (blade.designerUrl) {
                     var parameters;
                     if (blade.newPageBuilder) {
-                        // the page's own path: the designer reads its draft (or, in git, this editor's branch) itself
+                        // The designer reads the draft, or in git this editor's branch, itself, so it needs only the page's path.
                         parameters = `storeId=${encodeURIComponent(blade.storeId)}` +
                             `&designType=${encodeURIComponent(blade.contentType)}` +
                             `&designPath=${encodeURIComponent(blade.currentEntity.relativeUrl)}`;
@@ -782,9 +779,8 @@ angular.module('virtoCommerce.pageBuilderModule')
                 $scope.blade.toolbarCommands = blade.toolbarCommands.filter(x => managed.indexOf(x) < 0);
 
                 // Nothing to publish and the page is live: the one thing left to do with it is take it
-                // down. On the git flow that is a commit deleting the page, merged like any other. A live
-                // page left behind by a merge done on GitHub follows the branch: published again while
-                // the branch has it, taken down once it does not.
+                // down. A live page left behind by a merge done on GitHub follows the branch: published again
+                // while the branch has it, taken down once it does not.
                 var takeDown = $scope.blade.published
                     ? !$scope.blade.hasChanges && !$scope.blade.liveBehind
                     : !!$scope.blade.liveBehind;

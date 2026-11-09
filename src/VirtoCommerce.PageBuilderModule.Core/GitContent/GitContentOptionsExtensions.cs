@@ -5,7 +5,6 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent;
 
 public static class GitContentOptionsExtensions
 {
-    /// <summary>Gets the commit author for the user, the configured fallback for what the user lacks.</summary>
     public static GitCommitAuthor GetCommitAuthor(this GitContentOptions options, ClaimsPrincipal user)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -18,10 +17,7 @@ public static class GitContentOptionsExtensions
         return author;
     }
 
-    /// <summary>
-    /// Gets the repository, file path and editor branch of the page. Path and branch come from the same content path,
-    /// so a page and a blog article that share a relative url stay two files on two branches.
-    /// </summary>
+    /// <summary>Path and branch come from the same content path, so a page and a blog article that share a relative url stay two files on two branches.</summary>
     public static GitPageFileLocation GetPageLocation(this GitContentOptions options, string repository, string contentType, string path, string userName)
     {
         ArgumentNullException.ThrowIfNull(options);

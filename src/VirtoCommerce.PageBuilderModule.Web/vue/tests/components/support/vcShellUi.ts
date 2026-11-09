@@ -1,8 +1,5 @@
 import { defineComponent, h, type PropType } from "vue";
 
-// The vc-shell UI kit as plain elements: what the designer passes (labels, values, options, disabled) is in the DOM,
-// and the events it listens to come from native ones. Nothing of vc-shell's own rendering is tested here.
-
 type Option = Record<string, unknown>;
 type Pick = string | ((option: Option) => unknown);
 const pick = (option: Option, by: Pick | undefined, fallback: string) => (typeof by === "function" ? by(option) : option[by ?? fallback]);
@@ -75,7 +72,6 @@ export const VcTextarea = textInput("VcTextarea", "textarea");
 export const VcEditor = textInput("VcEditor", "textarea");
 export const VcColorInput = textInput("VcColorInput", "input");
 
-/** A native select: its options by index, the chosen option's value emitted (the designer uses emit-value) */
 export const VcSelect = defineComponent({
   name: "VcSelect",
   props: {

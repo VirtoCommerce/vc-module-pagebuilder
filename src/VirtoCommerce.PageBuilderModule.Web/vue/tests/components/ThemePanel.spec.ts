@@ -50,7 +50,6 @@ async function mountPanel() {
   return { wrapper, look };
 }
 
-/** the check's wait passes and its answer is in */
 async function settle() {
   await vi.advanceTimersByTimeAsync(PALETTE_CHECK_DEBOUNCE_MS + 10);
   await flushPromises();
@@ -77,7 +76,6 @@ describe("ThemePanel: palette contrast", () => {
     expect(checks()).toHaveLength(1);
     expect(failingTexts(wrapper)).toEqual(["Vc text solid primary on Primary 500"]);
 
-    // the generator's answer counts no pairs left unchecked: the check of what it generated does
     await settle();
     expect(checks()).toHaveLength(2);
     expect(failingTexts(wrapper)).toEqual(["Neutral 50 on Primary 500"]);

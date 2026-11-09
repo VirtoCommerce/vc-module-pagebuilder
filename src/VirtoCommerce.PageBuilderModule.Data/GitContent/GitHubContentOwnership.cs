@@ -7,11 +7,9 @@ using VirtoCommerce.PageBuilderModule.Core.GitContent;
 
 namespace VirtoCommerce.PageBuilderModule.Data.GitContent;
 
-/// <summary>Reads repository ownership from the GitHub repository description.</summary>
 public class GitHubContentOwnership(IGitHubApiClient gitHubApiClient, IMemoryCache memoryCache, IOptions<GitContentOptions> options)
     : IGitContentOwnership
 {
-    /// <summary>Description prefix of module-created repositories.</summary>
     public const string DescriptionPrefix = "Page Builder content of store ";
 
     public virtual async Task<string> GetStoreIdAsync(string repository, CancellationToken cancellationToken = default)

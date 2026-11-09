@@ -243,7 +243,6 @@ const computedGlobalFilters = computed(() => [
   },
 ]);
 
-/** A list row, or a page reported back by a details blade. */
 export type PagesListClickItem = PageBuilderPageListItem | GroupedPageBuilderPage;
 
 function onItemClick(event: { data: PagesListClickItem }) {
@@ -272,7 +271,6 @@ const onSearchList = debounce(async (keyword: string | undefined) => {
   });
 }, 1000);
 
-// A Landing Page row shows its own language and status.
 function rowLanguages(item: PageBuilderPageListItem): MultilanguagePageLanguage[] {
   if (item.languages) {
     return item.languages;
@@ -283,7 +281,6 @@ function rowLanguages(item: PageBuilderPageListItem): MultilanguagePageLanguage[
     : [];
 }
 
-// Each language has its own status in the pills; the row sums them up.
 function multilanguageStatusText(languages: MultilanguagePageLanguage[]): string {
   const summary = summarizeLanguageStatuses(languages);
   const published = t("PAGE_BUILDER.MULTILANGUAGE.LIST.PUBLISHED_COUNT", summary);
@@ -300,7 +297,6 @@ const actionBuilder = (item: PageBuilderPageListItem) => {
   const result: IActionBuilderResult[] = [];
 
   if (!isArchived(item)) {
-    // A Multilanguage Page without versions has nothing to archive and is deleted.
     const isEmptyMultilanguage = item.type === PageTypes.Multilanguage && !hasLanguageVersions(item.languages);
     result.push({
       icon: "lucide-trash-2",
@@ -333,7 +329,6 @@ watch(
   },
 );
 
-// pages changed elsewhere (details, designer)
 watch(pagesChanged, reload);
 
 watch(

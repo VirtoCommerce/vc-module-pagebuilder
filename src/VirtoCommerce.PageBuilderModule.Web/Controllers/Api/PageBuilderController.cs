@@ -785,7 +785,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
         }
 
-        /// <summary>Discard designer changes</summary>
         [HttpPost]
         [Authorize(ModuleConstants.Security.Permissions.Update)]
         [Route("designer/discard")]
@@ -909,7 +908,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return await contentPermissionService.CanAccessPageAsync(User, group, storeId) ? null : Forbid();
         }
 
-        /// <summary>Checks a database page as its own save does: its version and its shared components.</summary>
         private async Task<ActionResult> CheckDesignerPageAsync(string storeId, DesignerSavePage page, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(page.ETag))
@@ -921,8 +919,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         }
 
         /// <summary>
-        /// Merge the editor's branch of the page into the base branch, and write the page to live storage of a repository
-        /// the platform manages. The editor's own draft is what ships — never the bytes the caller happens to send.
+        /// Ships the editor's own draft, never the bytes the caller sends, and writes it to live storage of a repository the platform manages.
         /// </summary>
         [HttpPost]
         [Authorize(ModuleConstants.Security.Permissions.Publish)]
@@ -1138,8 +1135,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         }
 
         /// <summary>
-        /// Remove the page from the base branch, and from live storage of a repository the platform manages once the
-        /// removal is merged: live storage follows the branch, so a revert stays a rollback.
+        /// Removes the page from live storage of a repository the platform manages only once the removal is merged, so a revert stays a rollback.
         /// </summary>
         [HttpPost]
         [Authorize(ModuleConstants.Security.Permissions.Publish)]
@@ -1278,8 +1274,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             var production = AbstractTypeFactory<PageProductionStatus>.TryCreateInstance();
             production.Published = onRelease != null;
-            // Behind only means something once the page is on the base branch at all: a page that has
-            // never been published is not "missing from production", it simply has not started.
+            // only a page on the base branch can be behind: a page never published has simply not started
             production.Behind = onBase != null && !PageJson.AreSame(onBase, onRelease);
             production.Pending = pending != null;
             production.AwaitingMerge = pending is { AutoMerging: false };
@@ -1476,10 +1471,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             await gitContentRepository.GetBranchHeadShaAsync(repository, workBranch, HttpContext.RequestAborted)
             ?? await gitContentRepository.GetBranchHeadShaAsync(repository, await GetBaseBranchAsync(), HttpContext.RequestAborted);
 
-        /// <summary>
-        /// Discard the blob draft of a page or theme file: of a page of a store without git, or of a theme file such as a
-        /// section group. Refused when nothing is published, as the draft is then the only copy.
-        /// </summary>
+        /// <summary>Refused when nothing is published, as the draft is then the only copy</summary>
         [HttpPost]
         [Route("discard-draft")]
         [Authorize(ModuleConstants.Security.Permissions.Update)]

@@ -126,8 +126,6 @@ import { canOpenPageDesigner } from "../../../utilities/pageDesigner";
 import { usePageDesigner, useSharedComponentDesigner } from "../../page-builder/composables/usePageDesigner";
 import useUrlParams from "../../page-builder/composables/useStoreParams";
 
-// The Shared Components blade's body, defined as a blade by the standalone app (SharedComponents, a workspace)
-// and by the Admin Shell UI (PageBuilderSharedComponents, opened from a store's pages).
 const { exposeToChildren } = useBlade();
 const openPageDesigner = usePageDesigner();
 const openSharedComponentDesigner = useSharedComponentDesigner();
@@ -186,7 +184,7 @@ const canDelete = computed(() => hasAccess("builder:shared-components:delete") &
 const canOpenDesigner = computed(
   () => hasAccess("builder:read") && isStoreContextReady.value && Boolean(storeId.value),
 );
-// a component's content is edited in the Vue designer, which a store without the New Page Builder switch doesn't use
+// A component's content is edited in the Vue designer, which a store without the New Page Builder switch doesn't use.
 const canEditContent = computedAsync(async () => canOpenDesigner.value && (await isNewPageBuilder(storeId.value)), false);
 const storeContextTitle = computed(() =>
   storeContextStatus.value === "missing"
@@ -300,7 +298,6 @@ async function handleDelete(component: SharedComponent) {
   await confirmDelete(component);
 }
 
-// the component's sections in the designer; its details (modified, usage) are fresh again once it closes
 function editContent(component: SharedComponent) {
   const store = component.storeId || storeId.value;
   if (store) openSharedComponentDesigner(store, component.id, () => void refreshComponent(component));

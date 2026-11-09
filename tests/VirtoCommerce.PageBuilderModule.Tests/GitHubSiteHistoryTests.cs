@@ -41,7 +41,7 @@ public class GitHubSiteHistoryTests
     [Fact]
     public void ComputeBlobOid_Content_ReturnsGitBlobHash()
     {
-        // git hash-object of an empty file, and of the Pro Git book's "test content\n"
+        // These are the git hash-object results for an empty file and for the Pro Git book's "test content\n".
         Assert.Equal("e69de29bb2d1d6434b8b29ae775ad8c2e48c5391", GitHubSiteHistory.ComputeBlobOid(""));
         Assert.Equal("d670460b4b4aece5915caf5c68d12f560a9fe3e4", GitHubSiteHistory.ComputeBlobOid("test content\n"));
         Assert.Null(GitHubSiteHistory.ComputeBlobOid(null));
@@ -183,7 +183,6 @@ public class GitHubSiteHistoryTests
 
     [Theory]
     [InlineData(true, null, ContentHistoryStatus.Enabled)]
-    // the store's repository is not created yet: git content is off for the store
     [InlineData(false, null, ContentHistoryStatus.SetupRequired)]
     [InlineData(true, "acme/website", ContentHistoryStatus.Unavailable)]
     [InlineData(true, "not a repository", ContentHistoryStatus.Unavailable)]
@@ -245,7 +244,6 @@ public class GitHubSiteHistoryTests
         Assert.Equal([VersionId(Sha('3')), VersionId(Sha('2')), VersionId(Sha('1'))], page.Versions.Select(x => x.VersionId));
         Assert.Equal(["page:g1", $"theme:{Header}"], page.Versions[0].Items);
         Assert.Equal([$"theme:{Header}"], page.Versions[1].Items);
-        // the newest commit holding what is live, for every item it changed
         Assert.Equal([false, true, true], page.Versions.Select(x => x.Published));
         Assert.Equal("Saved", page.Versions[0].Description);
         Assert.Equal("save-0001", page.Versions[0].SaveId);
@@ -271,11 +269,10 @@ public class GitHubSiteHistoryTests
         {
             var request = JObject.Parse(body!);
             var variables = request["variables"]!;
-            // the commit the first page read, not the branch: a save made since must not shift the positions
+            // Later pages read the commit the first page read, so a save made since cannot shift the positions.
             Assert.Contains("object(oid:$head)", request.Value<string>("query"));
             Assert.Equal(FirstPageHead, variables["head"]?.Value<string>());
             Assert.Null(variables["branch"]);
-            // each file read one of the two: the next request skips it
             Assert.Equal(3, variables["t0"]?.Value<int>());
             Assert.Equal(3, variables["t1"]?.Value<int>());
             Assert.Equal(JTokenType.Null, variables["a0"]?.Type);
@@ -291,7 +288,6 @@ public class GitHubSiteHistoryTests
         var third = new GitHubScript(("POST", "graphql", (_, body) =>
         {
             var variables = JObject.Parse(body!)["variables"]!;
-            // the header's history is read to its end: only the page's is asked for
             Assert.Equal("database-pages/g1.json", variables["p0"]?.Value<string>());
             Assert.Null(variables["p1"]);
             Assert.Equal(3, variables["t0"]?.Value<int>());
@@ -329,7 +325,6 @@ public class GitHubSiteHistoryTests
     [Fact]
     public async Task ListAsync_MostItemsWithLongPaths_WritesACursorTheRequestAccepts()
     {
-        // twenty theme files with long names, each with more history than one page shows: the cursor does not grow with the paths
         var items = Enumerable.Range(0, 20)
             .Select(i => new HistoryItem(HistoryItemType.Theme, $"b2b-storefront-theme/templates/{new string('p', 250)}-{i:D2}.json"))
             .ToList();
@@ -357,7 +352,7 @@ public class GitHubSiteHistoryTests
     [Theory]
     [InlineData("bm90IGEgY3Vyc29y")]
     [InlineData("!!")]
-    // well-formed positions the history did not write: a null one, and one before the start
+    // These are well-formed positions the history did not write: a null one and one before the start.
     [InlineData("eyJ4IjpudWxsfQ")]
     [InlineData("eyJkYXRhYmFzZS1wYWdlcy9nMS5qc29uIjp7InMiOi0yMDB9fQ")]
     public async Task ListAsync_CursorItDidNotWrite_ThrowsArgumentException(string cursor)
@@ -389,8 +384,6 @@ public class GitHubSiteHistoryTests
         Assert.Equal(0, github.Requests);
     }
 
-    // ── helpers ────────────────────────────────────────────────────────────────────────────────
-
     private GitHubSiteHistory History(GitHubScript github, FakeSettingsManager settings = null,
         Microsoft.Extensions.Options.IOptions<GitContentOptions> options = null, IGitContentProvisioner provisioner = null) =>
         SiteHistories.Create(github, new ThemeStorageFactory(_live.StoreService, _live, _live, _live), _pages, settings, options: options, provisioner: provisioner);
@@ -419,11 +412,9 @@ public class GitHubSiteHistoryTests
 
     private const string FirstPageHead = "f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0";
 
-    // the branch head, as a first page reads it
     private static System.Net.Http.HttpResponseMessage Answer(params (bool HasMore, string EndCursor, (string Oid, int Minute, string Content)[] Nodes)[] histories) =>
         GitHubScript.Json(new JObject { ["data"] = new JObject { ["repository"] = new JObject { ["ref"] = new JObject { ["target"] = Commit(histories) } } } }.ToString());
 
-    // the commit a first page read, as the next pages read it
     private static System.Net.Http.HttpResponseMessage AnchoredAnswer(params (bool HasMore, string EndCursor, (string Oid, int Minute, string Content)[] Nodes)[] histories) =>
         GitHubScript.Json(new JObject { ["data"] = new JObject { ["repository"] = new JObject { ["object"] = Commit(histories) } } }.ToString());
 

@@ -37,7 +37,6 @@ public static class PageBuilderContentPaths
 
     private static readonly Regex HistoryCursorPattern = new("^[A-Za-z0-9+/=_-]{1,256}$", RegexOptions.None, TimeSpan.FromSeconds(1));
 
-    // base64url: a position in each file's history
     private static readonly Regex ContentHistoryCursorPattern = new("^[A-Za-z0-9_-]{1,4096}$", RegexOptions.None, TimeSpan.FromSeconds(1));
 
     // the catalog's file name in the theme, as the storefront names it
@@ -53,7 +52,6 @@ public static class PageBuilderContentPaths
 
     public static bool IsHistoryVersionId(string versionId) => !string.IsNullOrEmpty(versionId) && HistoryVersionIdPattern.IsMatch(versionId);
 
-    /// <summary>The id of a designer save, named by the <c>X-PageBuilder-Save</c> header.</summary>
     public static bool IsSaveId(string saveId) => !string.IsNullOrEmpty(saveId) && SaveIdPattern.IsMatch(saveId);
 
     public static bool IsContentType(string type) => type != null && ContentTypes.Contains(type);
@@ -78,11 +76,9 @@ public static class PageBuilderContentPaths
     public static bool IsRelativePath(string path) =>
         !string.IsNullOrWhiteSpace(path) && HasPathCharactersOnly(path) && StaysInsideTheFolder(path) && HasPortableNames(path);
 
-    /// <summary>The theme folder, then the file path in it: "default/templates/product.json".</summary>
     public static bool IsThemeFilePath(string path) =>
         IsRelativePath(path) && !path.StartsWith('/') && IsInsideAThemeFolder(path);
 
-    /// <summary>A theme file the history keeps: any but a published snapshot.</summary>
     public static bool IsHistoryThemeFile(string path) =>
         IsThemeFilePath(path) && !IsInFolder(GetPathInTheme(path), ThemeStorage.SnapshotsFolder);
 
@@ -96,10 +92,8 @@ public static class PageBuilderContentPaths
 
     public static bool IsInsideAThemeFolder(string path) => path.TrimStart('/').Contains('/');
 
-    /// <summary>A theme file the builder writes: the rules of a theme file in a save, as one check.</summary>
     public static bool IsWritableThemeFile(string path) => IsJsonFile(path) && IsInsideAThemeFolder(path) && CanSaveThemeFile(path);
 
-    /// <summary>Not a snapshot or a catalog, and in config/ only the builder's own files; the file rules check the theme folder.</summary>
     public static bool CanSaveThemeFile(string path)
     {
         var pathInTheme = GetPathInTheme(path);
@@ -109,7 +103,6 @@ public static class PageBuilderContentPaths
                (!IsInFolder(pathInTheme, ThemeConfigFolder) || BuilderConfigFiles.Contains(pathInTheme));
     }
 
-    /// <summary>Gets the theme folder: "default" for "default/templates/product.json".</summary>
     public static string GetThemeName(string path)
     {
         var relativePath = (path ?? string.Empty).TrimStart('/');
@@ -118,7 +111,6 @@ public static class PageBuilderContentPaths
         return separator < 0 ? string.Empty : relativePath[..separator];
     }
 
-    /// <summary>Gets the path after the theme folder: "templates/product.json" for "default/templates/product.json".</summary>
     public static string GetPathInTheme(string path)
     {
         var relativePath = (path ?? string.Empty).TrimStart('/');

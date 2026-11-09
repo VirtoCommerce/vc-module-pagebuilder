@@ -9,7 +9,7 @@ import type { NamedEntity } from "../../src/modules/designer/api";
 import { fakePlatform, themeETag, themeFileAnswer, type FakePlatform } from "./support/fakePlatform";
 import { popup } from "./support/vcShell";
 
-// Sortable.js needs a real pointer drag: the panel's drop handler is called as Sortable calls it
+// Sortable.js needs a real pointer drag, so the test calls the panel's drop handler the way Sortable does.
 const sortable = vi.hoisted(() => ({ options: undefined as undefined | { onUpdate: (e: { oldIndex?: number; newIndex?: number; item: HTMLElement; from: HTMLElement }) => void } }));
 vi.mock("@vueuse/integrations/useSortable", () => ({
   useSortable: (_el: unknown, _list: unknown, options: typeof sortable.options) => {
@@ -18,7 +18,6 @@ vi.mock("@vueuse/integrations/useSortable", () => ({
 }));
 
 const nameEquals = { type: "object", element: [{ id: "name", type: "string", label: "Name" }, { id: "equals", type: "string", label: "Value" }] };
-/** the conditions a storefront announces in its handshake */
 const CONDITIONS: ConditionDescriptor[] = [
   { name: "inCategory", pageTypes: ["product", "category"], label: "In category", value: { type: "list" } },
   { name: "productType", pageTypes: ["product"], label: "Product type", value: { type: "string" } },
@@ -77,7 +76,6 @@ async function mountPanel(
   return { wrapper, rules, products: () => rules.rules.value.product as TemplateRule[] };
 }
 
-/** the page type's ordered list (not "Applies to") */
 const rows = (wrapper: VueWrapper) => wrapper.findAll("li.pd-rules__rule:not(.pd-rules__rule--flat)");
 const button = (wrapper: VueWrapper, text: string) => {
   const found = wrapper.findAll("button").find((x) => x.text() === text);
@@ -90,14 +88,13 @@ describe("RulesPanel", () => {
   it("lists a version 2 file's rules in its order, in plain language, keeping their ids", async () => {
     const { wrapper, products } = await mountPanel();
 
-    // the arrow is spaced by CSS
+    // CSS spaces the arrow, so the text has no spaces around it.
     expect(rows(wrapper).map((x) => x.find(".pd-rules__text").text())).toEqual([
       "Products in Printers and below→Printer",
       "Products of type Bundle→Bundle",
       "Products inStock: trueUnknown→Printer",
     ]);
     expect(products().map((x) => x.id)).toEqual(["r-printers", "r-bundle", "r-stock"]);
-    // "Applies to" the open template: the rules that pick it, numbered as in the whole list
     expect(wrapper.findAll(".pd-rules__rule--flat .pd-rules__number").map((x) => x.text())).toEqual(["1", "3"]);
   });
 
@@ -112,7 +109,6 @@ describe("RulesPanel", () => {
 
     await button(wrapper, "Add rule").trigger("click");
     await flushPromises();
-    // the form offers the product conditions the storefront announced, and only those
     expect(wrapper.find("[role=tree]").exists()).toBe(true);
     expect(input(wrapper, "Product type").exists()).toBe(true);
     expect(input(wrapper, "Name").exists()).toBe(true);
@@ -120,7 +116,6 @@ describe("RulesPanel", () => {
 
     await wrapper.findAll("[role=treeitem] input[type=checkbox]")[1].setValue(true);
     await input(wrapper, "Product type").setValue("Printer");
-    // a condition typed and emptied again is not one
     await input(wrapper, "Name").setValue("Color");
     await input(wrapper, "Name").setValue("");
     await button(wrapper, "Save rule").trigger("click");
@@ -141,7 +136,6 @@ describe("RulesPanel", () => {
     const { wrapper, products } = await mountPanel();
 
     await rows(wrapper)[2].find(".pd-rules__text").trigger("click");
-    // the condition the storefront didn't announce: as JSON, with the warning
     const custom = wrapper.find(".pd-rule-form__custom");
     expect(custom.find("code").text()).toBe("inStock: true");
     expect(custom.find(".pd-rule-form__warning").text()).toBe("The site doesn't know the condition inStock: a rule with it never matches.");
@@ -166,7 +160,6 @@ describe("RulesPanel", () => {
     expect(badge.text()).toBe("Unknown");
     expect(badge.attributes("title")).toBe("The site doesn't know the condition inStock: a rule with it never matches.");
     expect(rows(wrapper)[2].find("strong").text()).toBe("true");
-    // the announced ones are not marked
     expect(rows(wrapper)[0].find(".pd-rules__badge").exists()).toBe(false);
   });
 
@@ -175,10 +168,9 @@ describe("RulesPanel", () => {
     const list = rows(wrapper)[0].element.parentElement!;
     const items = [...list.children] as HTMLElement[];
 
-    // Sortable has moved the last row to the top before it calls the handler
+    // Sortable moves the row in the DOM before it calls the handler.
     list.insertBefore(items[2], items[0]);
     sortable.options!.onUpdate({ oldIndex: 2, newIndex: 0, item: items[2], from: list });
-    // the DOM is Vue's again until the data moves the row
     expect([...list.children]).toEqual(items);
     await nextTick();
     await flushPromises();
@@ -190,7 +182,6 @@ describe("RulesPanel", () => {
       "Products in Printers and below→Printer",
       "Products of type Bundle→Bundle",
     ]);
-    // the rows are Vue's own: each once, in the data's order
     expect(list.children).toHaveLength(3);
   });
 
@@ -233,7 +224,6 @@ describe("RulesPanel", () => {
     expect(wrapper.find("button[aria-label='Remove rule']").exists()).toBe(false);
     expect(rows(wrapper).every((x) => (x.find("input[role=switch]").element as HTMLInputElement).disabled)).toBe(true);
     expect(rows(wrapper).every((x) => x.find(".pd-rules__text").attributes("disabled") !== undefined)).toBe(true);
-    // nothing is unknown before the storefront said what it knows
     expect(wrapper.find(".pd-rules__badge").exists()).toBe(false);
 
     await rows(wrapper)[0].find(".pd-rules__text").trigger("click");
@@ -271,7 +261,6 @@ describe("RulesPanel", () => {
     expect(wrapper.findAll("button").some((x) => x.text() === "Add rule" || x.text() === "Edit as JSON")).toBe(false);
     expect(wrapper.find(".pd-rules__handle").exists()).toBe(false);
     expect(rows(wrapper).every((x) => (x.find("input[role=switch]").element as HTMLInputElement).disabled)).toBe(true);
-    // the storefront has announced its conditions: one it doesn't know is still marked
     expect(wrapper.find(".pd-rules__badge").exists()).toBe(true);
   });
 

@@ -5,7 +5,6 @@ namespace VirtoCommerce.PageBuilderModule.Core.History;
 
 public static class ContentHistoryRecordExtensions
 {
-    /// <summary>Sets the user who made the save.</summary>
     public static ContentHistoryRecord WithUser(this ContentHistoryRecord record, ClaimsPrincipal user)
     {
         ArgumentNullException.ThrowIfNull(record);

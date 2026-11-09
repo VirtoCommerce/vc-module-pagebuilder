@@ -1,14 +1,10 @@
 import { vi } from "vitest";
 
-// The platform behind `fetch`, for the designer's api module: requests are recorded, answered by the first route whose
-// method and path match (a route answers JSON, text, or a Response); an unrouted request answers 404.
-
 export interface Request {
   method: string;
   path: string;
   query: Record<string, string>;
   headers: Record<string, string>;
-  /** the body: parsed when it is JSON */
   body: unknown;
 }
 
@@ -30,7 +26,6 @@ export function fakePlatform() {
     try {
       body = text === undefined ? undefined : JSON.parse(text);
     } catch {
-      // a form or text body stays text
     }
     const request: Request = {
       method: (init.method ?? "GET").toUpperCase(),
@@ -53,17 +48,14 @@ export function fakePlatform() {
   const platform = {
     requests,
     fetch,
-    /** answers a request; a later route for the same request goes first */
     on(method: string, path: string | RegExp, answer: Answer) {
       routes.unshift({ method, path, answer });
       return platform;
     },
-    /** answers an xAPI query naming the field (`childCategories(`) */
     graphql(field: string, answer: Answer) {
       routes.unshift({ method: "POST", path: "/graphql", answer, graphql: field });
       return platform;
     },
-    /** the requests to a path (and method) */
     to: (path: string, method?: string) => requests.filter((x) => x.path === path && (!method || x.method === method)),
     install() {
       vi.stubGlobal("fetch", fetch);
@@ -77,10 +69,8 @@ export const status = (code: number, body: unknown = "") => new Response(typeof 
 
 export type FakePlatform = ReturnType<typeof fakePlatform>;
 
-/** A theme file's version as the fake platform gives it: it names the file, and a file the theme lacks has its own */
 export const themeETag = (path: string, exists = true) => `"${exists ? "" : "none:"}${path}"`;
 
-/** The designer's theme-file read over the files a test has, by their path with the theme folder */
 export const themeFileAnswer = (files: Record<string, unknown>) => (request: Request) =>
   request.query.path in files
     ? { path: request.query.path, content: JSON.stringify(files[request.query.path]), eTag: themeETag(request.query.path) }

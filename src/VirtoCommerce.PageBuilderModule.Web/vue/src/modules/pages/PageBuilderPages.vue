@@ -47,8 +47,6 @@ import { PagesList, type ExposedPagesList } from "../page-builder/components";
 import { PageLifecycleFilters, pageCounts, refreshMenuBadges, useUrlParams } from "../page-builder/composables";
 import { usePagesListToolbar } from "../page-builder/composables/usePagesListToolbar";
 
-// A store's pages (param = store id), opened from the store blade's Page Builder widget: what the standalone app shows
-// as one workspace per status, here one blade with a status switch.
 defineBlade({
   name: "PageBuilderPages",
   url: "/page-builder-pages",

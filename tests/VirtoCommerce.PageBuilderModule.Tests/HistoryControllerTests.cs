@@ -93,7 +93,7 @@ public class HistoryControllerTests
     [Fact]
     public async Task GetHistory_TakeThatDidNotBind_ReturnsBadRequest()
     {
-        // MVC passes the parameter's default on: take=abc must not list a page of 20
+        // MVC passes the parameter's default on, so take=abc must not list a page of 20.
         var controller = Controller();
         controller.ModelState.AddModelError("take", "The value 'abc' is not valid for take.");
 
@@ -295,8 +295,6 @@ public class HistoryControllerTests
 
         Assert.IsType<BadRequestObjectResult>((await Controller().Restore(VersionId, "s1", ["page:g1", "page:g2"], Ct)).Result);
     }
-
-    // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
     private async Task<string> DraftOfAsync(string groupId) =>
         (await _pages.LoadGroupContentAsync(await _pages.GetByIdAsync(groupId), cancellationToken: Ct)).Content;

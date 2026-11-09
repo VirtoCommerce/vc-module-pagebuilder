@@ -56,7 +56,6 @@ public class GitHubAuthHandlerTests
     [Fact]
     public async Task SendAsync_AppTokenAboutToExpire_MintsANewOneForTheNextRequest()
     {
-        // a token GitHub lets expire within the refresh margin is not kept
         var soon = DateTimeOffset.UtcNow.AddMinutes(3).ToString("yyyy-MM-ddTHH:mm:ssZ", System.Globalization.CultureInfo.InvariantCulture);
         var github = new GitHubScript(
             ("GET", "orgs/acme/installation", (_, _) => GitHubScript.Json("""{ "id": 42 }""")),
@@ -81,7 +80,7 @@ public class GitHubAuthHandlerTests
             ("POST", "app/installations/7/access_tokens", (_, _) => GitHubScript.Json("""{ "token": "ghs_other", "expires_at": "2099-01-01T00:00:00Z" }""", HttpStatusCode.Created)),
             ("POST", "graphql", (request, _) => Authorized(request, "ghs_other")));
 
-        // a GraphQL url names no repository
+        // A GraphQL url names no repository, so the owner comes from the request option.
         using var request = new HttpRequestMessage(HttpMethod.Post, "graphql") { Content = new StringContent("{}") };
         request.Options.Set(GitHubAuthHandler.OwnerOptionKey, "other");
         await Client(github, App()).SendAsync(request, TestContext.Current.CancellationToken);
@@ -122,7 +121,7 @@ public class GitHubAuthHandlerTests
     [Fact]
     public async Task SendAsync_AppReplaced_UsesNewAppToken()
     {
-        // the client factory keeps the handler alive when the setup replaces the App
+        // The client factory keeps the handler alive when the setup replaces the App.
         var github = new GitHubScript(
             ("GET", "orgs/acme/installation", (_, _) => GitHubScript.Json("""{ "id": 42 }""")),
             ("POST", "app/installations/42/access_tokens", (_, _) => GitHubScript.Json("""{ "token": "ghs_old", "expires_at": "2099-01-01T00:00:00Z" }""", HttpStatusCode.Created)),
@@ -157,7 +156,7 @@ public class GitHubAuthHandlerTests
     {
         var now = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
 
-        // as an environment variable holds it: one line with "\n" escapes
+        // An environment variable holds the key as one line with "\n" escapes.
         var jwt = GitHubAuthHandler.CreateAppJwt("12345", Key.ExportPkcs8PrivateKeyPem().Replace("\n", "\\n"), now);
 
         var parts = jwt.Split('.');
@@ -171,8 +170,6 @@ public class GitHubAuthHandlerTests
         Assert.Equal(now.ToUnixTimeSeconds() - 60, payload["iat"]?.Value<long>());
         Assert.Equal(now.ToUnixTimeSeconds() + 540, payload["exp"]?.Value<long>());
     }
-
-    // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
     private static GitHubConnection App() => new()
     {

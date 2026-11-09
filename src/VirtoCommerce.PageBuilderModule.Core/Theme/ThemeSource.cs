@@ -22,9 +22,7 @@ public class ThemeSource
 
     public JToken PaletteDark { get; set; }
 
-    /// <summary>Draft contents by file; the publication writes them live.</summary>
     public IDictionary<string, string> Drafts { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Files that are not valid JSON.</summary>
     public IList<string> InvalidFiles { get; set; } = new List<string>();
 }

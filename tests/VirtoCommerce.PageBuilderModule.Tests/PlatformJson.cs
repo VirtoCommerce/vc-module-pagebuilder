@@ -20,7 +20,7 @@ internal static class PlatformJson
 
     public static string Serialize(object value) => JsonConvert.SerializeObject(value, Settings);
 
-    /// <summary>As a platform with <c>IncludeOutputNullValues</c> on writes the body.</summary>
+    /// <summary>Writes the body as a platform with <c>IncludeOutputNullValues</c> on does.</summary>
     public static string SerializeBodyWithNulls(object result)
     {
         var actionResult = result is IConvertToActionResult typed ? typed.Convert() : result;

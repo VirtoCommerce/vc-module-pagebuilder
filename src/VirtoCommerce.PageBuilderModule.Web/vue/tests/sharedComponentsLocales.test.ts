@@ -73,7 +73,7 @@ test("shared component locale keys and placeholders match English", () => {
 });
 
 test("page builder locale keys and placeholders match English", () => {
-  // the dictionaries are namespace imports: their messages sit under `default`
+  // The dictionaries are namespace imports, so their messages sit under `default`.
   const messagesOf = (locale: object) => flattenMessages("default" in locale ? locale.default : locale);
   const englishMessages = messagesOf(pageBuilderLocales.en);
   const englishKeys = [...englishMessages.keys()].sort();

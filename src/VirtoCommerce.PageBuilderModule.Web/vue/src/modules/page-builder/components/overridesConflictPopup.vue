@@ -59,9 +59,7 @@ interface Props {
 
 interface Emits {
   (event: "close"): void;
-  /** Root values replace the overrides of the changed fields. */
   (event: "apply-all"): void;
-  /** Only languages that inherit the changed fields get the new values (the default behavior of a save). */
   (event: "apply-inherited"): void;
 }
 

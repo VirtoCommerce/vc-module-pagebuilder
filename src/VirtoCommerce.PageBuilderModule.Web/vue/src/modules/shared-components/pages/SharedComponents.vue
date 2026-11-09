@@ -5,7 +5,6 @@
 <script lang="ts" setup>
 import SharedComponentsBlade from "../components/SharedComponentsBlade.vue";
 
-// the standalone app's workspace; the Admin Shell UI opens the same body as PageBuilderSharedComponents
 defineBlade({
   name: "SharedComponents",
   url: "/page-builder-shared-components",

@@ -219,8 +219,6 @@
 </template>
 
 <script setup lang="ts">
-// Shopify's "Theme settings": the brand (logos, favicon) and the light and dark palettes, applied live in the preview.
-// Fields white-labeling sets for the visitor shown say so.
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { debounce } from "lodash-es";
 import { VcButton, VcColorInput, VcHint, VcIcon } from "@vc-shell/framework/ui";
@@ -235,9 +233,7 @@ import ImageField from "./ImageField.vue";
 const props = defineProps<{
   look: ThemeLookState;
   storeId?: string;
-  /** the tokens the storefront previewed announced; none before its handshake */
   paletteTokens?: PaletteTokens;
-  /** the theme fields white-labeling sets for the visitor the preview shows */
   overridden?: string[];
 }>();
 
@@ -251,7 +247,7 @@ const scheme = ref<ColorScheme>("light");
 const tokens = computed(() => props.paletteTokens?.[scheme.value] ?? []);
 const families = computed(() => (tokens.value.length ? paletteFamilies(tokens.value, props.look.look.value[scheme.value]) : []));
 const hasColors = (part: ColorScheme) => Object.keys(props.look.look.value[part]).length > 0;
-// a family's colors render only while it is open: a palette has a few hundred
+// A family's colors render only while it is open, because a palette has a few hundred.
 const openFamilies = ref(new Set<string>());
 function toggleFamily(family: string, open: boolean) {
   const next = new Set(openFamilies.value);
@@ -261,11 +257,10 @@ function toggleFamily(family: string, open: boolean) {
 }
 watch(scheme, () => (openFamilies.value = new Set()));
 
-// the pairs below WCAG AA, checked by the server a moment after the colors change; a later check wins
+// A later check wins over one still on its way.
 const contrast = ref<PaletteCheck>();
 const contrastFailed = ref(false);
 let checkRun = 0;
-// what `contrast` is the check of: palettes checked already are not checked again
 const checkKey = () => JSON.stringify([props.storeId, props.paletteTokens, props.look.look.value.light, props.look.look.value.dark]);
 let checkedKey: string | undefined;
 async function checkContrast() {
@@ -295,7 +290,6 @@ onBeforeUnmount(() => scheduleCheck.cancel());
 const failingRows = computed(() => failureRows(contrast.value?.failures ?? [], scheme.value));
 const otherFailing = computed(() => failureCount(contrast.value?.failures ?? [], scheme.value === "light" ? "dark" : "light"));
 
-// "Generate from colors": both palettes from one or two brand colors, one change to undo
 const brandColors = ref<{ primary: string | null; secondary: string | null }>({ primary: null, secondary: null });
 watch(
   () => props.look.loaded.value,
@@ -314,8 +308,7 @@ async function generate() {
   try {
     const generated = await api.generatePalette(props.storeId, props.paletteTokens, primary, secondary);
     props.look.applyGenerated(generated);
-    // the generator's own failures show at once; the check that follows adds the pairs it couldn't check (tokens the
-    // generator leaves out)
+    // The generator's own failures show at once; the check that follows adds the pairs it could not check.
     checkRun++;
     contrast.value = generated.check;
     contrastFailed.value = false;
@@ -390,7 +383,6 @@ async function generate() {
     color: var(--warning-600);
   }
 
-  // light and dark, as the left rail's mode pills
   &__schemes {
     display: flex;
     gap: 4px;
@@ -432,7 +424,6 @@ async function generate() {
     }
   }
 
-  // a family's first colors; an empty one is left to the storefront's preset
   &__chip {
     width: 14px;
     height: 14px;
@@ -485,7 +476,6 @@ async function generate() {
     gap: 8px;
   }
 
-  // the text color on its background, as the storefront shows them
   &__sample {
     flex: none;
     width: 32px;

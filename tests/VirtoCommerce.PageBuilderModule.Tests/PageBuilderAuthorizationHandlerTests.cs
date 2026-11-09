@@ -159,7 +159,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             return context.HasSucceeded;
         }
 
-        // as the platform reads permission scopes from the claims
+        // These options read permission scopes from the claims the way the platform does.
         private static MvcNewtonsoftJsonOptions CreateJsonOptions()
         {
             AbstractTypeFactory<PermissionScope>.RegisterType<StoreSelectedScope>();

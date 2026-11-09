@@ -27,13 +27,10 @@ internal sealed class InProcessDistributedLock : IDistributedLock
     /// <summary>Completes when a caller is waiting at the gate.</summary>
     public TaskCompletionSource Waiting { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    /// <summary>Hands out locks already lost, as a Redis lock whose renewal failed.</summary>
     public bool LoseLocks { get; set; }
 
-    /// <summary>Loses every lock held now and handed out later, as when another server took over.</summary>
     public void LoseHeldLocks() => _lost.Cancel();
 
-    /// <summary>Completes with the resource of the first caller that has to wait for another holder of it.</summary>
     public TaskCompletionSource<string> Blocked { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public async Task<IDistributedLockHandle> AcquireAsync(string resource, TimeSpan? timeout = null, CancellationToken cancellationToken = default)

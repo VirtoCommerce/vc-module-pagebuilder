@@ -50,8 +50,6 @@
 </template>
 
 <script setup lang="ts">
-// A connection at a glance, for the GitHub and History panels: what it is (linked), its state, its details as
-// <div><dt/><dd/></div> rows, and what can be done with it.
 import { VcIcon, VcStatus } from "@vc-shell/framework/ui";
 
 defineProps<{

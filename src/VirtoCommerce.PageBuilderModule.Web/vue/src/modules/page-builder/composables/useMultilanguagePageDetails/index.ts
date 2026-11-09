@@ -43,7 +43,6 @@ export interface IUseMultilanguagePageDetails {
 }
 
 export function useMultilanguagePageDetails(options: UseMultilanguagePageDetailsOptions): IUseMultilanguagePageDetails {
-  // New pages are visible to everyone (incl. anonymous) by default, like Landing Pages.
   const item = ref<MultilanguagePage>({ visibility: true, storeId: options.storeId } as MultilanguagePage);
   const languages = ref<MultilanguagePageLanguage[]>([]);
   const id = ref(options.id);
@@ -81,8 +80,7 @@ export function useMultilanguagePageDetails(options: UseMultilanguagePageDetails
     }
   });
 
-  // Batch and per-language actions refresh the language table only: the root form may hold unsaved edits.
-  // Their result is returned to show a summary.
+  // Reloads only the language table: the root form may hold unsaved edits.
   function withReload<TArgs, TResult>(action: (apiClient: MultilanguagePageClient, args: TArgs) => Promise<TResult>) {
     return useAsync<TArgs, TResult>(async (args) => {
       const apiClient = await getApiClient();

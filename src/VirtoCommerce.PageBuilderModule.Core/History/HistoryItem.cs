@@ -1,12 +1,11 @@
 namespace VirtoCommerce.PageBuilderModule.Core.History;
 
-/// <summary>What a history version can change: <c>page:{groupId}</c> or <c>theme:{path}</c>.</summary>
 public sealed record HistoryItem(HistoryItemType Type, string Key)
 {
     public const string PagePrefix = "page:";
     public const string ThemePrefix = "theme:";
 
-    /// <summary>A theme file by its theme folder and path, without the leading "/" the admin may send: the history names it once.</summary>
+    /// <summary>Trims the leading "/" the admin may send, so the history names a file once.</summary>
     public static HistoryItem ForThemeFile(string path) => new(HistoryItemType.Theme, path?.TrimStart('/'));
 
     public static bool TryParse(string value, out HistoryItem item)

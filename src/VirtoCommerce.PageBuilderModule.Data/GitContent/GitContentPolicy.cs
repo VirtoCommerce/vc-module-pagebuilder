@@ -122,8 +122,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             return IsInOrganization(connection, repository);
         }
 
-        /// <summary>Gets the store repository: the store setting, else the organization one, else the shared one.</summary>
-        /// <exception cref="GitContentException">The store setting is not a repository in "owner/name" form.</exception>
         protected virtual StoreRepository GetStoreRepository(GitHubConnection connection, string storeId, string repositorySetting)
         {
             if (!string.IsNullOrWhiteSpace(repositorySetting))
@@ -149,7 +147,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                 : new StoreRepository(connection.Repository.Trim(), GitRepositorySource.Shared);
         }
 
-        /// <summary>Gets the name of the repository the module creates for the store.</summary>
         protected virtual string GetRepositoryName(string storeId)
         {
             var name = GitPageLocation.SanitizeRefComponent($"{_options.RepositoryPrefix}{storeId}") ?? DefaultRepositoryName;
@@ -165,8 +162,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
 
         private static bool IsAvailable(GitHubConnection connection) => connection.IsEnabled && connection.IsConfigured;
 
-        /// <summary>Reads the store git settings; <c>null</c> when git content is off globally.</summary>
-        /// <exception cref="GitContentException">The store opted in, but the saved GitHub App cannot be read.</exception>
         private async Task<StoreGitSettings> GetStoreSettingsAsync(GitHubConnection connection, string storeId)
         {
             if (string.IsNullOrEmpty(storeId))

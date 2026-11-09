@@ -70,7 +70,6 @@ test("a template is a theme file of the history, with its rules", () => {
     { file: "page", item: "theme:default/templates/product.printer.json" },
     { file: "rules", item: "theme:default/config/template_rules.json" },
   ]);
-  // without the theme known, only the page's own
   assert.deepEqual(historyItems({ groupId: "g1", parts: ["rules", "header", "brand"] }), [{ file: "page", item: "page:g1" }]);
 });
 
@@ -150,10 +149,8 @@ test("history is offered by what is open: git for a file page, the site's status
   assert.equal(offer({ filePage: true, gitFlow: true }), "history");
   assert.equal(offer({ filePage: true }), "enable");
   assert.equal(offer({ site: true, status: "enabled" }), "history");
-  // setting it up is the site panel's job (PageBuilderGit)
   assert.equal(offer({ site: true, status: "setupRequired" }), "enable");
   assert.equal(offer({ site: true, status: "unavailable" }), "none");
-  // not known yet
   assert.equal(offer({ site: true }), "none");
   assert.equal(offer({ shared: true, site: true, status: "enabled" }), "none");
 });

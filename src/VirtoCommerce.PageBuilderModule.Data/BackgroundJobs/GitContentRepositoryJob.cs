@@ -9,7 +9,6 @@ public class GitContentRepositoryJobPayload
 
     public GitContentRepositoryAction Action { get; set; }
 
-    /// <summary>Repository to archive.</summary>
     public string Repository { get; set; }
 }
 

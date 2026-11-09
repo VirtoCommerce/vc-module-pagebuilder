@@ -8,12 +8,11 @@ using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>Each bound of the history, palette and App setup request rules, refused just past it and accepted at it.</summary>
 public class RequestValidatorRulesTests
 {
     private const string Page = "page:g1";
 
-    // a commit sha in base64url
+    // This is a commit sha in base64url.
     private const string Version = "AAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
     [Theory]

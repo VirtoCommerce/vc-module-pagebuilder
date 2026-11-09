@@ -24,7 +24,6 @@ public static class PageBuilderContentRules
             .Must(PageBuilderContentPaths.IsPageDocument)
             .WithMessage("\"{PropertyValue}\" is not a page document: pages and blog articles are .page or .page-draft files.");
 
-    /// <summary>A database page's content: a <c>settings</c> object and a <c>content</c> array of typed sections.</summary>
     public static IRuleBuilderOptions<T, string> PageEnvelope<T>(this IRuleBuilder<T, string> rule) =>
         rule
             .NotEmpty()
@@ -41,7 +40,6 @@ public static class PageBuilderContentRules
             })
             .WithMessage($"{{{EnvelopeError}}}");
 
-    /// <summary>A version a read returned, when one is sent: the single strong ETag of the content or theme file GET.</summary>
     public static IRuleBuilderOptions<T, string> ReadVersion<T>(this IRuleBuilder<T, string> rule, bool trim = false) =>
         rule
             .Must(eTag => string.IsNullOrWhiteSpace(eTag) || PageBuilderContentVersion.IsWellFormed(trim ? eTag.Trim() : eTag))

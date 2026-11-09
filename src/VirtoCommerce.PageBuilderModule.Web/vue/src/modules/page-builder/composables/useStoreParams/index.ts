@@ -21,7 +21,7 @@ const pendingRequests = new Map<string, Promise<IStoreItem | null>>();
 const storeId = ref<string | null>(null);
 const storeContextStatus = ref<StoreContextStatus>("idle");
 const storeContextError = ref<string | null>(null);
-// set by a host blade (the Admin Shell has no ?storeId=): the URL then no longer decides the store
+// Set by a host blade, as the Admin Shell has no ?storeId=: the URL must not decide the store then.
 let storeIdPinned = false;
 
 function setStoreContextStatus(
@@ -65,7 +65,6 @@ async function requestStore(id: string): Promise<StoreResponse> {
 }
 
 export default () => {
-  /** The store of the blade showing the Page Builder (one store at a time); a store already loaded by the host saves a request. */
   const setStoreId = (id: string, store?: Partial<IStoreItem> | null) => {
     storeIdPinned = true;
     if (store && Array.isArray(store.languages)) {
@@ -118,10 +117,7 @@ export default () => {
     return store?.defaultLanguage ?? undefined;
   }
 
-  /**
-   * The store's New Page Builder switch: on, its pages open in the Vue designer; off, in the Angular one. Read anew
-   * every time, as the store's settings may change it while the shell is open.
-   */
+  /** Read on every call: the store's settings may change while the shell is open. */
   async function isNewPageBuilder(id: string | null = storeId.value): Promise<boolean> {
     if (!id) {
       return false;

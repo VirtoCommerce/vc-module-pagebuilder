@@ -17,12 +17,9 @@ import type { Field, Item, RemoteRequest } from "../src/modules/designer/types";
 const en: Translating = { language: "en-US", defaultLanguage: "en-US" };
 const de: Translating = { language: "de-DE", defaultLanguage: "en-US" };
 
-// ── translatable settings ─────────────────────────────────────────────────────
-
 test("a dictionary is culture names to texts, one of them with a subtag, as the server reads it", () => {
   assert.equal(isTranslations({ "en-US": "Hi", "de-DE": "Hallo" }), true);
   assert.equal(isTranslations({ "en-US": "Hi", "sr-Latn-RS": "Zdravo", de: "Hallo", "EN-gb": "Hello" }), true);
-  // without a culture name with a subtag, a row such as a list's { sku } stays a row
   assert.equal(isTranslations({ en: "Hi" }), false);
   assert.equal(isTranslations({ sku: "X1" }), false);
   assert.equal(isTranslations({ "en-US": "Hi", title: "Hi" }), false);
@@ -41,9 +38,7 @@ test("a language sees its own text, else the default language's, else the first;
   });
   assert.deepEqual(translationOf({ "de-DE": "Hallo", "en-US": "Hi" }, { ...de, language: "fr-FR" }).fallback, { text: "Hi", language: "en-US" });
   assert.deepEqual(translationOf({ "de-DE": "Hallo" }, { ...de, language: "fr-FR" }).fallback, { text: "Hallo", language: "de-DE" });
-  // the language is matched ignoring case, as the publication does
   assert.equal(translationOf({ "de-de": "Hallo" }, de).own, "Hallo");
-  // without its own: its language part, else a culture of its language, before the default language
   const austrian = { ...de, language: "de-AT" };
   assert.deepEqual(translationOf({ "en-US": "Hi", "de-DE": "Hallo", de: "Servus" }, austrian).fallback, { text: "Servus", language: "de" });
   assert.deepEqual(translationOf({ "en-US": "Hi", "de-DE": "Hallo" }, austrian).fallback, { text: "Hallo", language: "de-DE" });
@@ -55,10 +50,8 @@ test("a language sees its own text, else the default language's, else the first;
 test("another language's first text keeps the plain string as the default language's", () => {
   assert.deepEqual(withTranslation("Free shipping", de, "Kostenloser Versand"), { "en-US": "Free shipping", "de-DE": "Kostenloser Versand" });
   assert.deepEqual(withTranslation(undefined, de, "Hallo"), { "de-DE": "Hallo" });
-  // the default language edits a plain string as it is
   assert.equal(withTranslation("Free shipping", en, "Free delivery"), "Free delivery");
   assert.deepEqual(withTranslation({ "en-US": "A", "de-DE": "B" }, en, "C"), { "en-US": "C", "de-DE": "B" });
-  // the key the dictionary has, whatever its case
   assert.deepEqual(withTranslation({ "en-US": "A", "de-de": "B" }, de, "C"), { "en-US": "A", "de-de": "C" });
 });
 
@@ -89,11 +82,8 @@ test("an edit in the preview writes the language's text of a translatable settin
   const item: Item = { id: "a", type: "announcement", text: "Sale", link: "/sale", links: [{ label: "More" }], body: "<p>x</p>" };
   assert.deepEqual(withTextEdit(item, announcement, ["text"], "Angebot", de)?.text, { "en-US": "Sale", "de-DE": "Angebot" });
   assert.deepEqual(withTextEdit(item, announcement, ["links", 0, "label"], "Mehr", de)?.links, [{ label: { "en-US": "More", "de-DE": "Mehr" } }]);
-  // a page's own section (no language edited): a plain text, as before
   assert.equal(withTextEdit(item, announcement, ["text"], "Angebot")?.text, "Angebot");
-  // not translatable: the text, in whichever language
   assert.equal(withTextEdit(item, announcement, ["link"], "/angebot", de)?.link, "/angebot");
-  // a dictionary is edited per language even where the schema forgot to say so
   const dictionary = { ...item, link: { "en-US": "/sale" } };
   assert.deepEqual(withTextEdit(dictionary, announcement, ["link"], "/angebot", de)?.link, { "en-US": "/sale", "de-DE": "/angebot" });
 });
@@ -105,8 +95,6 @@ test("an edit in the preview never adds a setting, edits rich text, or edits a d
   assert.equal(withTextEdit(item, announcement, ["text"], "Plain"), undefined);
   assert.equal(withTextEdit(item, announcement, ["missing"], "x", de), undefined);
 });
-
-// ── the template's main section ───────────────────────────────────────────────
 
 const section = (id: string, type: string, extra: Partial<Item> = {}): Item => ({ id, type, ...extra });
 
@@ -125,15 +113,12 @@ test("a template's main section is shown, hidden or missing; the header's sectio
 test("removing the last (shown) main section is refused; one of two may go, and so may the other sections", () => {
   const content = [section("t", "text"), section("m", "category-listing"), section("h", "category-listing", { hidden: true })];
   assert.equal(keptMainSection(content, "category", ["t"]), undefined);
-  // the hidden one left would show none
   assert.equal(keptMainSection(content, "category", ["m"]), "m");
   assert.equal(keptMainSection(content, "category", ["h"]), undefined);
   assert.equal(keptMainSection([...content, section("m2", "category-listing")], "category", ["m"]), undefined);
   assert.equal(keptMainSection(content, "category", ["m", "h", "t"]), "m");
   assert.equal(keptMainSection([section("m", "category-listing", { hidden: true })], "category", ["m"]), "m");
-  // a page is not a template
   assert.equal(keptMainSection(content, undefined, ["m", "h"]), undefined);
-  // a template without one has none to keep
   assert.equal(keptMainSection([section("t", "text")], "page", ["t"]), undefined);
 });
 
@@ -145,8 +130,6 @@ test("hiding the last shown main section is refused; showing it, or hiding anoth
   assert.equal(hidingLosesMain([...content, section("n", "page-content")], "page", "m"), false);
   assert.equal(hidingLosesMain(content, undefined, "m"), false);
 });
-
-// ── the search field ──────────────────────────────────────────────────────────
 
 const request = (url: string, result?: string): RemoteRequest => ({ url, ...(result ? { response: { result } } : {}) });
 
@@ -183,8 +166,6 @@ test("a search shows the answer's values by their dotted paths; a request's answ
   assert.deepEqual(requestResult(request("/x", "data.product"), { data: { product: { id: 1 } } }), { id: 1 });
   assert.deepEqual(requestResult(request("/x"), [1]), [1]);
 });
-
-// ── preview as a customer ─────────────────────────────────────────────────────
 
 test("the store lists the accounts to preview as, one id per line; the grant needs login on behalf", () => {
   const store = { settings: [{ name: "VirtoCommerce.PageBuilderModule.Store.PreviewUserIds", value: " u1\r\nu2\n\nu1\n" }] };
@@ -223,7 +204,6 @@ test("resolveTranslations: every dictionary, however deep, as one language's tex
     type: "hero",
     title: { "en-US": "Hello", "de-DE": "Hallo", "de-AT": "Servus" },
     links: [{ label: { "en-US": "Shop", "de-DE": "Laden" }, url: "/shop" }],
-    // a row is not a dictionary
     row: { sku: "X1" },
     count: 3,
   };
@@ -232,7 +212,6 @@ test("resolveTranslations: every dictionary, however deep, as one language's tex
     title: "Servus",
     links: [{ label: "Laden", url: "/shop" }],
   });
-  // a language without its own text: a culture of its language, else the store default
   assert.equal(resolveTranslations(item.links[0].label, "de-AT", "en-US"), "Laden");
   assert.equal(resolveTranslations(item.title, "fr-FR", "en-US"), "Hello");
   assert.equal(resolveTranslations(item.title, "", ""), "Hello");

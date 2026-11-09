@@ -100,7 +100,7 @@ test("isNewPageBuilder leaves the store context as it is when the store cannot b
   assert.equal(storeContext.storeContextStatus.value, "ready");
 });
 
-// keep last: a pinned store stays pinned for the module's lifetime
+// Keep this test last: a pinned store stays pinned for the module's lifetime.
 test("setStoreId pins the store over the URL and uses the store it is given", async () => {
   setStoreSearch("B2B-store");
   globalThis.fetch = async () => {

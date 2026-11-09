@@ -159,11 +159,10 @@ public class ThemeDraftService(
         return new ThemeDraft(storage, file, await storage.ReadAsync(file));
     }
 
-    /// <summary>The content the designer edits: the draft, else what is live; null when neither exists.</summary>
     protected virtual async Task<string> ReadEditedAsync(ThemeDraft draft) =>
         draft.Content ?? await draft.Storage.ReadAsync(draft.Storage.GetLivePath(draft.File));
 
-    /// <summary>Refuses a file saved by someone else since it was read. The content sent being there already is a retried save, and passes.</summary>
+    /// <summary>The content sent being there already is a retried save, and passes.</summary>
     protected virtual async Task CheckVersionAsync(string storeId, string path, ThemeDraft draft, string content, string eTag)
     {
         var current = await ReadEditedAsync(draft);
@@ -185,7 +184,6 @@ public class ThemeDraftService(
         return publishedContent == null ? DraftDiscardStatus.OnlyCopy : DraftDiscardStatus.Discarded;
     }
 
-    /// <summary>Puts the drafts back as they were, the last changed first.</summary>
     protected virtual async Task RestoreDraftsAsync(string storeId, IList<ThemeDraft> drafts)
     {
         foreach (var draft in drafts.Reverse())
@@ -227,6 +225,5 @@ public class ThemeDraftService(
         return new GenericChangedEntry<FileEntity>(file, EntryState.Modified);
     }
 
-    /// <summary>A theme draft as it was before the save.</summary>
     protected sealed record ThemeDraft(IThemeStorage Storage, string File, string Content);
 }

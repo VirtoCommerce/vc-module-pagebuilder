@@ -42,7 +42,6 @@ const PRODUCT_TEMPLATE = {
   ],
 };
 
-/** the theme files the fake platform has, by their path with the theme folder */
 let themeFiles: Record<string, unknown>;
 let themeStatus: { publication?: number; drafts: string[]; newDrafts?: string[] };
 let pageStatus: { published?: boolean; hasChanges?: boolean };
@@ -79,7 +78,6 @@ beforeEach(() => {
 
 afterEach(() => scope.stop());
 
-/** the storefront previewed has loaded: its schemas and its handshake */
 function previewLoaded() {
   designer.schemas.value = SCHEMAS;
   designer.handshake.value = HANDSHAKE;
@@ -108,7 +106,6 @@ describe("useDesigner: opening", () => {
     expect(designer.doc.value.content.map((x) => [x.type, x.__group])).toEqual([
       ["site-header", "header"],
       ["hero", undefined],
-      // a theme without a footer file starts with the storefront's footer section, as saved
       ["site-footer", "footer"],
     ]);
     expect(designer.dirty.value).toBe(false);
@@ -197,7 +194,6 @@ describe("useDesigner: editing and saving", () => {
     expect(JSON.parse(body.page.content).content).toEqual([{ id: "hero-1", type: "hero", title: "Hello there" }]);
     expect(body.themeFiles.map((x) => x.path)).toEqual(["default/config/template_rules.json", "default/sections/header-group.json"]);
     expect(JSON.parse(body.themeFiles[1].content).content).toEqual([{ id: "header-1", type: "site-header", announcement: "Free returns" }]);
-    // saved: the next save goes with the new version, nothing is unsaved, the state is read again
     expect(designer.dirty.value).toBe(false);
     expect(platform.to("/api/pagebuilder/theme/status").length).toBeGreaterThan(1);
 
@@ -247,7 +243,6 @@ describe("useDesigner: editing and saving", () => {
     expect(section("hero-1").title).toBe("Mine");
     expect(designer.busy.value).toBeUndefined();
 
-    // the next Save still goes with the version the page was read at
     platform.on("POST", "/api/pagebuilder/designer/save", { eTag: '"v9"' });
     expect(await designer.save()).toEqual({});
     expect((saves()[1].body as { page: { eTag: string } }).page.eTag).toBe('"v1"');
@@ -270,7 +265,6 @@ describe("useDesigner: editing and saving", () => {
       [header, themeETag(header)],
     ]);
 
-    // a footer the theme lacks goes with the version of none
     const footerId = designer.doc.value.content.find((x) => x.__group === "footer")!.id;
     designer.selection.value = { kind: "section", id: "header-1" };
     designer.setField("announcement", "Free returns, always");
@@ -292,7 +286,6 @@ describe("useDesigner: editing and saving", () => {
     await expect(designer.save()).rejects.toMatchObject({ status: 412 });
     expect(designer.dirty.value).toBe(true);
 
-    // someone else's save; the editor opens the page again (as Discard does)
     themeFiles[header] = { ...HEADER, content: [{ ...HEADER.content[0], announcement: "Theirs" }] };
     platform.on("GET", "/api/pagebuilder/designer/theme-file", (request: Request) =>
       request.query.path === header ? { content: JSON.stringify(themeFiles[header]), eTag: '"theirs"' } : themeFileAnswer(themeFiles)(request),
@@ -370,10 +363,9 @@ describe("useDesigner: editing and saving", () => {
     pageStatus = { published: true, hasChanges: true };
     themeStatus = { publication: 3, drafts: ["sections/header-group.json", "config/template_rules.json", "config/brand.json", "config/settings_data.json"] };
     await openDatabasePage();
-    // the old designer's theme settings are not the Vue designer's to discard
+    // The Angular designer's theme settings are not the Vue designer's to discard.
     expect(designer.discardable.value).toEqual({ page: true, theme: ["rules", "header", "brand"] });
 
-    // the footer has no draft: it is not sent
     await designer.discardDrafts({ page: true, theme: ["header", "footer"] });
 
     const discards = platform.to("/api/pagebuilder/designer/discard", "POST");
@@ -413,7 +405,6 @@ describe("useDesigner: editing and saving", () => {
     await designer.discardDrafts({ page: true, theme: [] });
     expect(platform.to("/api/pagebuilder/designer/discard")[0].body).toEqual({ page: { groupId: "g1" }, themeFiles: [] });
 
-    // nothing chosen: nothing is sent
     await designer.discardDrafts({ page: false, theme: [] });
     expect(platform.to("/api/pagebuilder/designer/discard")).toHaveLength(1);
   });
@@ -435,14 +426,12 @@ describe("useDesigner: editing and saving", () => {
     designer.groupsEditable.value = false;
     await openDatabasePage();
 
-    // in the preview, not in the tree; their texts are not edited from the preview
     expect(designer.groupsPreview.value?.header).toEqual(HEADER.content);
     expect(designer.groupsShown.value).toBe(false);
     expect(designer.isLocked("header-1")).toBe(true);
     expect(designer.isLocked("hero-1")).toBe(false);
     expect(designer.setText("header-1", ["announcement"], "Free returns")).toBeUndefined();
     expect(section("header-1").announcement).toBe("Free shipping");
-    // the page's own still are
     expect(designer.setText("hero-1", ["title"], "Hello there")).toEqual({ kind: "section", id: "hero-1" });
     expect(designer.changedParts.value).toEqual(["page"]);
   });
@@ -507,7 +496,6 @@ describe("useDesigner: translatable settings and the main section", () => {
     expect(designer.setText("hero-t", ["title"], "Hallo", "de-DE")).toEqual({ kind: "section", id: "hero-t" });
     expect(section("hero-t").title).toEqual({ "en-US": "Hello", "de-DE": "Hallo" });
 
-    // the default language's edit of a dictionary keeps the others
     designer.setText("hero-t", ["title"], "Hi", "en-US");
     expect(section("hero-t").title).toEqual({ "en-US": "Hi", "de-DE": "Hallo" });
   });
@@ -612,7 +600,6 @@ describe("useDesigner: translatable settings and the main section", () => {
     const created = platform.to("/api/page-builder-shared-components", "POST")[0].body as { content: { content: Item[] } };
     expect(created.content.content).toEqual([{ id: "hero-1", type: "hero", title: "Hallo" }]);
 
-    // a component that holds a dictionary anyway (an older one, an agent's) comes into the page as the language's text
     await designer.detach(designer.selection.value!.kind === "section" ? designer.selection.value!.id : "");
     expect(designer.selectedItem.value).toMatchObject({ type: "hero", title: "Hallo" });
   });

@@ -3,15 +3,11 @@ import type { ConditionDescriptor } from "./previewMessages";
 import { checkCondition, conditionsFor } from "./ruleConditions";
 import { PAGE_TYPES, pageTypeOf, type PageType } from "./templates";
 
-// The store's template rules, `{theme}/config/template_rules.json` (docs/contracts/theme-snapshot.md, Template rules):
-// per page type an ordered list, the first enabled rule whose conditions all hold picks the template. Only the
-// storefront evaluates them; the designer edits the file. Whatever it doesn't know (top-level keys, rule keys,
-// conditions) is kept as it is.
+// Only the storefront evaluates these rules. Whatever the designer does not know in the file is kept as it is.
 
 export const RULES_VERSION = 2;
 
 export interface TemplateRule {
-  /** stable: kept when the rule changes or moves */
   id: string;
   template: string;
   when?: Record<string, unknown>;
@@ -21,7 +17,6 @@ export interface TemplateRule {
 
 export interface TemplateRules {
   version: typeof RULES_VERSION;
-  /** the condition names the rules use */
   conditions: string[];
   product?: TemplateRule[];
   category?: TemplateRule[];
@@ -29,28 +24,22 @@ export interface TemplateRules {
   [key: string]: unknown;
 }
 
-/** The rules of a page type the file has no list for: the B2C product template by its product property */
 export const DEFAULT_RULES: Readonly<Record<PageType, readonly TemplateRule[]>> = {
   product: [{ id: "default-b2c", template: "product.b2c", when: { property: { name: "VirtoFrontend_UI_Layout", equals: "B2C" } } }],
   category: [],
   page: [],
 };
 
-/** A problem at a JSON path ("product[2].when.inCategory"); `code` names the message, `params` fill it */
 export interface RuleError {
   path: string;
   code: string;
   params?: Record<string, string>;
 }
 
-/** A rule the storefront reads; it skips any other entry of a list */
 const isRuleLike = (value: unknown): value is Record<string, unknown> & { template: string } =>
   isRecord(value) && typeof value.template === "string" && (value.when === undefined || isRecord(value.when));
 
-/**
- * A page type's rules with their ids: a rule's own, else `{pageType}-{index}` counting the rules the storefront reads,
- * as the storefront and the server read a version 1 file; a taken id gets a suffix, as the server gives it.
- */
+/** Must derive the same ids as the storefront and the server do from a version 1 file. */
 function withIds(list: unknown[], type: PageType): TemplateRule[] {
   const ids = new Set<string>();
   return list.filter(isRuleLike).map((rule, index) => {
@@ -64,11 +53,9 @@ function withIds(list: unknown[], type: PageType): TemplateRule[] {
   });
 }
 
-/** The condition names a file's rules use, sorted */
 const conditionNames = (lists: Partial<Record<PageType, unknown>>) =>
   [...new Set(PAGE_TYPES.flatMap((type) => (Array.isArray(lists[type]) ? (lists[type] as TemplateRule[]) : []).flatMap((rule) => Object.keys(rule.when ?? {}))))].sort();
 
-/** The file as the designer writes it: version 2, the conditions its rules use, the page types' lists, the rest */
 function toFile(rules: Record<string, unknown>): TemplateRules {
   const { version: _version, conditions: _conditions, product, category, page, ...rest } = rules;
   const lists: Partial<Record<PageType, unknown>> = { product, category, page };
@@ -80,21 +67,16 @@ function toFile(rules: Record<string, unknown>): TemplateRules {
   };
 }
 
-/** The rules a file holds, version 1 or 2; no file has no lists, so every page type has its defaults */
 export function readRules(value: unknown): TemplateRules {
   const file: Record<string, unknown> = isRecord(value) ? clone(value) : {};
   for (const type of PAGE_TYPES) {
     if (Array.isArray(file[type])) file[type] = withIds(file[type] as unknown[], type);
-    // the storefront reads a list that isn't one as none
+    // The storefront reads a value that is not a list as no list.
     else delete file[type];
   }
   return toFile(file);
 }
 
-/**
- * How many entries of a rules file the designer can't read, which a save of the rules leaves out: a page type's value
- * that isn't a list, an entry of a list that isn't a rule; a file that isn't an object counts as one
- */
 export function unreadableRules(value: unknown): number {
   if (value === undefined) return 0;
   if (!isRecord(value)) return 1;
@@ -105,7 +87,6 @@ export function unreadableRules(value: unknown): number {
   }, 0);
 }
 
-/** What is wrong with a rules file, each at its path; a condition the storefront didn't announce is never wrong */
 export function validateRules(value: unknown, descriptors: ConditionDescriptor[] = []): RuleError[] {
   if (!isRecord(value)) return [{ path: "", code: "NOT_OBJECT" }];
   const errors: RuleError[] = [];
@@ -114,7 +95,6 @@ export function validateRules(value: unknown, descriptors: ConditionDescriptor[]
     errors.push({ path: "conditions", code: "TEXT_LIST" });
   for (const type of PAGE_TYPES) {
     const list = value[type];
-    // an id is unique within its page type's list
     const ids = new Set<string>();
     if (list === undefined) continue;
     if (!Array.isArray(list)) {
@@ -144,7 +124,6 @@ export function validateRules(value: unknown, descriptors: ConditionDescriptor[]
   return errors;
 }
 
-/** The rules in a file's text: none when it doesn't parse or validate (the errors say why) */
 export function parseRules(text: string, descriptors: ConditionDescriptor[] = []): { rules?: TemplateRules; errors: RuleError[] } {
   let value: unknown;
   try {
@@ -158,18 +137,14 @@ export function parseRules(text: string, descriptors: ConditionDescriptor[] = []
 
 export const formatRules = (rules: TemplateRules) => JSON.stringify(rules, null, 2);
 
-/** Whether the file has a list of its own for the page type; without one, the page type has its defaults */
 export const hasOwnRules = (rules: TemplateRules, type: PageType) => Array.isArray(rules[type]);
 
-/** A page type's rules, in order: its own list, else (a copy of) its defaults */
 export const rulesOf = (rules: TemplateRules, type: PageType): TemplateRule[] => (hasOwnRules(rules, type) ? rules[type]! : clone([...DEFAULT_RULES[type]]));
 
-/** The rules with a page type's list replaced (the rest of the file as it was) */
 export const withRules = (rules: TemplateRules, type: PageType, list: TemplateRule[]): TemplateRules => toFile({ ...rules, [type]: list });
 
 const ID_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
 
-/** A new rule's id: short, url-safe, unique within the file (the defaults' ids included) */
 export function newRuleId(rules: TemplateRules): string {
   const taken = new Set(PAGE_TYPES.flatMap((type) => rulesOf(rules, type).map((rule) => rule.id)));
   for (;;) {
@@ -178,14 +153,12 @@ export function newRuleId(rules: TemplateRules): string {
   }
 }
 
-/** A list with one item moved */
 export function moveItem<T>(list: T[], from: number, to: number): T[] {
   const next = [...list];
   next.splice(to, 0, ...next.splice(from, 1));
   return next;
 }
 
-/** The indexes of the rules that pick a template ("Applies to") */
 export const rulesFor = (rules: TemplateRules, key: string): number[] => {
   const type = pageTypeOf(key);
   return type ? rulesOf(rules, type).flatMap((rule, i) => (rule.template?.trim() === key ? [i] : [])) : [];

@@ -262,14 +262,13 @@ public class PageBuilderControllerThemeFilesTests
         var (_, record) = Assert.Single(history.Records);
         Assert.Equal(ModuleConstants.GitHistory.SavedSummary, record.Description);
         Assert.Equal([$"theme:{Path}", "theme:default/config/template_rules.json"], record.Entries.Select(x => x.Item.ToString()));
-        // the bytes written: they tell the published version later
+        // The history tells the published version by these bytes.
         Assert.Equal(_live.Files[$"{Path}-draft"], record.Entries[0].Content);
     }
 
     [Fact]
     public async Task SaveTemplates_ThemeFileNamedFromTheRoot_RecordsItAsTheHistoryNamesIt()
     {
-        // the admin may name a theme file with a leading "/"
         var history = new RecordingContentHistory();
         var files = new PageBuilderController.SaveFilesModel
         {

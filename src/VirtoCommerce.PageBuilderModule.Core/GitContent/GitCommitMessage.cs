@@ -18,7 +18,6 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
     {
         public const string VcUserTrailer = "VC-User";
 
-        /// <summary>Trailer that groups the commits of one designer save.</summary>
         public const string VcSaveTrailer = "VC-Save";
 
         /// <summary>
@@ -29,7 +28,6 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         public static string WithVcUser(string message, string vcUser) =>
             string.IsNullOrWhiteSpace(vcUser) ? message : $"{message}\n\n{VcUserTrailer}: {vcUser.Trim()}";
 
-        /// <summary>Appends a git trailer; returns the message unchanged when the value is empty.</summary>
         public static string WithTrailer(string message, string name, string value)
         {
             if (string.IsNullOrWhiteSpace(value))

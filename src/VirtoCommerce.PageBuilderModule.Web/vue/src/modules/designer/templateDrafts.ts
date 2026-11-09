@@ -2,27 +2,17 @@ import type { PageDocument } from "./types";
 import { templateKeyOf } from "./templates";
 import type { ThemeStatus } from "./themePublication";
 
-// The theme's templates the preview's draft carries. The storefront takes the draft's templates in place of all the
-// published ones, so the draft has every template of the theme or none: none while no template has a saved draft (the
-// published snapshot holds them as they are live), else each template as last saved, its draft, else its live file.
+// The storefront takes the draft's templates in place of all the published ones, so a draft has every template or none.
 
-/** The keys of the templates with a draft, from theme/status ("templates/product.json" → "product") */
 export const draftedTemplateKeys = (status: ThemeStatus | undefined): string[] =>
   [...new Set((status?.drafts ?? []).map((x) => templateKeyOf(x)).filter((x): x is string => !!x))].sort();
 
-/** Where the saved templates are read from */
 export interface TemplateSource {
-  /** every template of the theme, drafts included */
   keys: () => Promise<string[]>;
-  /** a template as last saved, its draft, else its live file; undefined when the theme has none */
   read: (key: string) => Promise<PageDocument | undefined>;
 }
 
-/**
- * Reads the theme's saved templates for the draft: none while no template has a draft. Live files change only with a
- * publication, so those without a draft, and the list of templates, are read once per publication of the theme
- * (`scope` names the store and theme); the drafts on every call.
- */
+/** Live files change only with a publication, so those without a draft are read once per publication. */
 export function savedTemplatesReader() {
   let live: { scope: string; keys?: string[]; docs: Map<string, PageDocument | undefined> } | undefined;
   return async function read(scope: string, status: ThemeStatus, source: TemplateSource): Promise<Record<string, PageDocument> | undefined> {
@@ -49,10 +39,6 @@ export function savedTemplatesReader() {
   };
 }
 
-/**
- * The draft's templates: the saved ones, the open template as the designer has it (saved or not) in place of its
- * saved one; none while the saved ones are (no template has a draft: the render carries the open one, and wins)
- */
 export function draftTemplates(
   saved: Record<string, PageDocument> | undefined,
   open?: { key: string; document: PageDocument },

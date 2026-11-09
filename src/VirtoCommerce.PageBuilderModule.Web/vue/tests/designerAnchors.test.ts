@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { anchorOf, pageAnchors, slugifyAnchor } from "../src/modules/designer/anchors";
 
-// the storefront's anchors.test.ts cases: a link resolves only while both sides derive the same string
+// These are the storefront's anchors.test.ts cases: a link resolves only while both sides derive the same string.
 test("anchors slugify exactly like the storefront", () => {
   assert.equal(slugifyAnchor("Technical Specifications"), "technical-specifications");
   assert.equal(slugifyAnchor("Back To Top!"), "back-to-top");

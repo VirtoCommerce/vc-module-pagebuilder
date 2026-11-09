@@ -29,7 +29,7 @@ test("the body carries the database page and every theme file, each with its ver
       ["default/config/template_rules.json", '"r1"'],
     ],
   );
-  // the text is what the server saves and what the history tells the published version by
+  // The server saves this exact text, and the history tells the published version by it.
   assert.deepEqual(JSON.parse(body.themeFiles[0].content), header);
   assert.equal(body.themeFiles[0].content, JSON.stringify(header, null, 2));
 });

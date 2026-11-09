@@ -92,7 +92,6 @@ public class ThemePaletteServiceTests
 
         Assert.Empty(result.Failures);
 
-        // checked again by the check action: every pair can be checked, and none fails
         var check = _service.CheckPalette(new ThemePaletteCheckRequest
         {
             Palette = new ThemePalette { Light = result.Light, Dark = result.Dark },
@@ -154,7 +153,6 @@ public class ThemePaletteServiceTests
     {
         var result = _service.GeneratePalette(Request("#f99e24", "#1a237e"));
 
-        // a light fill takes dark text, a dark fill white text
         PaletteColor.TryParse(result.Dark["color_vc_text_solid_primary"], out var onOrange);
         Assert.True(ColorContrast.GetRelativeLuminance(onOrange) < 0.1);
         Assert.Equal("#ffffff", result.Dark["color_vc_text_solid_secondary"]);
@@ -210,7 +208,7 @@ public class ThemePaletteServiceTests
         Assert.Equal(2.11, solid.Ratio);
         Assert.Equal(4.5, solid.MinimumRatio);
         Assert.Contains(result.Failures, x => x.Pair == "button-outline-primary" && x.Text == "color_primary_500" && x.Background == "color_additional_50");
-        // the rest of the pairs need colors the palette leaves to the preset
+        // The rest of the pairs need colors the palette leaves to the preset.
         Assert.Equal(DefaultPairs.Count - 3, result.Unchecked);
     }
 
@@ -250,7 +248,7 @@ public class ThemePaletteServiceTests
     [Fact]
     public void CheckPalette_AnnouncedTokenLeftOut_DoesNotCheckItsPair()
     {
-        // the dark preset has its own header text color, which the server does not know
+        // The dark preset has its own header text color, which the server does not know.
         var result = _service.CheckPalette(new ThemePaletteCheckRequest
         {
             Palette = new ThemePalette
@@ -268,7 +266,7 @@ public class ThemePaletteServiceTests
     [Fact]
     public void CheckPalette_TokenTheStorefrontDoesNotHave_ReadsItsFallback()
     {
-        // light has no header tokens: the storefront's stylesheet falls back to the secondary and the white
+        // Light has no header tokens, so the storefront's stylesheet falls back to the secondary and the white.
         var result = _service.CheckPalette(Check(new Dictionary<string, string>
         {
             ["color_secondary_900"] = "#eeeeee",
@@ -335,7 +333,7 @@ public class ThemePaletteServiceTests
     [Fact]
     public void GeneratePalette_EitherSideCouldMove_MovesTheOtherShadeBeforeTheBrandColor()
     {
-        // darkening the primary is the smaller change, lightening the secondary's 200 keeps the brand color
+        // Darkening the primary is the smaller change, but lightening the secondary's 200 keeps the brand color.
         var service = new OnePairPaletteService(Pair("color_primary_500", "color_secondary_200"));
 
         var result = service.GeneratePalette(Request("#6a6a6a", "#6a6a6a"));

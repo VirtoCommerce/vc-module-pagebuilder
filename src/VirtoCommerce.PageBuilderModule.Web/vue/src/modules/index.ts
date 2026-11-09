@@ -17,18 +17,14 @@ import "./styles.css";
 
 definePermalinkRule();
 
-// The AngularJS module's "Page Builder" widget on the store blade ("storeDetail"): the store's pages
 registerExternalWidget({
   id: "PageBuilderStore",
   title: "Page Builder",
   component: markRaw(StorePageBuilderWidget),
   targetBlades: ["StoreDetails"],
-  // not on a store that isn't saved yet
   isVisible: (blade) => !!blade?.param,
 });
 
-// A site page (the Content module's SiteDetails): its pages are the page's content, and the site's assets and shared
-// components open from widgets next to Files and Settings
 registerExternalWidget({
   id: "site-content:pages",
   title: "PAGE_BUILDER.SITE_TAB.TITLE",
@@ -43,9 +39,7 @@ registerExternalWidget({
   targetBlades: ["SiteDetails"],
 });
 
-// the site's GitHub connection: set up, switched on and off per site
 registerExternalWidget({ id: "SiteGit", title: "History", component: SiteGitWidget, targetBlades: ["SiteDetails"] });
-// version history is set up once for every site: on the Sites panel
 registerExternalWidget({ id: "SitesGitHub", title: "History", component: SitesGitHubWidget, targetBlades: ["ContentStores"] });
 
 export default defineAppModule({

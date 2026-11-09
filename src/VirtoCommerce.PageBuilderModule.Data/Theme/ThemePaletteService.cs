@@ -22,11 +22,9 @@ public class ThemePaletteService : IThemePaletteService
     private const double LightestLightness = 0.985;
     private const double DarkestLightness = 0.04;
 
-    // a secondary color made from the primary: its hue, muted
     private const double DerivedSecondaryMaxSaturation = 0.18;
     private const double DerivedSecondaryLightness = 0.45;
 
-    // the darkest dark shades are new colors of the hue rather than light shades reused
     private const double DarkShade50Saturation = 0.4;
     private const double DarkShade50Lightness = 0.13;
     private const double DarkShade100Saturation = 0.45;
@@ -185,23 +183,18 @@ public class ThemePaletteService : IThemePaletteService
         return result;
     }
 
-    /// <summary>The colors the storefront puts on one another, with the fallbacks of its stylesheets.</summary>
     protected virtual IList<PaletteContrastPair> GetContrastPairs() => [.. CreateContrastPairs()];
 
     protected virtual IList<string> GetColorFamilies() => [.. DefaultColorFamilies];
 
-    /// <summary>The base colors of the families a request does not choose.</summary>
     protected virtual IDictionary<string, PaletteColor> GetFixedBaseColors() => new Dictionary<string, PaletteColor>(DefaultFixedBaseColors);
 
-    /// <summary>VcButton tokens by role; "{0}" in a source is the color.</summary>
     protected virtual IReadOnlyDictionary<string, string> GetButtonRoleSources(string scheme) =>
         scheme == Light ? DefaultLightButtonRoles : DefaultDarkButtonRoles;
 
-    /// <summary>The token a named token takes its color from in the scheme; null for a token without a rule.</summary>
     protected virtual string GetNamedTokenSource(string token, string scheme) =>
         DefaultNamedTokens.TryGetValue(token, out var source) ? (scheme == Light ? source.Light : source.Dark) : null;
 
-    /// <summary>The base color (shade 500) of each color family.</summary>
     protected virtual IDictionary<string, PaletteColor> GetBaseColors(ThemePaletteGenerationRequest request)
     {
         PaletteColor.TryParse(request.Primary, out var primary);
@@ -223,7 +216,7 @@ public class ThemePaletteService : IThemePaletteService
         return colors;
     }
 
-    /// <summary>The shades 50–950 of a color family; dark ones invert unevenly, as the storefront's dark presets do.</summary>
+    /// <summary>Dark shades invert unevenly, as the storefront's dark presets do.</summary>
     protected virtual IDictionary<int, PaletteColor> CreateScale(string family, PaletteColor baseColor, string scheme)
     {
         var (hue, saturation, lightness) = baseColor.ToHsl();
@@ -263,7 +256,7 @@ public class ThemePaletteService : IThemePaletteService
         };
     }
 
-    /// <summary>A token's color, or null for a token without a rule: it keeps the preset's color.</summary>
+    /// <summary>Null for a token without a rule: it keeps the preset's color.</summary>
     protected virtual PaletteColor? CreateTokenColor(string token, string scheme, IDictionary<string, IDictionary<int, PaletteColor>> scales)
     {
         if (token == AdditionalLight)
@@ -290,13 +283,11 @@ public class ThemePaletteService : IThemePaletteService
         return source == null ? null : CreateTokenColor(source, scheme, scales);
     }
 
-    /// <summary>The text on a solid fill: white or near black, whichever contrasts more.</summary>
     protected virtual PaletteColor CreateSolidTextColor(PaletteColor background) =>
         ColorContrast.GetContrastRatio(PaletteColor.White, background) >= ColorContrast.GetContrastRatio(SolidDarkText, background)
             ? PaletteColor.White
             : SolidDarkText;
 
-    /// <summary>Moves colors until every pair passes; a move is kept only when the pairs fall short by less in total.</summary>
     protected virtual void AdjustContrast(IDictionary<string, PaletteColor?> colors, ISet<string> tokens, IList<PaletteContrastPair> pairs)
     {
         for (var round = 0; round < MaxAdjustmentRounds; round++)
@@ -318,11 +309,9 @@ public class ThemePaletteService : IThemePaletteService
         }
     }
 
-    /// <summary>What moving a token's color costs: its lightness change, more for a color's own shade 500.</summary>
     protected virtual double GetAdjustmentCost(string token, double lightnessChange) =>
         token.EndsWith("_500", StringComparison.Ordinal) ? lightnessChange + BaseShadePenalty : lightnessChange;
 
-    /// <summary>Makes the light shades of each color go from light to dark again after the contrast moved some.</summary>
     protected virtual void KeepShadeOrder(IDictionary<string, PaletteColor?> colors, ISet<string> tokens, IList<PaletteContrastPair> pairs)
     {
         foreach (var family in GetColorFamilies())
@@ -339,7 +328,6 @@ public class ThemePaletteService : IThemePaletteService
         }
     }
 
-    /// <summary>The pairs the colors fail; <paramref name="uncheckedPairs"/> counts those a color is missing for.</summary>
     protected virtual IList<PaletteContrastFailure> GetFailures(IDictionary<string, PaletteColor?> colors, ISet<string> tokens, string scheme, IList<PaletteContrastPair> pairs, out int uncheckedPairs)
     {
         var failures = new List<PaletteContrastFailure>();
@@ -372,7 +360,6 @@ public class ThemePaletteService : IThemePaletteService
         return failures;
     }
 
-    /// <summary>The token whose color the storefront shows: the token, else its fallback when the storefront has no such token.</summary>
     protected virtual string ResolveToken(PaletteTokenReference reference, IDictionary<string, PaletteColor?> colors, ISet<string> tokens)
     {
         if (colors.ContainsKey(reference.Token))
@@ -399,7 +386,6 @@ public class ThemePaletteService : IThemePaletteService
             }
         }
 
-        // the text on a solid fill follows the fill
         foreach (var token in tokens)
         {
             var match = VcToken.Match(token);
@@ -423,7 +409,6 @@ public class ThemePaletteService : IThemePaletteService
         return colors;
     }
 
-    /// <summary>The token whose color the token takes in the scheme; null for a token without a rule.</summary>
     protected virtual string GetSourceToken(string token, string scheme)
     {
         if (GetNamedTokenSource(token, scheme) is { } named)
@@ -495,7 +480,6 @@ public class ThemePaletteService : IThemePaletteService
     // the white and the black of a palette: every surface and text falls back to them
     private static bool IsFixed(string token) => token is AdditionalLight or AdditionalDark;
 
-    // the colors nearest to the given one that reach the ratio, by moving its lightness towards black and towards white
     private static IEnumerable<(PaletteColor Color, double LightnessChange)> FindContrastingColors(PaletteColor color, PaletteColor other, double minimumRatio)
     {
         var (hue, saturation, lightness) = color.ToHsl();
@@ -507,7 +491,6 @@ public class ThemePaletteService : IThemePaletteService
                 continue;
             }
 
-            // the nearest lightness that passes, between the color's (failing) and the limit (passing)
             var failing = lightness;
             var passing = limit;
             for (var step = 0; step < SearchSteps; step++)
@@ -540,7 +523,6 @@ public class ThemePaletteService : IThemePaletteService
         return new PairEvaluation(textToken, text, backgroundToken, background, ratio, ratio >= pair.MinimumRatio);
     }
 
-    // how far the pairs fall short of their ratios, in total
     private double GetShortfall(IDictionary<string, PaletteColor?> colors, ISet<string> tokens, IList<PaletteContrastPair> pairs) =>
         pairs.Select(x => Evaluate(x, colors, tokens)).Zip(pairs).Sum(x => x.First is { Passes: false } evaluation ? x.Second.MinimumRatio - evaluation.Ratio : 0);
 
@@ -581,7 +563,6 @@ public class ThemePaletteService : IThemePaletteService
         return pairs;
     }
 
-    // a header or footer row: its text and links on its background
     private static IEnumerable<PaletteContrastPair> CreateAreaPairs(string area, string background, string text, string link, string linkHover, string linkActive)
     {
         var name = area.Replace('_', '-');
@@ -593,7 +574,7 @@ public class ThemePaletteService : IThemePaletteService
         yield return CreatePair($"{name}-link-active", CreateTokenReference($"{area}_link_active", linkActive), areaBackground, TextContrastRatio);
     }
 
-    // VcButton's variants of a color; badges and chips use the same tokens
+    // badges and chips use the same tokens as VcButton
     private static IEnumerable<PaletteContrastPair> CreateButtonPairs(string family)
     {
         var solidText = family == "warning" ? "warning_900" : "additional_50";

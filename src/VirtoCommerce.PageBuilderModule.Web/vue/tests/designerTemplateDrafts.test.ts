@@ -7,7 +7,6 @@ import type { Item, PageDocument } from "../src/modules/designer/types";
 const doc = (...types: string[]): PageDocument => ({ settings: { type: "settings" } as Item, content: types.map((type, i) => ({ id: `${type}-${i}`, type })) });
 const status = (drafts: string[], publication?: number): ThemeStatus => ({ publication, drafts });
 
-/** a theme's templates: what each key reads as (its draft, else live), and every request made */
 function source(files: Record<string, PageDocument | undefined>) {
   const requests: string[] = [];
   const src: TemplateSource = {
@@ -41,7 +40,6 @@ test("no template with a draft: no templates, nothing read (the published snapsh
 test("a template with a draft: every template goes, each as last saved", async () => {
   const { src } = source({ product: doc("product-info"), "page.landing": doc("hero", "page-content"), category: undefined });
   const templates = await savedTemplatesReader()("s/default", status(["templates/page.landing.json"], 3), src);
-  // a draft replaces all the published templates: the ones without a draft go too; a listed file without content does not
   assert.deepEqual(templates, { product: doc("product-info"), "page.landing": doc("hero", "page-content") });
 });
 
@@ -58,25 +56,21 @@ test("live templates are read once per publication, drafts on every read", async
   await read("s/default", status(["templates/product.json"], 3), src);
   assert.deepEqual(requests.sort(), ["category", "keys", "product"]);
 
-  // a save of the product template: only its draft is read again
   requests.length = 0;
   files.product = doc("product-info", "banner");
   assert.deepEqual((await read("s/default", status(["templates/product.json"], 3), src))?.product, doc("product-info", "banner"));
   assert.deepEqual(requests, ["product"]);
 
-  // its draft discarded: it is read once as live, then kept
   requests.length = 0;
   files.product = doc("product-info");
   await read("s/default", status(["templates/category.json"], 3), src);
   await read("s/default", status(["templates/category.json"], 3), src);
   assert.deepEqual(requests.sort(), ["category", "category", "product"]);
 
-  // a publication puts other files live: the list and the live files are read again
   requests.length = 0;
   await read("s/default", status(["templates/category.json"], 4), src);
   assert.deepEqual(requests.sort(), ["category", "keys", "product"]);
 
-  // another theme reads its own
   requests.length = 0;
   await read("s/b2c", status(["templates/category.json"], 4), src);
   assert.deepEqual(requests.sort(), ["category", "keys", "product"]);
@@ -95,11 +89,8 @@ test("draftTemplates: the open template as edited wins over its saved one; none 
   const saved = { product: doc("product-info"), category: doc("category-listing") };
   const edited = doc("banner", "product-info");
   assert.deepEqual(draftTemplates(saved, { key: "product", document: edited }), { product: edited, category: saved.category });
-  // a template open that is not saved yet joins the rest
   assert.deepEqual(draftTemplates(saved, { key: "product.printer", document: edited }), { ...saved, "product.printer": edited });
   assert.equal(draftTemplates(saved), saved);
-  // the render carries the open template, and wins
   assert.equal(draftTemplates(undefined, { key: "product", document: edited }), undefined);
-  // the draft holds a document's settings and content only
   assert.deepEqual(draftTemplates({}, { key: "page", document: { ...edited, version: 2 } as PageDocument }), { page: edited });
 });

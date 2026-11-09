@@ -60,7 +60,6 @@
 </template>
 
 <script setup lang="ts">
-// The left rail's Shared tab: the site's shared components, to place on a page or to edit (on every page at once).
 import { ref, watch } from "vue";
 import { debounce } from "lodash-es";
 import { VcButton, VcIcon, VcInput } from "@vc-shell/framework/ui";
@@ -68,7 +67,6 @@ import { searchSharedComponents, type SharedComponent } from "../api";
 
 const props = defineProps<{
   storeId?: string;
-  /** what is open can hold a shared component: a page, not a template */
   canInsert?: boolean;
 }>();
 const emit = defineEmits<{ insert: [component: SharedComponent]; edit: [component: SharedComponent] }>();
@@ -80,7 +78,7 @@ let searches = 0;
 const load = debounce(async () => {
   const request = ++searches;
   const found = props.storeId ? await searchSharedComponents(props.storeId, search.value).catch(() => []) : [];
-  // an earlier search answering last doesn't replace a later one's results
+  // An earlier search that answers last must not replace a later one's results.
   if (request !== searches) return;
   components.value = found;
   loading.value = false;

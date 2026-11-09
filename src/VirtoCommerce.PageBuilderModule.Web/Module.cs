@@ -108,7 +108,6 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<MultilanguagePageExportImport>();
             serviceCollection.AddTransient<PageBuilderExportImport>();
 
-            // Git content flow: off until a connection is configured and a store opts in
             var gitContentSection = Configuration.GetSection(GitContentOptions.SectionName);
             serviceCollection.Configure<GitContentOptions>(gitContentSection);
             // Fail fast: a half-configured flow must not boot, or publishing would silently keep writing

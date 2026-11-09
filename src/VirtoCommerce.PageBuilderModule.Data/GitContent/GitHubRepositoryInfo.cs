@@ -2,7 +2,6 @@ using Newtonsoft.Json;
 
 namespace VirtoCommerce.PageBuilderModule.Data.GitContent;
 
-/// <summary>GitHub repository as the REST API returns it.</summary>
 public class GitHubRepositoryInfo
 {
     [JsonProperty("description")]

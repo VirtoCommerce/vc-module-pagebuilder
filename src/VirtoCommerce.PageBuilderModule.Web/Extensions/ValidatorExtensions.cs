@@ -9,7 +9,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Extensions;
 
 public static class ValidatorExtensions
 {
-    /// <summary>Validates the request; returns a 400 with the errors, or null for a valid request.</summary>
+    /// <summary>Returns <c>null</c> for a valid request.</summary>
     public static async Task<BadRequestObjectResult> ValidateRequestAsync<T>(this IValidator<T> validator, T request, CancellationToken cancellationToken)
     {
         var validationResult = await validator.ValidateAsync(request, cancellationToken);
@@ -19,10 +19,7 @@ public static class ValidatorExtensions
             : new BadRequestObjectResult(new { error = string.Join(" ", validationResult.Errors.Select(x => x.ErrorMessage)) });
     }
 
-    /// <summary>
-    /// Validates the request after what MVC could not bind, a malformed body or a parameter of the wrong type: that is the caller's
-    /// mistake too, where MVC would pass the parameter's default on.
-    /// </summary>
+    /// <summary>Treats what MVC could not bind as the caller's mistake too, where MVC would pass the parameter's default on.</summary>
     public static Task<BadRequestObjectResult> ValidateRequestAsync<T>(this IValidator<T> validator, T request, ModelStateDictionary modelState,
         CancellationToken cancellationToken)
     {

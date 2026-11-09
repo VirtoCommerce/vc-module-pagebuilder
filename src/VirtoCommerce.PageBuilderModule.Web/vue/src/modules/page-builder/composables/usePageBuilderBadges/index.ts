@@ -15,7 +15,6 @@ const activeCount = ref<number | undefined>(undefined);
 const archivedCount = ref<number | undefined>(undefined);
 const allCount = ref<number | undefined>(undefined);
 
-/** Page counts of the current store per lifecycle (undefined = none): the standalone app's menu badges, the Admin Shell's status switch. */
 export const pageCounts = {
   draft: draftCount,
   pending: pendingCount,

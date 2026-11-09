@@ -99,7 +99,7 @@ function applyUploadDecision(
 }
 
 export function normalizeAssetFileName(value: string): string {
-  // Prefer a harmless extra warning on case-sensitive providers over a silent overwrite on case-insensitive ones.
+  // Lowercase: an extra warning on case-sensitive providers is harmless, a silent overwrite on case-insensitive ones is not.
   try {
     return decodeURIComponent(value).trim().normalize("NFC").toLowerCase();
   } catch {

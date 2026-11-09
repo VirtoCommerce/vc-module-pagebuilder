@@ -29,7 +29,7 @@ import {
   splitTexts,
 } from "../src/modules/designer/ruleConditions";
 
-/** The storefront's built-in conditions as its handshake announces them (vc-frontend templates/conditions.ts) */
+/** Mirrors the built-in conditions that vc-frontend's templates/conditions.ts announces in the handshake. */
 const nameEquals = { type: "object", element: [{ id: "name", type: "string", label: "Name" }, { id: "equals", type: "string", label: "Value" }] };
 const DESCRIPTORS: ConditionDescriptor[] = [
   { name: "inCategory", pageTypes: ["product", "category"], label: "In category", value: { type: "list", label: "Category ids" } },
@@ -56,8 +56,6 @@ const v1 = {
   page: [{ template: "page.landing", when: { path: "/landing/*", source: "Pages" } }],
 };
 
-// ── read, convert, write ─────────────────────────────────────────────────────
-
 test("a version 1 file reads as version 2: the ids the storefront gives it, and the conditions its rules use", () => {
   const rules = readRules(v1);
   assert.equal(rules.version, 2);
@@ -65,7 +63,6 @@ test("a version 1 file reads as version 2: the ids the storefront gives it, and 
   assert.deepEqual(rulesOf(rules, "product").map((x) => x.id), ["product-0", "product-1"]);
   assert.deepEqual(rulesOf(rules, "category").map((x) => x.id), ["category-0"]);
   assert.deepEqual(rulesOf(rules, "page").map((x) => x.id), ["page-0"]);
-  // the rest of each rule as it was
   assert.deepEqual(rulesOf(rules, "product")[1], { ...v1.product[1], id: "product-1" });
 });
 
@@ -81,7 +78,6 @@ test("ids count the rules the storefront reads; a rule's own id is kept, a taken
       { id: "product-0", template: "product.e" },
     ],
   });
-  // "rule", the number template and the list `when` are not rules to the storefront: they are not counted, nor kept
   assert.deepEqual(
     rulesOf(rules, "product").map((x) => `${x.template}:${x.id}`),
     ["product.a:product-0", "product.c:mine", "product.d:product-2", "product.e:product-3"],
@@ -96,7 +92,6 @@ test("a version 2 file keeps its ids; the conditions list is written from the ru
     page: [{ id: "landing", template: "page.landing", when: { path: "/landing/*" } }],
   });
   assert.deepEqual(rules, { version: 2, conditions: ["path"], page: [{ id: "landing", template: "page.landing", when: { path: "/landing/*" } }], owner: "marketing" });
-  // written as it reads: no change, nothing to save
   assert.equal(formatRules(readRules(JSON.parse(formatRules(rules)))), formatRules(rules));
 });
 
@@ -108,7 +103,6 @@ test("no file: no lists, so every page type has its defaults, which are not writ
     assert.deepEqual(rulesOf(rules, "product"), DEFAULT_RULES.product);
     assert.deepEqual(rulesOf(rules, "category"), []);
   }
-  // a page type whose list isn't one has none, as on the storefront
   assert.equal(hasOwnRules(readRules({ product: { template: "product.x" } }), "product"), false);
 });
 
@@ -137,13 +131,10 @@ test("a page type's defaults are written only when its list changes; an empty li
   assert.deepEqual(rules.conditions, []);
 });
 
-// ── ids stay with their rules ────────────────────────────────────────────────
-
 test("a rule keeps its id when it changes, moves or is switched on, and when others are removed", () => {
   let rules = readRules({ ...v1, owner: "marketing" });
   const ids = rulesOf(rules, "product").map((x) => x.id);
 
-  // edited as the form saves it: the rule's other keys, its id among them, with the new template and conditions
   const { when: _when, ...rest } = rulesOf(rules, "product")[0];
   rules = withRules(rules, "product", [{ ...rest, template: "product.scanner", when: { productType: "Physical" } }, rulesOf(rules, "product")[1]]);
   assert.deepEqual(rulesOf(rules, "product").map((x) => x.id), ids);
@@ -163,7 +154,6 @@ test("a rule keeps its id when it changes, moves or is switched on, and when oth
   assert.equal(saved.owner, "marketing");
   assert.deepEqual(saved.conditions, ["inCategory", "path", "productType", "source"]);
   assert.deepEqual(saved.product, [{ id: ids[0], template: "product.scanner", when: { productType: "Physical" } }]);
-  // read again, the ids are the ones written
   assert.deepEqual(rulesOf(readRules(saved), "product").map((x) => x.id), [ids[0]]);
 });
 
@@ -182,12 +172,10 @@ test("a new rule's id is short, url-safe and taken by no rule of the file, the d
 
 test("a new rule's id drawn again when a rule has it", (t) => {
   let draw = 0;
-  // the first draw is "aaaaaaaa", the next "bbbbbbbb"
+  // The first draw gives "aaaaaaaa" and the next one gives "bbbbbbbb".
   t.mock.method(globalThis.crypto, "getRandomValues", (array: Uint32Array) => array.fill(draw++));
   assert.equal(newRuleId(readRules({ page: [{ id: "aaaaaaaa", template: "page" }] })), "bbbbbbbb");
 });
-
-// ── validation ───────────────────────────────────────────────────────────────
 
 test("a rules file parses into version 2", () => {
   const { rules, errors } = parseRules(JSON.stringify(v1), DESCRIPTORS);
@@ -232,7 +220,7 @@ test("errors point at their JSON path", () => {
       "product[2].disabled: BOOLEAN",
       'product[2].when.property: FIELDS {"fields":"name, equals"}',
       "product[3]: NOT_OBJECT",
-      // "c1,c2" is the list the contract reads it as; only the product type is wrong there
+      // The contract reads "c1,c2" as a list, so only the product type is wrong there.
       "product[4].when.productType: TEXT",
       "category: NOT_LIST",
       'page[0].when.source: OPTION {"options":"Pages, ContentFile"}',
@@ -260,13 +248,9 @@ test("ids are unique within a page type's list; two lists may use the same one",
 test("a condition the storefront didn't announce for the page type is never an error", () => {
   const rule = { template: "product.printer", when: { inCategory: ["printers-id"], vendor: { id: "acme" }, path: 5 } };
   assert.deepEqual(validateRules({ product: [rule] }, DESCRIPTORS), []);
-  // property is a product condition: on a category rule the storefront doesn't know it
   assert.deepEqual(validateRules({ category: [{ template: "category.x", when: { property: 1 } }] }, DESCRIPTORS), []);
-  // before the handshake no condition is checked
   assert.deepEqual(validateRules({ product: [{ template: "product.x", when: { inCategory: "x" } }] }), []);
 });
-
-// ── conditions from the handshake ────────────────────────────────────────────
 
 test("a page type offers only the conditions the storefront announced for it", () => {
   assert.deepEqual(conditionsFor(DESCRIPTORS, "product").map((x) => x.name), ["inCategory", "productType", "property"]);
@@ -280,12 +264,10 @@ test("each condition's form comes from its value schema; inCategory is the categ
   assert.deepEqual(input("inCategory"), { kind: "categories" });
   assert.deepEqual(input("path"), { kind: "field", field: { type: "string", label: "Path, * matches any characters", id: "path" } });
   assert.deepEqual(input("source"), { kind: "field", field: { ...DESCRIPTORS[5].value, id: "source" } });
-  // an object's fields are its `element`, as in a section schema; `settings` are not read
   assert.deepEqual(input("property"), { kind: "field", field: { ...nameEquals, id: "property" } });
   const bySettings: ConditionDescriptor = { name: "property", pageTypes: ["product"], value: { type: "object", settings: nameEquals.element } };
   assert.deepEqual(conditionInput(bySettings), { kind: "field", field: { ...bySettings.value, id: "property" } });
   assert.equal(checkCondition(bySettings, { name: "x" }), undefined);
-  // a plugin's list of texts
   const tiers: ConditionDescriptor = { name: "loyalty.tier", pageTypes: ["product"], value: { type: "list" } };
   assert.deepEqual(conditionInput(tiers), { kind: "texts" });
   assert.deepEqual(conditionInput({ ...tiers, value: { type: "string", multiple: true } }), { kind: "texts" });
@@ -301,7 +283,6 @@ test("values are checked as their schema says", () => {
   assert.equal(checkCondition(plugin({ type: "checkbox" }), false), undefined);
   assert.deepEqual(checkCondition(plugin({ type: "checkbox" }), "no"), { code: "BOOLEAN" });
   const property = DESCRIPTORS[2];
-  // a product property's value may be other than a text
   assert.equal(checkCondition(property, { name: "Bundle", equals: true }), undefined);
   assert.deepEqual(checkCondition(property, "Bundle"), { code: "NOT_OBJECT" });
 });
@@ -340,7 +321,6 @@ test("a rules file's entries the designer can't read are counted: a save of the 
     other: "kept",
   };
   assert.equal(unreadableRules(file), 4);
-  // what is left is what the designer reads and writes back; a key it doesn't know stays
   const read = readRules(file);
   assert.deepEqual(rulesOf(read, "product").map((x) => x.template), ["product.a"]);
   assert.equal(hasOwnRules(read, "category"), false);

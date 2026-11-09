@@ -34,7 +34,6 @@ public class HistoryController(
     IValidator<ContentHistoryRequest> requestValidator,
     IValidator<ContentHistoryRestoreRequest> restoreRequestValidator) : Controller
 {
-    /// <summary>Get whether the store keeps history</summary>
     [HttpGet("status")]
     public async Task<ActionResult<ContentHistoryStatusResult>> GetStatus([FromQuery] string storeId, CancellationToken cancellationToken = default)
     {
@@ -49,7 +48,6 @@ public class HistoryController(
         return Ok(result);
     }
 
-    /// <summary>Get versions that changed any of the items, newest first</summary>
     [HttpGet]
     public async Task<ActionResult<ContentVersionPage>> GetHistory([FromQuery] string storeId, [FromQuery(Name = "item")] string[] items,
         [FromQuery] string cursor = null, [FromQuery] int take = ModuleConstants.GitHistory.DefaultPageSize, CancellationToken cancellationToken = default)
@@ -74,7 +72,6 @@ public class HistoryController(
         }
     }
 
-    /// <summary>Get the item as of the version</summary>
     [HttpGet("{versionId}")]
     public async Task<ActionResult> GetVersion([FromRoute] string versionId, [FromQuery] string storeId, [FromQuery] string item,
         CancellationToken cancellationToken = default)

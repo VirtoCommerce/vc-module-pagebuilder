@@ -1,6 +1,6 @@
 import type { Item } from "./types";
 
-/** What Copy puts on the clipboard (the Angular designer's format): { "content": item, "type": "section" | "block" } */
+/** The Angular designer's clipboard format. */
 export interface ClipboardItem {
   type: "section" | "block";
   content: Item;
@@ -8,7 +8,6 @@ export interface ClipboardItem {
 
 export const toClipboard = (type: ClipboardItem["type"], content: Item) => JSON.stringify({ content, type }, null, 2);
 
-/** The copied section or block in a clipboard text, or undefined when it isn't one. */
 export function fromClipboard(text: string | undefined): ClipboardItem | undefined {
   try {
     const value = JSON.parse(text ?? "") as Partial<ClipboardItem>;

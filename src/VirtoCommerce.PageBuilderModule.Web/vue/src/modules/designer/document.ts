@@ -2,7 +2,6 @@ import type { Item, PageDocument } from "./types";
 import { clone } from "./json";
 import { newId } from "./schema";
 
-/** Any stored shape as a document: JSON text, the legacy array [settings, ...sections], a PageModel; missing ids added. */
 export function toDocument(raw: unknown): PageDocument {
   if (typeof raw === "string") return toDocument(raw.trim() ? JSON.parse(raw) : {});
   if (Array.isArray(raw)) {
@@ -15,13 +14,11 @@ export function toDocument(raw: unknown): PageDocument {
   return { ...doc, settings: doc.settings ?? ({} as Item), content: Array.isArray(doc.content) ? doc.content.map(withId) : [] };
 }
 
-/** The document as stored: a legacy array page stays an array. */
 export function fromDocument(doc: PageDocument): unknown {
   if (doc.version === 1) return [doc.settings, ...doc.content];
   return doc;
 }
 
-/** A shared component placed on the page: exactly { id, type: "componentRef", componentRef }, non-blank. */
 export function isComponentRef(item: Item): item is Item & { componentRef: string } {
   const keys = Object.keys(item);
   return (
@@ -44,10 +41,6 @@ export interface SharedBoundary {
 
 const hex = (text: string) => [...text].map((c) => c.charCodeAt(0).toString(16)).join("");
 
-/**
- * The document the preview renders: each shared-component reference replaced by the component's sections (ids made
- * unique per placement, letters and digits only), with the placements as boundaries the preview outlines.
- */
 export function resolveRefs(
   doc: PageDocument,
   components: Map<string, { content: Item[]; label?: string } | null>,

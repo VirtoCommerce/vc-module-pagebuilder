@@ -6,10 +6,7 @@ using VirtoCommerce.Platform.Core.Events;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Services;
 
-/// <summary>
-/// Saves a database page's content at the version it was read at, and raises the page's changed event when the content
-/// service did not.
-/// </summary>
+/// <summary>Raises the page's changed event when the content service did not.</summary>
 public class GroupedPageContentWriter(
     IGroupedPageContentService groupedPageContentService,
     IPageBuilderPageService pageService,

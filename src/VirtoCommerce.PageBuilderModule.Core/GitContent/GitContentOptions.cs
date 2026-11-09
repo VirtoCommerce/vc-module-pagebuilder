@@ -15,19 +15,17 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
 
         public bool Enabled { get; set; }
 
-        /// <summary>Shared repository ("owner/name") for all stores. Mutually exclusive with <see cref="Organization"/>.</summary>
+        /// <summary>Mutually exclusive with <see cref="Organization"/>.</summary>
         public string Repository { get; set; }
 
-        /// <summary>GitHub organization that holds one repository per store.</summary>
         public string Organization { get; set; }
 
-        /// <summary>Prefix of a store repository name.</summary>
         public string RepositoryPrefix { get; set; } = "site-";
 
-        /// <summary>Creates a repository for every new store. Requires <see cref="Organization"/>.</summary>
+        /// <summary>Requires <see cref="Organization"/>.</summary>
         public bool AutoCreateRepositories { get; set; }
 
-        /// <summary>GitHub App id. With <see cref="PrivateKey"/>, replaces <see cref="Token"/>.</summary>
+        /// <summary>With <see cref="PrivateKey"/>, replaces <see cref="Token"/>.</summary>
         public string AppId { get; set; }
 
         /// <summary>GitHub App private key (PEM); "\n" escapes are accepted. Keep it in secret storage.</summary>
@@ -51,7 +49,7 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         /// </summary>
         public Uri GraphQlUrl { get; set; } = new("https://api.github.com/graphql");
 
-        /// <summary>Personal access token, used without a GitHub App. Keep it in secret storage.</summary>
+        /// <summary>Keep it in secret storage.</summary>
         public string Token { get; set; }
 
         /// <summary>
@@ -126,7 +124,7 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         /// </summary>
         public TimeSpan ReadCacheExpiration { get; set; } = TimeSpan.FromMinutes(1);
 
-        /// <summary>How long a page read by commit sha, or a repository owner, is cached.</summary>
+        /// <summary>Also how long a repository owner is cached.</summary>
         public TimeSpan ImmutableReadCacheExpiration { get; set; } = TimeSpan.FromHours(1);
 
         /// <summary>

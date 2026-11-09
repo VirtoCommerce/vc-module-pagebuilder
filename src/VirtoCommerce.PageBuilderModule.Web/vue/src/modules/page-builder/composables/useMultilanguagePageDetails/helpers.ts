@@ -6,12 +6,10 @@ import type {
 // Matches MultilanguagePageBatchResult.FailedReason on the backend.
 const failedReason = "Failed";
 
-/** A root with versions is archived like a Landing Page; only a root without versions is deleted. */
 export function hasLanguageVersions(languages?: MultilanguagePageLanguage[]): boolean {
   return (languages ?? []).some((x) => !!x.page);
 }
 
-/** A Multilanguage Page row is archived when it has versions and all of them are archived. */
 export function isMultilanguageRowArchived(languages?: MultilanguagePageLanguage[]): boolean {
   const versions = (languages ?? []).filter((x) => !!x.page);
   return versions.length > 0 && versions.every((x) => x.status === "Archived");
@@ -26,7 +24,6 @@ function normalizePermalink(permalink?: string): string {
   return `/${(permalink ?? "").trim().replace(/^\/+/, "")}`;
 }
 
-/** Usage is checked for a new page and when the permalink or language changed, not on every save. */
 export function isPermalinkCheckNeeded(saved: IPermalinkTarget | undefined, current: IPermalinkTarget): boolean {
   if (!saved) {
     return true;
@@ -38,7 +35,6 @@ export function isPermalinkCheckNeeded(saved: IPermalinkTarget | undefined, curr
   );
 }
 
-/** Language lists for the batch summary; failed languages are reported apart from the skipped ones. */
 export function summarizeBatchResult(result: MultilanguagePageBatchResult): {
   processed: string;
   skipped: string;
@@ -59,10 +55,6 @@ export function summarizeBatchResult(result: MultilanguagePageBatchResult): {
   };
 }
 
-/**
- * Pill text: the language part of the culture ("DE"), or the whole culture when the pill is alone or another culture
- * of the list has the same language part (en-US and en-GB). Empty for a page without a language.
- */
 export function getLanguagePillText(cultureName: string | undefined, cultureNames: (string | undefined)[]): string {
   if (!cultureName) {
     return "";
@@ -76,7 +68,6 @@ export function getLanguagePillText(cultureName: string | undefined, cultureName
   return cultureNames.length === 1 || isShared ? cultureName : language(cultureName).toUpperCase();
 }
 
-/** Status of a Multilanguage Page row: published languages out of the store languages, and outdated translations. */
 export function summarizeLanguageStatuses(languages?: MultilanguagePageLanguage[]): {
   published: number;
   total: number;

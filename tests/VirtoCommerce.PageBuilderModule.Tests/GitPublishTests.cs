@@ -235,7 +235,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [Fact]
         public async Task Publish_WithNothingOfMine_StillWritesTheLivePageFromTheBaseBranch()
         {
-            // publishing again repairs a live write that failed after its merge
+            // Publishing again repairs a live write that failed after its merge.
             var live = new FakeBlobStorage();
 
             await Controller(Repository(withDraft: false), Publisher(GitPublishState.Merged), live: live).GitPublish("s1", Page, "pages");
@@ -246,7 +246,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [Fact]
         public async Task Publish_BaseBranchPageNotJson_ThrowsGitContentExceptionAndLeavesTheLivePageAlone()
         {
-            // a commit made on GitHub broke the file
             var repository = Repository(withDraft: false);
             repository.Files[(RepoPath, "master")] = "{ \"settings\": ";
             var live = new FakeBlobStorage();
@@ -261,7 +260,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [Fact]
         public async Task Publish_OfADraftTheBaseBranchAlreadyHas_WritesTheLivePageFromTheBaseBranch()
         {
-            // a pull request merged on GitHub writes nothing live
+            // A pull request merged on GitHub writes nothing live.
             var live = new FakeBlobStorage();
 
             await Controller(MergedOnGitHub(), Publisher(GitPublishState.AlreadyPublished), live: live).GitPublish("s1", Page, "pages");
@@ -318,7 +317,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [Fact]
         public async Task Publish_OfAPageTheBranchDoesNotHave_NeverRemovesItsLiveCopy()
         {
-            // a page only in blob storage must survive Publish
             var repository = Repository(withDraft: false);
             repository.Files.Remove((RepoPath, "master"));
             var live = new FakeBlobStorage();
@@ -387,7 +385,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 ReleaseBranch = releaseBranch,
             });
 
-            // the platform writes the live page itself once a merge is done
+            // The platform writes the live page itself once a merge is done.
             live ??= new FakeBlobStorage();
             var connection = GitHubConnections.CreateService(options.Value);
             var history = new FakeGitContentHistory();

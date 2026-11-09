@@ -37,7 +37,7 @@ public class GitContentSetupControllerTests
         var (action, manifest) = await GetSetupFormAsync(controller, state);
 
         Assert.StartsWith("https://github.com/organizations/acme/settings/apps/new?state=", action);
-        // the platform's CSP lets its pages post forms only to themselves
+        // The platform's CSP lets its pages post forms only to themselves.
         Assert.Equal("https://github.com", controller.HttpContext.Items["Content-Security-Policy-Form-Action-Uri"]);
 
         Assert.Equal("Page Builder acme", manifest["name"]?.Value<string>());
@@ -100,7 +100,7 @@ public class GitContentSetupControllerTests
     [Fact]
     public async Task AppCreated_ExpiredState_ReturnsBadRequestWithoutCallingGitHub()
     {
-        // the anonymous callbacks are bound by the state's lifetime alone
+        // The anonymous callbacks are bound by the state's lifetime alone.
         var github = GitHubConnections.CreateManifestConversion("acme");
         var expired = _keys.CreateProtector("VirtoCommerce.PageBuilderModule.GitHubAppSetup").ToTimeLimitedDataProtector()
             .Protect(JsonConvert.SerializeObject(new GitHubAppSetupRequest { Organization = "acme", StoreId = "s1" }), DateTimeOffset.UtcNow.AddMinutes(-1));
@@ -206,7 +206,7 @@ public class GitContentSetupControllerTests
     [Fact]
     public async Task GetConnection_GitHubTimesOut_ReturnsTimeoutError()
     {
-        // what the GitHub client makes of an HttpClient.Timeout
+        // This is what the GitHub client makes of an HttpClient.Timeout.
         var timeout = new TaskCanceledException("The request was canceled due to the configured HttpClient.Timeout.");
         var provisioner = new FakeGitContentProvisioner { OrganizationFailure = new GitContentException($"GitHub request to read organization \"acme\" failed: {timeout.Message}", timeout) };
         var controller = Controller(ConfiguredConnection(), provisioner: provisioner);
@@ -306,8 +306,6 @@ public class GitContentSetupControllerTests
         Assert.Equal(["url"], body.Properties().Select(x => x.Name));
         Assert.StartsWith("/api/pagebuilder/git/app/new?state=", body.Value<string>("url"));
     }
-
-    // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
     private GitHubConnectionService ConfiguredConnection() =>
         GitHubConnections.CreateService(_settings, _keys, configure: options =>

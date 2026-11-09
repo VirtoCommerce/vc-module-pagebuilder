@@ -169,8 +169,6 @@
 </template>
 
 <script lang="ts" setup>
-// The platform's GitHub connection, once for every site (from the Sites panel): the organization that holds one
-// repository per site and the App the platform acts as, and the one-click setup that makes both.
 import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useEventListener } from "@vueuse/core";
@@ -193,7 +191,6 @@ const busy = ref(false);
 const actionError = ref<string>();
 const settingUp = ref(false);
 const organization = ref("");
-/** a Create went on to GitHub's form in another tab */
 let appCreationOpen = false;
 
 async function request<T>(url: string): Promise<T> {
@@ -219,14 +216,10 @@ async function loadConnection() {
   }
 }
 
-/**
- * Opens GitHub's create-an-App form in a new tab, through the platform's page that posts it (the admin's own pages
- * may not post forms to other sites). The tab is opened straight away, inside the click, or the browser would block
- * it as a pop-up once the platform has answered.
- */
+/** The admin's own pages may not post forms to other sites, and a tab opened after the platform answers would be blocked as a pop-up. */
 async function createApp() {
   if (!organization.value.trim() || busy.value) return;
-  // the handle sends the tab on once the platform answers; the tab gets no link back to this page
+  // noopener would return no handle, and the handle sends the tab on once the platform answers, so opener is cleared by hand.
   const tab = window.open("about:blank", "_blank");
   if (tab) tab.opener = null;
   busy.value = true;
@@ -246,8 +239,6 @@ async function createApp() {
 
 const openTab = (url?: string) => url && window.open(url, "_blank", "noopener");
 
-// back in this window: show where the setup got to, keeping the reason of a Create that failed; the form closes only
-// after a Create went to GitHub, not when the editor comes back from another tab
 useEventListener(window, "focus", () => {
   if (!busy.value && (!connection.value?.configured || connection.value.error || settingUp.value)) {
     if (appCreationOpen) settingUp.value = false;
@@ -271,13 +262,12 @@ onMounted(refresh);
 
 <style lang="scss" scoped>
 .pb-gh {
-  // a compact panel even when the blade stretches over the workspace
   max-width: 680px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   padding: 20px;
-  // the blade's content is 16px; the shell's text, buttons and fields are 14px
+  // The blade's content is 16px, while the shell's text, buttons and fields are 14px.
   font-size: 14px;
   line-height: 20px;
 
@@ -310,7 +300,7 @@ onMounted(refresh);
     gap: 6px;
     margin: 0;
     padding-left: 20px;
-    // the shell's reset takes list markers away; the order is the point here
+    // The shell's reset removes list markers, and this list's order matters.
     list-style: decimal;
     color: var(--neutrals-700);
   }

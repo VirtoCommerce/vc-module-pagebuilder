@@ -295,7 +295,6 @@ const { canSave, isModified, setBaseline } = useBladeForm({
 });
 
 const storeUrl = ref<string | null>(null);
-// Settings as last loaded or saved: a change of an inherited field may conflict with language overrides.
 const savedSettings = ref<IInheritableSettings>({});
 const conflicts = ref<IOverridesConflict[]>([]);
 const { confirmPermalinkUsage } = usePermalinkUsage();
@@ -307,7 +306,6 @@ const bladeTitle = computed(() =>
     : t("PAGE_BUILDER.MULTILANGUAGE.TITLE.DETAILS", { name: item.value.name }),
 );
 
-// Like the Landing Page blade: a permalink saved before the rule existed does not block saving other fields.
 const permalinkRules = computed(() => getPermalinkRules(item.value.permalink, savedSettings.value.permalink));
 
 const hasVersions = computed(() => hasLanguageVersions(languages.value));
@@ -368,7 +366,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     isVisible: !isNew.value,
     disabled: isModified.value,
     clickHandler: async () => {
-      // the clone takes this blade's place: an open language version is closed first, asking about its unsaved edits
+      // The clone takes this blade's place, so open language version blades close first and ask about their unsaved edits.
       if (loading.value || !(await closeChildrenOrCancel())) {
         return;
       }
@@ -382,7 +380,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     id: "delete",
     icon: "lucide-trash-2",
     title: t("PAGE_BUILDER.MULTILANGUAGE.TOOLBAR.DELETE"),
-    // A page with language versions is archived (Archive all), like a Landing Page.
+    // A page with language versions is archived, so it has no Delete.
     isVisible: !isNew.value && !hasVersions.value,
     clickHandler: async () => {
       if (await showConfirmation(t("PAGE_BUILDER.MULTILANGUAGE.ALERTS.DELETE"))) {
@@ -427,7 +425,6 @@ function confirmRootPermalinkUsageFor(cultureNames: string[], permalink: string 
   });
 }
 
-/** Languages that override a field changed on the root, with those fields. */
 function findConflicts(): IOverridesConflict[] {
   if (isNew.value) {
     return [];
@@ -516,7 +513,7 @@ function openDesigner(language: MultilanguagePageLanguage) {
 }
 
 async function onCreateLanguage(language: MultilanguagePageLanguage) {
-  // The new version inherits the saved root permalink in its language, not one still being edited.
+  // The new version inherits the saved root permalink, so a value still being edited must not be checked.
   if (!(await confirmRootPermalinkUsageFor([language.cultureName!], savedSettings.value.permalink))) {
     return;
   }
@@ -564,7 +561,6 @@ async function loadCultureNames() {
   };
 }
 
-// Language version blades opened from the table report their changes like every other page blade.
 watch(pagesChanged, loadLanguages);
 
 async function openMultilanguagePage(id: string | undefined) {

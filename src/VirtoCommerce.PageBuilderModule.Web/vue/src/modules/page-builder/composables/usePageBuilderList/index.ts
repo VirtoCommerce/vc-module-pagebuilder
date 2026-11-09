@@ -27,13 +27,11 @@ export enum PageTypes {
   Multilanguage = "Multilanguage",
 }
 
-/** Translation problems a Multilanguage Page can be listed by. */
 export enum TranslationStatuses {
   Missing = "Missing",
   Outdated = "Outdated",
 }
 
-/** Bumped when pages change (saved, published, archived, edited in the designer), so each open list of them reloads. */
 export const pagesChanged = ref(0);
 export function notifyPagesChanged() {
   pagesChanged.value++;
@@ -101,7 +99,6 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
     };
 
     const apiClient = await getApiClient();
-    // A Multilanguage Page is a single row that carries its language statuses.
     searchResult.value = await apiClient.searchList(criteria);
   });
 

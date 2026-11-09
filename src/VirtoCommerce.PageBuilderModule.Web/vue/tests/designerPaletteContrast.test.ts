@@ -44,11 +44,9 @@ test("generated palettes replace both palettes at once and one undo brings both 
   assert.deepEqual(applied.look.dark, generated.dark);
   assert.equal(applied.look.brand, look.brand);
   assert.equal(applied.steps.length, 1);
-  // the answer is copied: editing the look later leaves it alone
   applied.look.light.color_primary_500 = "#000000";
   assert.equal(generated.light.color_primary_500, "#a25c27");
 
-  // a brand edit made after the generation stays when it is undone
   const edited = { ...applied.look, brand: { logoUrl: "/new.svg" } };
   const undone = undoStep(edited, applied.steps);
   assert.ok(undone);
@@ -59,7 +57,6 @@ test("generated palettes replace both palettes at once and one undo brings both 
 
 test("each change is a step, the oldest go past the limit", () => {
   let steps = withStep([], look);
-  // the step is a copy, not the look's own palettes
   look.light.color_primary_500 = "#123456";
   assert.equal(steps[0].light.color_primary_500, "#f99e24");
   look.light.color_primary_500 = "#f99e24";
@@ -113,7 +110,6 @@ test("the requests carry the storefront's tokens; a second color only when there
 });
 
 test("answers are read defensively", () => {
-  // the generator's colors are read as a palette file's, its failures as a check's
   assert.deepEqual(parseGenerated({ light: { a: "#fff", b: 1, c: " " }, failures: [failure({})] }), {
     light: { a: "#fff" },
     dark: {},

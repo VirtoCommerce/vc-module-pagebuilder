@@ -71,7 +71,7 @@ public class ThemeWriteLockTests
     [Fact]
     public async Task DiscardDraft_ThemePublicationRunning_WaitsForStoreLock()
     {
-        // a publication reads a draft in two steps; a delete between them must not fail it
+        // A publication reads a draft in two steps, and a delete between them must not fail it.
         _live.Files[Path] = "{}";
         _live.Files[$"{Path}-draft"] = "{}";
         var publication = await _lock.AcquireAsync(ThemeStorage.GetLockResource("s1"), cancellationToken: Ct);
@@ -130,8 +130,6 @@ public class ThemeWriteLockTests
 
         Assert.False(_live.Files.ContainsKey($"{Path}-draft"));
     }
-
-    // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
     private static PageBuilderController.SaveFilesModel Files(string type, string path) =>
         new() { Files = JsonConvert.SerializeObject(new[] { new { path, type, content = new { settings = new { type = "settings" }, content = Array.Empty<object>() } } }) };

@@ -99,7 +99,7 @@ public class GitContentStoreChangedEventHandlerTests
     [Fact]
     public async Task GetJobPayloadsAsync_ModifiedStore_ReturnsNoJob()
     {
-        // switching git on for a store saves the store
+        // Switching git on for a store saves the store, and that save must queue no job.
         Assert.Empty(await GetJobPayloadsAsync(PerSite(), Change(new Store { Id = "s1" }, EntryState.Modified)));
     }
 
@@ -120,7 +120,7 @@ public class GitContentStoreChangedEventHandlerTests
     [Fact]
     public async Task Handle_JobStorageFails_LogsAndGoesOnWithTheNextStore()
     {
-        // the store is saved already: a job that cannot be queued must not fail its event
+        // The store is saved already, so a job that cannot be queued must not fail its event.
         var jobs = new RecordingBackgroundJob(failFor: "s1");
         UseBackgroundJob(jobs);
 

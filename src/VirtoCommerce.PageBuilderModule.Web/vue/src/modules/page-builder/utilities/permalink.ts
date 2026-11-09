@@ -1,7 +1,4 @@
-// Mirrors PageBuilderPermalink.IsValid on the server: '?', '#', '&' and '%' would start the query, the fragment,
-// a query parameter or an escape sequence, so a permalink could not be opened as written; the other characters
-// are not allowed unencoded in a URL path, and whitespace, control and formatting characters cannot be seen.
-// Letters of any language are allowed as they are.
+// Mirrors PageBuilderPermalink.IsValid on the server: these characters break a URL as written or cannot be seen.
 const forbiddenCharacters = /[\s\p{Cc}\p{Cf}?#&%\\"<>{}|^`]/u;
 const maxLength = 2048;
 
@@ -17,8 +14,7 @@ export function isValidPermalink(value: string | null | undefined): boolean {
   return !value.split("/").some((segment) => segment === "." || segment === "..");
 }
 
-// Like the server, leave a stored permalink as it is: one saved before the rule existed must not block
-// saving or publishing the page's other fields.
+// Like the server, this accepts a stored permalink: an old one must not block saving the page's other fields.
 export function getPermalinkRules(
   permalink: string | null | undefined,
   storedPermalink: string | null | undefined,

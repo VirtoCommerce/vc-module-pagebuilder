@@ -4,7 +4,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.Extensions;
 
 public static class BlobContentStorageProviderExtensions
 {
-    /// <summary>Reads the text of a blob; <c>null</c> when there is no such blob.</summary>
     public static async Task<string> ReadTextAsync(this IBlobContentStorageProvider storageProvider, string path)
     {
         ArgumentNullException.ThrowIfNull(storageProvider);

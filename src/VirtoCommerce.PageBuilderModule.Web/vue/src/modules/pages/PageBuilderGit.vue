@@ -120,8 +120,6 @@
 </template>
 
 <script lang="ts" setup>
-// A site's version history (param = store id): the repository its pages are kept in, and the switch. The GitHub
-// connection itself is the platform's, set up once on the Sites panel (PageBuilderGitHub).
 import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useBlade, usePopup, type IBladeToolbar } from "@vc-shell/framework";
@@ -152,7 +150,6 @@ async function request(action: "" | "/connect" | "/disconnect", method = "GET"):
   return body as SiteGitStatus;
 }
 
-/** Runs a request, shows its answer, and lets the site page catch up after a change. */
 async function run(action: () => Promise<SiteGitStatus>, changed = false) {
   if (!param.value) return;
   busy.value = true;
@@ -174,7 +171,6 @@ async function disconnect() {
   if (await showConfirmation(t("PAGE_BUILDER.GIT.CONFIRM_OFF"))) await run(() => request("/disconnect", "POST"), true);
 }
 
-/** The platform's GitHub connection; this site's status again once it closes */
 const openConnection = () => openBlade({ name: "PageBuilderGitHub", onClose: refresh });
 
 const toolbar = computed<IBladeToolbar[]>(() => [
@@ -208,13 +204,12 @@ onMounted(refresh);
 
 <style lang="scss" scoped>
 .pb-git {
-  // a compact panel even when the blade stretches over the workspace
   max-width: 680px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   padding: 20px;
-  // the blade's content is 16px; the shell's text, buttons and fields are 14px
+  // The blade's content is 16px, while the shell's text, buttons and fields are 14px.
   font-size: 14px;
   line-height: 20px;
 

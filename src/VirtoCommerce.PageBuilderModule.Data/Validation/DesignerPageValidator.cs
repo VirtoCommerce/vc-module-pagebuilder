@@ -4,7 +4,6 @@ using VirtoCommerce.PageBuilderModule.Core.Models;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Validation;
 
-/// <summary>The page of a designer save or discard: a database page by its group, or a file page by its path and type.</summary>
 public class DesignerPageValidator : AbstractValidator<DesignerSavePage>
 {
     public DesignerPageValidator()

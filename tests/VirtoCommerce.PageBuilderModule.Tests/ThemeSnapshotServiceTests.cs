@@ -92,7 +92,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
 
         Assert.Equal(2, publication);
         Assert.Equal(["default/snapshots/2/de-DE.json", "default/snapshots/2/en-US.json"], _storage.Written.Take(2).Order());
-        // the record marks a complete publication (a pointer cut off falls back on it), so it follows the live files
+        // A cut-off pointer falls back on the record, which marks a complete publication, so it is written after the live files.
         Assert.Equal([Product, Record(2), Pointer], _storage.Written.Skip(2));
         Assert.Equal("""{"publication":2}""", pointerAtRemoval);
         Assert.Equal("en-US", (await (await _storageFactory.OpenAsync("s1")).GetPublicationRecordAsync(2)).DefaultLanguage);
@@ -117,7 +117,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     [Fact]
     public async Task PublishAsync_Published_RecordsHistoryAfterStoreLockIsReleased()
     {
-        // GitHub may answer slowly: the store's theme saves must not wait for it
+        // GitHub may answer slowly, and the store's theme saves must not wait for it.
         _storage.Files[Product] = Template("product-info");
         await _snapshots.GetPublishedAsync("s1", null, Ct);
         _storage.Files[Product + "-draft"] = Template("product-info", "related-products");
@@ -197,7 +197,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         {
             writes[file] = writes.GetValueOrDefault(file) + 1;
             ThrowOn(file, Pointer);
-            // its second write is the put-back
+            // The second write of this file is the put-back.
             if (string.Equals(file, Product, StringComparison.OrdinalIgnoreCase) && writes[file] == 2)
             {
                 throw new IOException("the put-back is refused too");
@@ -218,7 +218,6 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         var catalog = await PublishedWithDraftsAsync();
         var history = new RecordingContentHistory();
         var publisher = Publisher(history);
-        // another server may hold the lock now
         _lock.LoseLocks = true;
 
         await Assert.ThrowsAsync<DistributedLockLostException>(() => publisher.PublishAsync("s1", catalog, null, Ct));
@@ -250,7 +249,6 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         Assert.Single(_storage.Events);
         Assert.Equal(versions, await ReadVersionsAsync());
 
-        // publishing the leftover draft again puts the same content live
         _storage.BeforeRemove = null;
         Assert.Equal(3, await publisher.PublishAsync("s1", catalog, null, Ct));
         Assert.Empty((await publisher.GetStatusAsync("s1", Ct)).Drafts);
@@ -381,7 +379,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         var snapshot = await _snapshots.GetPublishedAsync("s1", null, Ct);
 
         Assert.Equal(["main-menu"], snapshot.Menus);
-        // validated against no catalog: the live files may predate the storefront's schemas
+        // Validated against no catalog because the live files may predate the storefront's schemas.
         Assert.Equal(JTokenType.Null, JObject.Parse(snapshot.Content)["catalogHash"]!.Type);
     }
 
@@ -428,7 +426,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         var snapshots = Snapshots(uncached);
         _storage.Files[Product] = Template("product-info");
         await snapshots.GetPublishedAsync("s1", "en-US", Ct);
-        // read once more: the first read published, which resets what it would have kept
+        // Read once more, because the first read published, which resets what it would have kept.
         var read = await snapshots.GetPublishedAsync("s1", "en-US", Ct);
 
         _storage.Files["default/snapshots/1/en-US.json"] = read.Content.Replace("product-info", "related-products");
@@ -443,7 +441,6 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         _storage.Files[header] = """{ "content": [ { "type": "banner" } ] }""";
         await Assert.ThrowsAsync<ThemeValidationException>(() => _snapshots.GetPublishedAsync("s1", "en-US", Ct));
 
-        // the next read gets the same answer without waiting for the store's lock
         _lock.Hold();
         await Assert.ThrowsAsync<ThemeValidationException>(() => _snapshots.GetPublishedAsync("s1", "de-DE", Ct).WaitAsync(TimeSpan.FromSeconds(5), Ct));
         _lock.Release();
@@ -473,7 +470,6 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     {
         _storage.Files[Product] = Template("product-info");
         await _snapshots.GetPublishedAsync("s1", null, Ct);
-        // publication 2 stopped while writing its record, the file written last
         _storage.Files["default/snapshots/2/de-DE.json"] = "{}";
         _storage.Files["default/snapshots/2/en-US.json"] = "{}";
         _storage.Files[Record(2)] = "{\"defaultLangu";
@@ -516,7 +512,6 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     public async Task GetPublishedAsync_TruncatedPointerWithoutCompletePublication_PublishesLiveThemeAgain()
     {
         _storage.Files[Product] = Template("product-info");
-        // publication 1 stopped before its record
         _storage.Files["default/snapshots/1/de-DE.json"] = "{}";
         _storage.Files[Pointer] = "{ \"publicat";
 
@@ -645,7 +640,6 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     private static bool IsLiveFile(string file) =>
         string.Equals(file, Header, StringComparison.OrdinalIgnoreCase) || string.Equals(file, Product, StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>Publishes the live product template and header, then gives both a draft.</summary>
     private async Task<string> PublishedWithDraftsAsync()
     {
         _storage.Files[Product] = Template("product-info");
@@ -659,7 +653,6 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         return catalog;
     }
 
-    /// <summary>The versions the designer reads for the product template and the header.</summary>
     private async Task<string[]> ReadVersionsAsync()
     {
         var drafts = new ThemeDraftService(_storageFactory, _lock, _storage, NullLogger<ThemeDraftService>.Instance);

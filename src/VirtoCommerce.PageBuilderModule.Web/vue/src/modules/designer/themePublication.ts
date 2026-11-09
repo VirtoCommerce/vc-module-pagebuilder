@@ -1,10 +1,3 @@
-// The theme's publication (docs/contracts/theme-snapshot.md): every theme file is saved as a draft, and one Publish
-// theme puts all the drafts live at once, as a new snapshot the storefront reads.
-
-/**
- * theme/status: the current publication (none before the first), the theme files with a draft by their path in the
- * theme, and those of them with no live file
- */
 export interface ThemeStatus {
   publication?: number;
   drafts: string[];
@@ -13,7 +6,6 @@ export interface ThemeStatus {
 
 const paths = (value: unknown) => (Array.isArray(value) ? value.filter((x): x is string => typeof x === "string") : []);
 
-/** theme/status as the server answers it; what isn't a list of paths reads as no drafts */
 export function parseThemeStatus(body: unknown): ThemeStatus {
   const value = (body ?? {}) as { publication?: unknown; drafts?: unknown; newDrafts?: unknown };
   return {
@@ -23,37 +15,28 @@ export function parseThemeStatus(body: unknown): ThemeStatus {
   };
 }
 
-/** Whether a theme file, named as saves name it ("default/sections/header-group.json"), has a draft */
 export const hasThemeDraft = (status: ThemeStatus | undefined, theme: string, path: string) =>
   !!status?.drafts.some((x) => `${theme}/${x}` === path);
 
-/** Whether a theme file's draft has no live file: it is the file's only copy, and a Discard keeps it */
+/** Such a draft is the file's only copy, so a Discard keeps it. */
 export const isNewThemeDraft = (status: ThemeStatus | undefined, theme: string, path: string) =>
   !!status?.newDrafts?.some((x) => `${theme}/${x}` === path);
 
-/** A template's state: changed while it has a draft; nothing is published before the theme's first publication */
 export function templateStatus(status: ThemeStatus | undefined, theme: string, path: string): { published: boolean; hasChanges: boolean } {
   if (!status) return { published: true, hasChanges: false };
   return { published: status.publication !== undefined, hasChanges: hasThemeDraft(status, theme, path) };
 }
 
-/** The theme's publication, checked against the catalog of the storefront previewed */
 export function publishThemeUrl(storeId: string, catalogHash?: string) {
   const query = new URLSearchParams({ storeId });
   if (catalogHash) query.set("catalogHash", catalogHash);
   return `/api/pagebuilder/theme/publish?${query}`;
 }
 
-/**
- * The toolbar's publish actions, for editors with builder:publish: a page has its own Publish and Unpublish; a template
- * has none of its own, Publish theme takes their place (a template goes live with the rest of the theme). A shared
- * component has neither.
- */
 export function publishActions(open: { template: boolean; shared: boolean; mayPublish: boolean }): { page: boolean; theme: boolean } {
   return { page: !open.shared && !open.template && open.mayPublish, theme: !open.shared && open.mayPublish };
 }
 
-/** Publish theme: its label counts the theme files waiting; enabled while some wait, nothing is unsaved and nothing runs */
 export function themePublishButton(input: { status?: ThemeStatus; unsaved: boolean; busy: boolean }): {
   label: { key: string; count?: number };
   disabled: boolean;
@@ -65,7 +48,6 @@ export function themePublishButton(input: { status?: ThemeStatus; unsaved: boole
   };
 }
 
-/** What a refused theme save or publication (400 `{ error, errors }`) lists; nothing for any other failure */
 export function themeErrors(status: number, body: string): string[] {
   if (status !== 400) return [];
   try {

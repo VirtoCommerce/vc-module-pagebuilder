@@ -9,6 +9,6 @@ public class ContentHistoryRequest : PageBuilderStoreRequest
 
     public int? Take { get; set; }
 
-    /// <summary>The version read or restored; such a request names at most one database page.</summary>
+    /// <summary>A request with a version names at most one database page.</summary>
     public string VersionId { get; set; }
 }

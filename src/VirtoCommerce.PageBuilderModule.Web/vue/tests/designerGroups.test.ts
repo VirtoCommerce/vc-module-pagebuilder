@@ -17,6 +17,5 @@ test("saving splits them out again, as each file keeps them", () => {
   assert.deepEqual(pageOnly(doc), page);
   assert.deepEqual(groupItems(doc, "header"), header);
   assert.deepEqual(groupItems(doc, "footer"), footer);
-  // a reload replaces the groups, never doubles them
   assert.deepEqual(withGroups(doc, { header: [], footer }).content.map((x) => x.id), ["p1", "f1"]);
 });

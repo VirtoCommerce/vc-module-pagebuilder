@@ -20,7 +20,7 @@ async function focusWindow() {
 
 let platform: FakePlatform;
 
-// the panel listens on the window: one left mounted would answer the next test's focus
+// The panel listens on the window, so a panel left mounted would answer the next test's focus.
 enableAutoUnmount(afterEach);
 
 beforeEach(() => {

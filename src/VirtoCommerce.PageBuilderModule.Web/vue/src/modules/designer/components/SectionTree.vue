@@ -3,12 +3,11 @@
     class="pd-tree"
     :aria-label="$t('PAGE_BUILDER.DESIGNER.SECTIONS')"
   >
-    <!-- v-show: the sortable lists stay the same elements -->
+    <!-- v-show keeps the sortable lists the same elements. -->
     <div
       v-show="!addingTo"
       class="pd-tree__main"
     >
-      <!-- Shopify's section groups: the theme's header, shown on every page -->
       <template v-if="designer.groupsShown.value">
         <div class="pd-tree__heading pd-tree__heading--group">
           <span>{{ $t("PAGE_BUILDER.DESIGNER.GROUPS.HEADER") }}</span>
@@ -70,7 +69,6 @@
         </button>
       </div>
 
-      <!-- a template without its main section shown: the storefront adds a missing one itself, a hidden one stays hidden -->
       <div
         v-if="mainMissing"
         class="pd-tree__main-missing"
@@ -154,7 +152,6 @@
         <span class="pd-tree__name">{{ rowName(row) }}</span>
       </button>
 
-      <!-- the theme's footer, shown on every page -->
       <template v-if="designer.groupsShown.value">
         <div class="pd-tree__heading pd-tree__heading--group">
           <span>{{ $t("PAGE_BUILDER.DESIGNER.GROUPS.FOOTER") }}</span>
@@ -190,9 +187,6 @@
 </template>
 
 <script setup lang="ts">
-// The left panel, like Shopify's theme editor: the theme's Header (a section group shown on every page), the page's
-// settings and sections (drag to reorder, the eye hides one, each with its blocks and "Add block"), then the theme's
-// Footer. "Add section" adds to the area it is in.
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { VcButton, VcIcon } from "@vc-shell/framework/ui";
@@ -212,9 +206,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n({ useScope: "global" });
-/** the area "Add section" adds to */
 const addingTo = ref<SectionGroup | "page" | null>(null);
-// select mode: checkboxes on the page's sections, to delete them or make them a shared component at once
 const selecting = ref(false);
 function toggleSelectMode() {
   selecting.value = !selecting.value;
@@ -245,7 +237,7 @@ function select(sel: Selection) {
 }
 </script>
 
-<!-- not scoped: SectionRows renders the rows (all pd-tree__ classes) -->
+<!-- Not scoped: SectionRows renders the rows (all pd-tree__ classes). -->
 <style lang="scss">
 .pd-tree {
   display: flex;

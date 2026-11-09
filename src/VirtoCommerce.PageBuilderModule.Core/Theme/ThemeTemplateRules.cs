@@ -7,7 +7,6 @@ public class ThemeTemplateRules : ICloneable
 {
     public int Version { get; set; }
 
-    /// <summary>Names of the conditions the rules use.</summary>
     public IList<string> Conditions { get; set; }
 
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]

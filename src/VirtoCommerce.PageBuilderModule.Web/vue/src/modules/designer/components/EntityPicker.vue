@@ -18,8 +18,6 @@
 </template>
 
 <script setup lang="ts">
-// "Preview with": the product, category or page a template shows on in the preview, a searchable remote select as the
-// schemas' category picker is (the store's catalog by keyword; a picked one is found by its id)
 import { VcSelect } from "@vc-shell/framework/ui";
 import { searchCategories, searchPages, searchProducts, type CatalogContext, type NamedEntity } from "../api";
 import type { PageType } from "../templates";
@@ -27,7 +25,6 @@ import type { PageType } from "../templates";
 const props = defineProps<{
   type: PageType;
   catalog: CatalogContext;
-  /** a product's or category's id, a page's permalink */
   modelValue?: string;
 }>();
 const emit = defineEmits<{ "update:modelValue": [value: string]; picked: [entity: NamedEntity] }>();
@@ -42,7 +39,6 @@ let shown: NamedEntity[] = [];
 async function find(keyword?: string, ids?: string[]): Promise<NamedEntity[]> {
   if (props.type === "product") return searchProducts(props.catalog, keyword, ids);
   if (props.type === "category") return searchCategories(props.catalog, keyword, ids);
-  // pages by their permalink
   const pages = (await searchPages(props.catalog.storeId, keyword)).map((x) => ({ id: x.permalink, name: `${x.name} (${x.permalink})` }));
   return ids?.length ? [...pages.filter((x) => ids.includes(x.id)), ...ids.filter((id) => !pages.some((x) => x.id === id)).map((id) => ({ id, name: id }))] : pages;
 }
@@ -78,7 +74,7 @@ function pick(id: unknown) {
     width: 260px;
     min-width: 0;
 
-    // a long name is cut, not the bar's next item covered
+    // A long name is cut so that it does not cover the bar's next item.
     :deep(.vc-select__control) {
       overflow: hidden;
     }

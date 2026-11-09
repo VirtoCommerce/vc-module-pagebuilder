@@ -74,8 +74,6 @@
 </template>
 
 <script setup lang="ts">
-// The section types the store's theme offers; hovering one shows it at the end of the preview, a click adds it.
-// For a section group (the header, the footer): the types that group takes.
 import { computed, ref, watch } from "vue";
 import { debounce } from "lodash-es";
 import { VcButton, VcIcon, VcInput } from "@vc-shell/framework/ui";
@@ -94,7 +92,6 @@ const shown = computed(() => {
   return types.filter((x) => !keyword || (x.schema.name ?? x.type).toLowerCase().includes(keyword));
 });
 
-// the store's shared components, searched with the same box (none listed when the user can't read them)
 const shared = ref<SharedComponent[]>([]);
 let searches = 0;
 const loadShared = debounce(async () => {
@@ -103,7 +100,7 @@ const loadShared = debounce(async () => {
     props.designer.storeId.value && props.designer.canPlaceShared.value
       ? await searchSharedComponents(props.designer.storeId.value, search.value).catch(() => [])
       : [];
-  // an earlier search answering last doesn't replace a later one's results
+  // An earlier search that answers last must not replace a later one's results.
   if (request === searches) shared.value = found;
 }, 250);
 watch(search, loadShared, { immediate: true });

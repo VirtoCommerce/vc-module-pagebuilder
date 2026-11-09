@@ -18,7 +18,6 @@ test("an old page's settings come back as they were: its header and hideBreadcru
   const settings = { type: "settings", name: "About", header: "About us", hideBreadcrumbs: true, seoInfo: { pageTitle: "About" } };
   const page = { settings, content: [{ id: "t1", type: "text" }] };
   assert.deepEqual(fromDocument(toDocument(JSON.stringify(page))), page);
-  // the legacy array form keeps its settings item too
   const legacy = [settings, { id: "t1", type: "text" }];
   assert.deepEqual(fromDocument(toDocument(legacy)), legacy);
 });
@@ -55,6 +54,5 @@ test("references resolve to the component's sections with placement boundaries",
   assert.match(template.content[2].blocks![0].id, /^lc[0-9a-f]+s1b0$/);
   assert.deepEqual(sharedComponentBoundaries, [{ placementId: "ref1", componentRef: "c1", startIndex: 1, count: 2, label: "Shared" }]);
   assert.deepEqual(missingSharedComponentIds, ["gone"]);
-  // the page itself is untouched
   assert.equal(doc.content.length, 4);
 });

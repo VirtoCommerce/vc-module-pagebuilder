@@ -48,7 +48,6 @@
 </template>
 
 <script setup lang="ts">
-// An image or file field: a URL, picked from the store's assets library (the designer provides the picker).
 import { inject } from "vue";
 import { VcButton, VcIcon, VcInput } from "@vc-shell/framework/ui";
 import { PickAssetKey } from "../types";

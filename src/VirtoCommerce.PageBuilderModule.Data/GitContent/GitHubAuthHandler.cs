@@ -14,11 +14,9 @@ using VirtoCommerce.PageBuilderModule.Core.GitContent;
 
 namespace VirtoCommerce.PageBuilderModule.Data.GitContent;
 
-/// <summary>Authenticates GitHub requests with a token or a GitHub App installation token.</summary>
 public class GitHubAuthHandler(IGitHubConnectionService gitHubConnectionService, IMemoryCache memoryCache, IOptions<GitContentOptions> options)
     : DelegatingHandler
 {
-    /// <summary>Request option naming the owner for urls without one (GraphQL).</summary>
     public static readonly HttpRequestOptionsKey<string> OwnerOptionKey = new("PageBuilderGitHubOwner");
 
     private const string BearerScheme = "Bearer";
@@ -96,7 +94,6 @@ public class GitHubAuthHandler(IGitHubConnectionService gitHubConnectionService,
         var jwt = CreateAppJwt(connection.AppId, connection.PrivateKey, DateTimeOffset.UtcNow);
         var escapedOwner = Uri.EscapeDataString(owner);
 
-        // organization installation, else user installation
         var installation = await SendAsAppAsync<Installation>(HttpMethod.Get, $"orgs/{escapedOwner}/installation", jwt, cancellationToken)
                            ?? await SendAsAppAsync<Installation>(HttpMethod.Get, $"users/{escapedOwner}/installation", jwt, cancellationToken)
                            ?? throw new GitContentException(
@@ -113,7 +110,6 @@ public class GitHubAuthHandler(IGitHubConnectionService gitHubConnectionService,
         return accessToken.Token;
     }
 
-    /// <summary>Sends a request signed as the App itself; <c>null</c> on 404.</summary>
     private async Task<T> SendAsAppAsync<T>(HttpMethod method, string relativeUrl, string jwt, CancellationToken cancellationToken)
         where T : class
     {
@@ -132,7 +128,6 @@ public class GitHubAuthHandler(IGitHubConnectionService gitHubConnectionService,
 
     private static string GetTokenCacheKey(string appId, string owner) => $"{nameof(GitHubAuthHandler)}:{appId}:{owner.ToLowerInvariant()}";
 
-    /// <summary>Creates the App JWT (RS256).</summary>
     internal static string CreateAppJwt(string appId, string privateKey, DateTimeOffset now)
     {
         using var rsa = RSA.Create();

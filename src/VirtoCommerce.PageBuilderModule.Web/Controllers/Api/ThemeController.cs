@@ -27,7 +27,6 @@ public class ThemeController(
     IValidator<ThemePaletteGenerationRequest> paletteGenerationRequestValidator,
     IValidator<ThemePaletteCheckRequest> paletteCheckRequestValidator) : Controller
 {
-    /// <summary>Publish all theme drafts of the store</summary>
     [HttpPost("theme/publish")]
     [Authorize(ModuleConstants.Security.Permissions.Publish)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -51,7 +50,6 @@ public class ThemeController(
         }
     }
 
-    /// <summary>Get the current theme publication and the theme files with a draft</summary>
     [HttpGet("theme/status")]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -65,7 +63,6 @@ public class ThemeController(
         return Ok(await themePublisher.GetStatusAsync(storeId, cancellationToken));
     }
 
-    /// <summary>Save storefront schema catalog</summary>
     [HttpPut("catalog")]
     [Authorize(ModuleConstants.Security.Permissions.Update)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -92,7 +89,6 @@ public class ThemeController(
         }
     }
 
-    /// <summary>Get schema catalog by hash, or the current one</summary>
     [HttpGet("catalog")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -107,7 +103,6 @@ public class ThemeController(
         return catalog == null ? NotFound() : Content(catalog, MediaTypeNames.Application.Json);
     }
 
-    /// <summary>Generate light and dark palettes that meet WCAG AA contrast from one or two brand colors</summary>
     [HttpPost("theme/palette")]
     [Authorize(ModuleConstants.Security.Permissions.Theme)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -122,7 +117,6 @@ public class ThemeController(
         return Ok(themePaletteService.GeneratePalette(request));
     }
 
-    /// <summary>Get the contrast pairs a palette fails</summary>
     [HttpPost("theme/palette/check")]
     [Authorize(ModuleConstants.Security.Permissions.Theme)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

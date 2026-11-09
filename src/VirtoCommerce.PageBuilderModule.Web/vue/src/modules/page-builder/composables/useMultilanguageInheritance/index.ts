@@ -1,7 +1,4 @@
-/**
- * Settings a language version inherits from its Multilanguage Page unless it overrides them.
- * Names match the backend mask (`overriddenFields`).
- */
+/** Names match the backend mask `overriddenFields`. */
 export type InheritableField = "Permalink" | "Visibility" | "UserGroups" | "OrganizationId" | "StartDate" | "EndDate";
 
 export const inheritableFields: InheritableField[] = [
@@ -51,7 +48,6 @@ export function isFieldOverridden(mask: string | undefined, field: InheritableFi
   return parseOverriddenFields(mask).includes(field);
 }
 
-// Empty values ("", null, undefined) are the same "not set"; dates compare by instant.
 function normalize(value: unknown): string {
   if (value === undefined || value === null || value === "") {
     return "";
@@ -63,7 +59,6 @@ function normalize(value: unknown): string {
   return date && !Number.isNaN(date.getTime()) ? date.toISOString() : String(value);
 }
 
-/** Inheritable fields whose value differs between two versions of the settings. */
 export function getChangedFields(before: IInheritableSettings, after: IInheritableSettings): InheritableField[] {
   return inheritableFields.filter(
     (field) => normalize(before[propertyByField[field]]) !== normalize(after[propertyByField[field]]),

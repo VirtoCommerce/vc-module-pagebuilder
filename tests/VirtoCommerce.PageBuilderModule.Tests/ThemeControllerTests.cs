@@ -29,7 +29,7 @@ public class ThemeControllerTests
         Assert.IsType<ForbidResult>((await controller.GetStatus("s1", Ct)).Result);
         Assert.IsType<ForbidResult>((await controller.SaveCatalog("s1", Ct)).Result);
         Assert.IsType<ForbidResult>(await controller.GetCatalog("s1", null, Ct));
-        // before the body is looked at
+        // Authorization comes before the body is looked at, so a null body is still forbidden.
         Assert.IsType<ForbidResult>((await controller.GeneratePalette("s1", null, Ct)).Result);
         Assert.IsType<ForbidResult>((await controller.CheckPalette("s1", null, Ct)).Result);
 

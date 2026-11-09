@@ -33,7 +33,6 @@ test("new items get defaults, an id from the type, and a blocks list when they h
   assert.equal(cta.anchor, null);
   assert.equal(cta.blocks, undefined);
   assert.deepEqual(newItem("slider", "section", schemas).blocks, []);
-  // a default model's blocks come with it, with ids of their own
   const withBlocks = newItem("slider", "section", { ...schemas, sections: { slider: { blocks: ["text"], default: { blocks: [{ id: "b1", type: "text" }] } } } });
   assert.equal(withBlocks.blocks?.length, 1);
   assert.equal(withBlocks.blocks?.[0].type, "text");
@@ -54,7 +53,6 @@ test("titles come from the display field, else the schema name", () => {
   assert.equal(itemTitle({ id: "x", type: "call-to-action", title: "Sale" }, schemas.sections["call-to-action"]), "Sale");
   assert.equal(itemTitle({ id: "x", type: "call-to-action", title: " " }, schemas.sections["call-to-action"]), "Call to Action");
   assert.equal(itemTitle({ id: "x", type: "page-header" }, schemas.sections["page-header"]), "Page Header");
-  // no schema yet (the site still loading): the type, readable
   assert.equal(itemTitle({ id: "x", type: "unknown" }, undefined), "Unknown");
   assert.equal(itemTitle({ id: "x", type: "site-header" }, undefined), "Site header");
 });
@@ -111,7 +109,6 @@ test("the preview edits only plain-text settings the item's schema declares, wit
   assert.equal(isTextEdit(fields, ["buttons", 0], "x"), false);
   assert.equal(isTextEdit(fields, ["link", 0, "label"], "x"), false);
 
-  // the preview's edit goes through this guard: a text the item holds where the guard refuses is left alone
   const item = { id: "c1", type: "call-to-action", title: "Sale", body: "<b>rich</b>", buttons: [{ label: "Shop" }], link: { label: "Go", image: "/x.png" } };
   for (const path of [["title"], ["buttons", 0, "label"], ["link", "label"], ["body"], ["link", "image"], ["missing"]] as (string | number)[][])
     assert.equal(withTextEdit(item, fields, path, "New") !== undefined, isTextEdit(fields, path, "New"), path.join("."));
@@ -124,7 +121,6 @@ test("a value at a path is replaced in a copy; a text only where a text is", () 
   assert.equal(withValueAt(item, ["links", 2, "label"], "x"), undefined);
   assert.equal(withTextAt(item, ["count"], "4"), undefined);
   assert.equal(withTextAt(item, ["links"], "x"), undefined);
-  // what an object inherits is not its own
   assert.equal(withTextAt(item, ["constructor", "name"], "x"), undefined);
   assert.equal(item.count, 3);
 });

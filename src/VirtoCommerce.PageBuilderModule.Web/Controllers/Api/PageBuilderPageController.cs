@@ -439,7 +439,6 @@ public class PageBuilderPageController : Controller
         return Ok();
     }
 
-    /// <summary>Discard unpublished changes of the page</summary>
     [HttpPost("grouped/{groupId}/discard")]
     [Authorize(ModuleConstants.Security.Permissions.Update)]
     public async Task<ActionResult> DiscardGroupDraft([FromRoute] string groupId, CancellationToken cancellationToken = default)

@@ -19,7 +19,7 @@ import { loadPage, savePage } from "../../../designer/api";
 const { getApiClient } = useApiClient(PageBuilderPageClient);
 const { getApiClient: getMultilanguageApiClient } = useApiClient(MultilanguagePageClient);
 
-/** What search engines and shares show for the page: its content's `settings.seoInfo`, which the storefront reads */
+/** Stored in the content's `settings.seoInfo`, which the storefront reads. */
 export interface PageSeo {
   pageTitle?: string;
   metaDescription?: string;
@@ -62,7 +62,6 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
   const isNew = ref(!options?.id);
   const status = ref<FilePublishStatus>({} as FilePublishStatus);
   const seo = ref<PageSeo>({});
-  /** the loaded SEO, to save it only when it changed ("" and unset alike) */
   const seoKey = (x: PageSeo) => JSON.stringify([x.pageTitle || "", x.metaDescription || "", x.metaKeywords || ""]);
   let savedSeo = seoKey({});
 
@@ -71,14 +70,13 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
   const { action: loadGroup, loading: loadingGroup } = useAsync(async () => {
     if (options?.id) {
       const apiClient = await getApiClient();
-      // the SEO lives in the page's content (draft, else published); a page without content has none yet
+      // A page without content has no SEO yet, so a failed read is not an error.
       const [result, page] = await Promise.all([apiClient.getGroup(options.id), loadPage(options.id).catch(() => undefined)]);
       status.value = await apiClient.publishStatus(options.id);
       seo.value = { ...(page?.doc.settings.seoInfo as PageSeo | undefined) };
       savedSeo = seoKey(seo.value);
       item.value = reactive(result);
     } else {
-      // New pages are visible to everyone (incl. anonymous) by default; import keeps its own value below.
       const page = { visibility: true } as GroupedPageBuilderPage;
       if (options?.importData) {
         const data = options.importData;
@@ -123,10 +121,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     return result;
   });
 
-  /**
-   * A changed SEO goes into the page's draft, as the designer saves it (live with Publish). Read again first: the
-   * designer may have saved since this blade loaded.
-   */
+  /** Reads the draft again first: the designer may have saved since this blade loaded. */
   async function saveSeo(groupId: string) {
     if (seoKey(seo.value) === savedSeo) return;
     const { doc, eTag } = await loadPage(groupId);
@@ -156,7 +151,6 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
   });
 
   const { action: unpublishGroup, loading: unpublishingGroup } = useAsync(async () => {
-    // check if the page has changes
     if (status.value?.hasChanges) {
       throw new Error("PAGE_BUILDER.PAGES.ALERTS.UNPUBLISH_WITH_DRAFT");
     }
@@ -209,7 +203,6 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     return created;
   });
 
-  // The page becomes the default language version of a new Multilanguage Page, unchanged on the storefront.
   const { action: convertToMultilanguage, loading: converting } = useAsync(async () => {
     const groupId = item.value?.id;
     if (!groupId) {
@@ -219,7 +212,6 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     return apiClient.convert(groupId);
   });
 
-  /** onClose: when the designer blade closes (Admin Shell only; the standalone app opens a new tab). */
   function openDraftDesigner(onClose?: () => void) {
     openPageDesigner(
       {

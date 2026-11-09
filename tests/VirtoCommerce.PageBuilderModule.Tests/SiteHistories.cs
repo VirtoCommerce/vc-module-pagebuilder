@@ -11,10 +11,9 @@ using VirtoCommerce.Platform.Core.Settings;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>The site history over a scripted GitHub: organization "acme", base branch "main".</summary>
 internal static class SiteHistories
 {
-    // one server's keys: a cursor one history wrote is read by the next
+    // All histories share one server's keys, so a cursor one history wrote can be read by the next.
     private static readonly IDataProtectionProvider Keys = new EphemeralDataProtectionProvider();
 
     public static IOptions<GitContentOptions> Options() => Microsoft.Extensions.Options.Options.Create(new GitContentOptions

@@ -35,7 +35,7 @@ public class EndpointPermissionsTests
     private static readonly Dictionary<(Type Controller, string Action), string> Expected = new()
     {
         [(typeof(GitContentSetupController), nameof(GitContentSetupController.GetSite))] = InTheAction,
-        // store:update in the store, which its scope can limit
+        // store:update is checked in the action because its scope can limit it to the store.
         [(typeof(GitContentSetupController), nameof(GitContentSetupController.ConnectSite))] = InTheAction,
         [(typeof(GitContentSetupController), nameof(GitContentSetupController.DisconnectSite))] = InTheAction,
         [(typeof(GitContentSetupController), nameof(GitContentSetupController.GetConnection))] = InTheAction,
@@ -46,7 +46,6 @@ public class EndpointPermissionsTests
         [(typeof(HistoryController), nameof(HistoryController.GetStatus))] = InTheAction,
         [(typeof(HistoryController), nameof(HistoryController.GetHistory))] = InTheAction,
         [(typeof(HistoryController), nameof(HistoryController.GetVersion))] = InTheAction,
-        // and the permission that edits each item, in the action
         [(typeof(HistoryController), nameof(HistoryController.Restore))] = Permissions.Update,
         [(typeof(MultilanguagePageController), nameof(MultilanguagePageController.Search))] = InTheAction,
         [(typeof(MultilanguagePageController), nameof(MultilanguagePageController.Get))] = InTheAction,
@@ -143,7 +142,7 @@ public class EndpointPermissionsTests
         Assert.Equal(AnonymousCallbacks.Order(), anonymous.Order());
     }
 
-    // Everything MVC routes, HTTP method attribute or not: a public method without a route of its own takes the controller's.
+    // MVC routes a public method that has no HTTP method attribute under the controller's route, so those count too.
     private static IEnumerable<MethodInfo> ActionsOf(Type controller) =>
         controller
             .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)

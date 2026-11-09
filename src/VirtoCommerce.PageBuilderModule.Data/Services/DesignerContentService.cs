@@ -165,8 +165,6 @@ public class DesignerContentService(
         return null;
     }
 
-    /// <summary>Deletes the drafts of a published database page. Returns the published content, or null when the page had no draft.</summary>
-    /// <exception cref="InvalidDataException">The page has never been published.</exception>
     protected virtual async Task<string> DiscardPageDraftsAsync(GroupedPageBuilderPage group, CancellationToken cancellationToken)
     {
         var publishedPage = PageBuilderPageSelection.Order(group.Pages).FirstOrDefault(x => x.Status == Published)

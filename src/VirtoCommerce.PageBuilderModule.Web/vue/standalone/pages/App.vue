@@ -24,10 +24,7 @@ const { isAuthenticated } = useUser();
 const { openBlade } = useBlade();
 const router = useRouter();
 
-/**
- * A link straight into the designer (the classic admin's page blade opens these):
- * ?storeId=…&designGroup=<page group id>, or ?storeId=…&designPath=<file path>&designType=pages|blogs[&cultureName=…]
- */
+/** The classic admin's page blade links here, so these query parameters are a contract with it. */
 async function openDesignerFromLink() {
   const params = new URLSearchParams(window.location.search);
   const storeId = params.get("storeId");

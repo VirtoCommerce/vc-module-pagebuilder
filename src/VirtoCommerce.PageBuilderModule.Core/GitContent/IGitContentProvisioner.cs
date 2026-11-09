@@ -3,24 +3,20 @@ using System.Threading.Tasks;
 
 namespace VirtoCommerce.PageBuilderModule.Core.GitContent;
 
-/// <summary>Manages store content repositories on GitHub.</summary>
 public interface IGitContentProvisioner
 {
-    /// <summary>Gets the store git status from GitHub. Errors are returned in <see cref="GitContentSiteStatus.Error"/>.</summary>
+    /// <summary>Errors are returned in <see cref="GitContentSiteStatus.Error"/>.</summary>
     Task<GitContentSiteStatus> GetStatusAsync(string storeId, CancellationToken cancellationToken = default);
 
-    /// <summary>Checks that the configured organization is reachable.</summary>
     Task CheckOrganizationAsync(CancellationToken cancellationToken = default);
 
-    /// <summary>Creates or adopts the store repository with its base and release branches.</summary>
     Task EnsureRepositoryAsync(string storeId, CancellationToken cancellationToken = default);
 
-    /// <summary>Ensures the store repository and enables git content for the store.</summary>
     Task ConnectAsync(string storeId, CancellationToken cancellationToken = default);
 
-    /// <summary>Disables git content for the store. The repository is kept.</summary>
+    /// <summary>The repository is kept.</summary>
     Task DisconnectAsync(string storeId, CancellationToken cancellationToken = default);
 
-    /// <summary>Archives the repository of a deleted store if it is marked as that store's: one the module created or took over for it.</summary>
+    /// <summary>Archives the repository only if it is marked as the deleted store's.</summary>
     Task ArchiveRepositoryAsync(string storeId, string repository, CancellationToken cancellationToken = default);
 }

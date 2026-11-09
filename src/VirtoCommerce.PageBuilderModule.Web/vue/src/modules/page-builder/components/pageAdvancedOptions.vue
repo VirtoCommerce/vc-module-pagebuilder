@@ -105,7 +105,6 @@ import CardHeader from "./cardHeader.vue";
 import SwitchRow from "./switchRow.vue";
 import type { InheritableField } from "../composables/useMultilanguageInheritance";
 
-/** Settings shared by Landing Pages, Multilanguage Pages and their language versions. */
 export interface PageAdvancedOptionsModel {
   visibility?: boolean;
   userGroups?: string;
@@ -116,9 +115,7 @@ export interface PageAdvancedOptionsModel {
 
 interface Props {
   disabled?: boolean;
-  /** Overrides the Personalization & Access control description. */
   description?: string;
-  /** Language versions: whether each field is inherited from the Multilanguage Page or set for the language. */
   fieldHints?: Partial<Record<InheritableField, string>>;
 }
 

@@ -9,28 +9,24 @@ import { undoStep, withGenerated, withStep, type GeneratedPalettes, type Palette
 
 const emptyLook = (): ThemeLook => ({ brand: {}, light: {}, dark: {} });
 
-/** The theme's brand and palettes being edited: what applies in the preview and what Save writes as drafts */
 export function useThemeLook() {
   let at: { storeId: string; theme: string } | undefined;
   const look = ref<ThemeLook>(emptyLook());
   const saved = ref<ThemeLook>(emptyLook());
   const loaded = ref(false);
   const loadError = ref<unknown>();
-  /** the version of each file as last read or saved, by its path: Save sends it back */
   let eTags: Record<string, string> = {};
-  // the palettes before each color change, for its undo
   const steps = ref<PaletteStep[]>([]);
   const canUndoColors = computed(() => steps.value.length > 0);
-  // typing a color edits one token many times: one step to undo
+  // Typing a color edits one token many times, which is one step to undo.
   let lastEdited: string | undefined;
   const dirty = computed(() => loaded.value && !!at && lookFiles(at.theme, look.value, saved.value).length > 0);
-  /** the theme has a brand file (read or saved): an empty brand there is no logos, not the published ones */
+  /** An empty brand in a brand file means no logos, so the published ones must not show. */
   const hasBrandFile = ref(false);
   const draft = computed(() =>
     loaded.value ? lookDraft(look.value, hasBrandFile.value || JSON.stringify(brandFile(look.value.brand)) !== JSON.stringify(brandFile(saved.value.brand))) : undefined,
   );
 
-  /** The brand file and the palettes as last saved; a theme without a brand file starts from the logos of its settings file */
   async function load(storeId: string, theme: string) {
     at = { storeId, theme };
     loaded.value = false;
@@ -56,7 +52,6 @@ export function useThemeLook() {
     look.value = { ...look.value, brand: { ...look.value.brand, [field]: url || undefined } };
   }
 
-  /** Sets a token's color; none: the storefront preset's color */
   function setColor(scheme: ColorScheme, token: string, color: string | null) {
     if ((look.value[scheme][token] ?? null) === (color || null)) return;
     if (lastEdited !== `${scheme}:${token}`) steps.value = withStep(steps.value, look.value);
@@ -67,7 +62,6 @@ export function useThemeLook() {
     look.value = { ...look.value, [scheme]: colors };
   }
 
-  /** Both palettes from the generator, one change to undo */
   function applyGenerated(generated: GeneratedPalettes) {
     const next = withGenerated(look.value, steps.value, generated);
     look.value = next.look;
@@ -89,14 +83,13 @@ export function useThemeLook() {
     lastEdited = undefined;
   }
 
-  /** What Save writes: a file per changed part with the version it was read at, and how to mark it saved at its new version */
   function pending(): { part: ThemePart; file: DesignerSaveFile; saved: (eTag?: string) => void }[] {
     if (!at || !loaded.value) return [];
     const sent = clone(look.value);
     return lookFiles(at.theme, sent, saved.value).map(({ part, file }) => ({
       part: LOOK_FILES[part],
       file: { ...file, eTag: eTags[file.path] ?? "" },
-      // what was sent, part by part: an edit made while it was on its way stays unsaved
+      // What was sent, part by part, so that an edit made while it was on its way stays unsaved.
       saved: (eTag?: string) => {
         saved.value = { ...saved.value, [part]: sent[part] };
         if (part === "brand") hasBrandFile.value = true;

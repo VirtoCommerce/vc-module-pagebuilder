@@ -49,14 +49,12 @@
         class="vh__row"
         :class="{ 'vh__row--live': version.id === liveId, 'vh__row--previewing': version.id === previewing }"
       >
-        <!-- what and its state on top; who, when and what can be done with it below -->
         <div class="vh__line">
           <p
             class="vh__message"
             :title="[version.description, describe?.(version)].filter(Boolean).join(' · ')"
           >
             {{ version.description || version.label }}
-            <!-- what the Save wrote: "Template, Header" -->
             <span
               v-if="describe?.(version)"
               class="vh__files"
@@ -154,8 +152,6 @@
 </template>
 
 <script setup lang="ts">
-// A page's versions, newest first, in a panel over the preview: what changed, when and by whom; which one is published
-// and which is the latest; Preview shows one, Restore makes it the draft again, Discard goes back to what is published.
 import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { VcIcon } from "@vc-shell/framework/ui";
@@ -168,19 +164,13 @@ export interface VersionPage {
 }
 
 const props = defineProps<{
-  /** the versions, or the next ones after a cursor */
   source: (after?: string) => Promise<VersionPage>;
-  /** the version shown in the preview instead of the page */
   previewing?: string;
   dirty: boolean;
   busy: boolean;
-  /** there are unpublished changes to throw away */
   canDiscard: boolean;
-  /** what a version changed, after its message */
   describe?: (version: HistoryVersion) => string | undefined;
-  /** whether a version can be shown in the preview (all can, without it) */
   previewable?: (version: HistoryVersion) => boolean;
-  /** why the editor may not restore a version; undefined when they may */
   restoreRefused?: (version: HistoryVersion) => string | undefined;
 }>();
 const emit = defineEmits<{ close: []; preview: [version: HistoryVersion | null]; restore: [version: HistoryVersion]; discard: [] }>();
@@ -192,14 +182,13 @@ const cursor = ref<string>();
 const loading = ref(false);
 const failed = ref(false);
 
-// published: the newest version the storefront has (a file page lists every one its production branch holds)
+// A file page marks every version its production branch holds as published, and the newest one is live.
 const liveId = computed(() => versions.value.find((x) => x.published)?.id);
 
 const who = (v: HistoryVersion) => v.author?.name || v.author?.login || "";
 const when = (date?: string) =>
   date ? new Date(date).toLocaleString(locale.value, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
 
-/** The first versions, or the next ones after `after` */
 async function load(after?: string) {
   loading.value = true;
   failed.value = false;
@@ -362,8 +351,7 @@ defineExpose({ reload: () => load() });
     }
   }
 
-  // Preview and Restore come up on the row under the pointer, as in Buyer24 (taking no room until then, so the date
-  // shows in full); Exit stays while previewing
+  // Preview and Restore take no room until the row is hovered, so the date shows in full.
   &__action {
     flex: none;
     display: none;

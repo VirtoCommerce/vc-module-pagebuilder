@@ -1,7 +1,4 @@
-/**
- * The schemas' expressions (a field's `visibility`), as the Angular designer evaluates them: they come with the theme,
- * written by people other than the admin who opens the designer, so they are interpreted, never run as code.
- */
+/** Schema expressions come from the theme, written by people other than the admin, so they are never run as code. */
 
 export class UnsupportedExpressionError extends Error {}
 
@@ -58,7 +55,6 @@ const BUILT_IN_FUNCTIONS: ExpressionFunctions = {
   },
 };
 
-/** The expression's value with `this` = the context; throws UnsupportedExpressionError for what the language lacks. */
 export function evaluate(expression: string, context: unknown): unknown {
   return evaluateNode(parse(expression), context, BUILT_IN_FUNCTIONS);
 }
@@ -212,7 +208,7 @@ function parse(source: string): Node {
     if (token.type === "number") return { kind: "literal", value: Number(token.value) };
     if (token.type === "string") return { kind: "literal", value: token.value };
     if (token.type === "name") {
-      // own keys only: `in` also finds Object.prototype members such as `constructor`
+      // Own keys only: `in` also finds Object.prototype members such as `constructor`.
       if (hasOwn(LITERALS, token.value)) return { kind: "literal", value: LITERALS[token.value] };
       return token.value === "this" ? { kind: "this" } : { kind: "identifier", name: token.value };
     }

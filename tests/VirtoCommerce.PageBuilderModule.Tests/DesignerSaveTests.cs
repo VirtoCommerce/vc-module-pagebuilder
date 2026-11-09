@@ -85,7 +85,7 @@ public class DesignerSaveTests
         Assert.Equal("save-0001", (string)body["saveId"]);
         Assert.Equal(PageBuilderContentVersion.Create(await _pages.GetByIdAsync("g1"), Edited), (string)body["eTag"]);
         Assert.Equal(Edited, await DraftAsync());
-        // the files as they were sent: the published version is told by their bytes
+        // The history tells the published version by its bytes, so the files stay as they were sent.
         Assert.Equal(HeaderFile, _live.Files[$"{Header}-draft"]);
         Assert.Equal(RulesFile, _live.Files[$"{Rules}-draft"]);
         Assert.Single(_live.Events.OfType<PageBuilderPageChangedEvent>());
@@ -136,7 +136,6 @@ public class DesignerSaveTests
         await SaveCatalogAsync();
         _live.Files[Rules] = RulesFile;
         var request = Save(DatabasePage(), (Header, HeaderFile), (Rules, """{ "version": 2, "conditions": [ { "mine": true } ] }"""));
-        // someone else saves the rules after this editor read them
         _live.Files[$"{Rules}-draft"] = """{ "version": 2, "conditions": [ { "theirs": true } ] }""";
 
         var result = await Builder().SaveDesignerChanges("s1", request, Catalog);
@@ -185,7 +184,6 @@ public class DesignerSaveTests
         var versions = PlatformJson.ParseBody(result.Result)["themeFiles"]!.Select(x => (x.Value<string>("path"), x.Value<string>("eTag")));
         Assert.Equal([(Header, ETagOf(Header)), (Rules, ETagOf(Rules))], versions);
 
-        // the next Save from the same tab goes with the versions returned
         var again = await Builder().SaveDesignerChanges("s1", new DesignerSaveRequest
         {
             ThemeFiles = [new DesignerSaveFile { Path = Header, Content = "{ \"content\": [] }", ETag = versions.First().Item2 }],
@@ -210,7 +208,6 @@ public class DesignerSaveTests
         Assert.IsType<OkObjectResult>(created.Result);
         Assert.Equal(template, _live.Files[$"{Template}-draft"]);
 
-        // a second editor creating it from the same absent version is refused
         var second = await Builder().SaveDesignerChanges("s1", new DesignerSaveRequest
         {
             ThemeFiles = [new DesignerSaveFile { Path = Template, Content = """{ "settings": { "name": "Other" }, "content": [] }""", ETag = absent }],
@@ -227,7 +224,6 @@ public class DesignerSaveTests
         var request = Save(null, (Header, HeaderFile));
         await Builder().SaveDesignerChanges("s1", request, Catalog);
 
-        // the response was lost: the same request again
         var retried = await Builder().SaveDesignerChanges("s1", request, Catalog);
 
         Assert.IsType<OkObjectResult>(retried.Result);
@@ -291,7 +287,6 @@ public class DesignerSaveTests
     {
         await SaveCatalogAsync();
         _live.Files[$"{Header}-draft"] = "saved before";
-        // the version matched when checked, and someone saved before the write
         _pages.SaveContentException = new PageBuilderContentConflictException();
 
         var result = await Builder().SaveDesignerChanges("s1", Save(DatabasePage(), (Header, HeaderFile), (Rules, RulesFile)), Catalog);
@@ -438,7 +433,6 @@ public class DesignerSaveTests
         AssertNothingWritten();
     }
 
-    // builder:update, which every designer save takes, is the action's attribute
     [Theory]
     [InlineData(Template, Permissions.Templates)]
     [InlineData(Rules, Permissions.Templates)]
@@ -560,7 +554,7 @@ public class DesignerSaveTests
         Assert.IsType<OkObjectResult>(result.Result);
         Assert.Equal(JToken.Parse(about).ToString(), JToken.Parse(_live.Files["about.page-draft"]).ToString());
         Assert.Equal(HeaderFile, _live.Files[$"{Header}-draft"]);
-        // the page's history is the git flow's
+        // The git flow keeps the page's history, so the record holds only the theme file.
         Assert.Equal([$"theme:{Header}"], Assert.Single(_history.Records).Record.Entries.Select(x => x.Item.ToString()));
     }
 
@@ -683,7 +677,6 @@ public class DesignerSaveTests
         Assert.Empty(_history.Records);
     }
 
-    // builder:update, which every designer discard takes, is the action's attribute
     [Theory]
     [InlineData(Rules, Permissions.Templates)]
     [InlineData(Header, Permissions.Theme)]
@@ -737,11 +730,9 @@ public class DesignerSaveTests
 
         Assert.IsType<OkObjectResult>(result.Result);
         Assert.DoesNotContain(_live.Files.Keys, x => x.EndsWith("-draft"));
-        // the page's history is the git flow's
+        // The git flow keeps the page's history, so the record holds only the theme file.
         Assert.Equal([$"theme:{Header}"], Assert.Single(_history.Records).Record.Entries.Select(x => x.Item.ToString()));
     }
-
-    // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
     [Fact]
     public async Task SaveDesignerChanges_SecondThemeFileWriteFails_PutsTheFirstBack()
@@ -809,7 +800,6 @@ public class DesignerSaveTests
         Content = Edited,
     };
 
-    /// <summary>Each theme file goes with the version it holds now, as the designer read it.</summary>
     private DesignerSaveRequest Save(DesignerSavePage page, params (string Path, string Content)[] themeFiles) => new()
     {
         Page = page,
@@ -823,7 +813,6 @@ public class DesignerSaveTests
         new SchemaCatalogService(_themes).SaveAsync("s1",
             $$"""{ "hash": "{{Catalog}}", "sections": { "site-header": {}, "product-info": {}, "text": {} }, "blocks": {}, "shared": {} }""", Ct);
 
-    // a color-token field holds a palette token, a select one of its options
     private Task<string> SaveValueCatalogAsync() =>
         new SchemaCatalogService(_themes).SaveAsync("s1",
             $$"""

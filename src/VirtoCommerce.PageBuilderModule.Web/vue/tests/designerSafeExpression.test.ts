@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { evaluate, UnsupportedExpressionError } from "../src/modules/designer/safeExpression";
 
-// the visibility expressions of vc-frontend's section schemas, as they ship
 const VC_FRONTEND_VISIBILITY = [
   "!!this.item && this.item.action === 'url'",
   "!this.model.background",

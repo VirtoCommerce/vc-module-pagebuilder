@@ -5,7 +5,6 @@ public class DesignerSavePage
 {
     public string GroupId { get; set; }
 
-    /// <summary>The version the page was read at.</summary>
     public string ETag { get; set; }
 
     public string Path { get; set; }
@@ -13,6 +12,5 @@ public class DesignerSavePage
     /// <summary>"pages" or "blogs".</summary>
     public string Type { get; set; }
 
-    /// <summary>The page JSON, saved as it is.</summary>
     public string Content { get; set; }
 }

@@ -119,7 +119,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [Fact]
         public async Task Unpublish_RetriedAfterItsMerge_TakesTheLivePageDown()
         {
-            // the live removal failed after the merge: unpublishing again finishes it
+            // The live removal failed after the merge, so unpublishing again finishes it.
             var repository = Repository(withBranch: false);
             repository.Files.Remove((RepoPath, "master"));
             var live = new FakeBlobStorage();
@@ -154,7 +154,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [InlineData(GitRepositorySource.Shared, true, false)]
         public async Task PublishStatus_OfAPageUnpublishedOnGitHub_TellsTheLivePageIsBehind(GitRepositorySource source, bool hadThePage, bool liveBehind)
         {
-            // an unpublish merged on GitHub writes nothing live
+            // An unpublish merged on GitHub writes nothing live.
             var repository = Repository(withBranch: false);
             repository.Files.Remove((RepoPath, "master"));
             var live = new FakeBlobStorage();
@@ -231,7 +231,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 BaseBranch = "master",
             });
 
-            // without a merge the live storage stays null: an unpublish waiting for its merge must not reach for it
+            // The live storage stays null without a merge, so an unpublish waiting for its merge must not reach for it.
             var connection = GitHubConnections.CreateService(options.Value);
             var gitHistory = new FakeGitContentHistory(history);
             var filePageDrafts = TestServices.FilePageDrafts(live, options, connection, new FakeGitContentPolicy(source: source), repository, gitHistory, new FakeGitContentProvisioner());

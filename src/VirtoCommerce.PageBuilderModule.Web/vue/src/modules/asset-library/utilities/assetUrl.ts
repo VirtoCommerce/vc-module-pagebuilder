@@ -47,7 +47,6 @@ export function toPublicAssetUrl(value: string, origin = getWindowOrigin()): str
   return new URL(assetPath, origin).toString();
 }
 
-/** The URL a page stores for an asset, as the Angular designer did: absolute and data: URLs as they are, else /assets/… */
 export function getAssetStoredUrl(entry: AssetEntry): string {
   const value = (entry.url || entry.relativeUrl || "").trim();
   if (!value || value.startsWith("data:") || /^(?:[a-z][a-z\d+\-.]*:)?\/\//i.test(value)) return value;

@@ -2,14 +2,12 @@ using System.Globalization;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Theme;
 
-/// <summary>An opaque sRGB color.</summary>
 public readonly record struct PaletteColor(byte R, byte G, byte B)
 {
     public static PaletteColor White { get; } = new(255, 255, 255);
 
     public static PaletteColor Black { get; } = new(0, 0, 0);
 
-    /// <summary>Reads <c>#rrggbb</c> or <c>#rgb</c>.</summary>
     public static bool TryParse(string value, out PaletteColor color)
     {
         color = default;

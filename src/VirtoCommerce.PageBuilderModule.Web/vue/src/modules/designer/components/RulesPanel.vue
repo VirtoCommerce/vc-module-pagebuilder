@@ -34,9 +34,8 @@
         @save="saveRule"
         @cancel="editing = undefined"
       />
-      <!-- v-show: the sortable list stays the same element -->
+      <!-- v-show keeps the sortable list the same element. -->
       <div v-show="!editing">
-        <!-- the rules that pick this template -->
         <section class="pd-rules__section">
           <h4 class="pd-rules__heading">{{ $t("PAGE_BUILDER.DESIGNER.RULES.APPLIES_TO", { name: templateName(templateKey) }) }}</h4>
           <p
@@ -98,7 +97,6 @@
           </template>
         </section>
 
-        <!-- one click from what the previewed product (category, page) belongs to -->
         <section
           v-if="isAlternate && !readOnly && suggestions.length"
           class="pd-rules__section"
@@ -123,7 +121,6 @@
           </div>
         </section>
 
-        <!-- the page type's rules in order: the first that matches wins -->
         <section class="pd-rules__section">
           <h4 class="pd-rules__heading">
             <span>{{ $t(ALL[type]) }}</span>
@@ -162,7 +159,6 @@
           >
             {{ $t("PAGE_BUILDER.DESIGNER.RULES.NO_PERMISSION") }}
           </p>
-          <!-- what a save of the rules would leave out of the file, said before it does -->
           <p
             v-if="rules.unreadable.value"
             class="pd-rules__note pd-rules__note--warning"
@@ -250,7 +246,7 @@
           </ul>
         </section>
 
-        <!-- the storefront is the only evaluator: the preview says which template the rules pick, by which rule -->
+        <!-- The storefront is the only evaluator, so the preview says which template the rules pick. -->
         <section class="pd-rules__section">
           <h4 class="pd-rules__heading">{{ $t("PAGE_BUILDER.DESIGNER.RULES.TEST") }}</h4>
           <p
@@ -333,11 +329,6 @@
 </template>
 
 <script setup lang="ts">
-// The template rules, shown in plain language: those picking the open template ("Applies to"), rules made in one
-// click from what the previewed product belongs to, the page type's whole ordered list (drag to reorder, switch off,
-// remove, click to edit), the preview's verdict (Test), and the file as JSON. Edits change the rules state; the
-// designer's Save writes them as a draft and Publish puts them live. The rules are edited with the conditions the
-// storefront announced; until it has, they are shown only.
 import { computed, nextTick, reactive, ref, useTemplateRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useSortable } from "@vueuse/integrations/useSortable";
@@ -356,17 +347,12 @@ const props = defineProps<{
   rules: TemplateRulesState;
   type: PageType;
   templateKey: string;
-  /** the theme's templates */
   keys: string[];
   catalog: CatalogContext;
   theme: string;
-  /** what the preview shows the template on: a product's or category's id and name, a page's permalink */
   previewed?: NamedEntity;
-  /** what the store's rules pick for what the preview shows, as the storefront reports it */
   picked?: RulesPick;
-  /** the conditions the storefront announced; none yet: the rules are shown only */
   conditions?: ConditionDescriptor[];
-  /** the editor may not change the rules (builder:templates): they are shown only */
   readonly?: boolean;
 }>();
 const emit = defineEmits<{ close: [] }>();
@@ -383,7 +369,7 @@ const rulesFile = computed(() => rulesPath(props.theme));
 
 const list = computed(() => rulesOf(props.rules.rules.value, props.type));
 const ownList = computed(() => hasOwnRules(props.rules.rules.value, props.type));
-// rules not read (yet) aren't the file's: an edit of them would be neither saved nor previewed
+// Rules not read yet are not the file's: an edit of them would be neither saved nor previewed.
 const readOnly = computed(() => !props.conditions || props.readonly || !props.rules.loaded.value);
 const offered = computed(() => new Map(conditionsFor(props.conditions ?? [], props.type).map((x) => [x.name, x])));
 const setList = (next: TemplateRule[]) => (props.rules.rules.value = withRules(props.rules.rules.value, props.type, next));
@@ -395,9 +381,6 @@ const pickedHere = computed(() => !!props.picked && props.picked.pageType === pr
 const templateName = (key: string) => (key.includes(".") ? alternateName(key) : t("PAGE_BUILDER.DESIGNER.TEMPLATES.DEFAULT"));
 const templateExists = (key?: string) => !!key && (!key.trim().includes(".") || props.keys.includes(key.trim()));
 
-// ── plain language ─────────────────────────────────────────────────────────
-
-/** the names of the categories rules name */
 const names = reactive(new Map<string, string>());
 watch(
   list,
@@ -409,7 +392,6 @@ watch(
   { immediate: true },
 );
 
-/** a piece of a rule's description; `unknown`: the condition the storefront didn't announce */
 type Part = { text: string; strong?: boolean; unknown?: string };
 const SUBJECTS: Record<PageType, string> = { product: "SUBJECT_PRODUCT", category: "SUBJECT_CATEGORY", page: "SUBJECT_PAGE" };
 const ALWAYS: Record<PageType, string> = { product: "ALWAYS_PRODUCT", category: "ALWAYS_CATEGORY", page: "ALWAYS_PAGE" };
@@ -426,16 +408,11 @@ function valueText(name: string, value: unknown, descriptor?: ConditionDescripto
   return String(value);
 }
 
-/** a message with its {value} in bold */
 function withValue(key: string, value: string): Part[] {
   const [before, after = ""] = t(`PAGE_BUILDER.DESIGNER.RULES.${key}`, { value: "\u0001" }).split("\u0001");
   return [{ text: before }, { text: value, strong: true }, { text: after }];
 }
 
-/**
- * "Products in Printers and below and of type Physical"; a condition the storefront didn't announce as its JSON, marked.
- * Before the storefront has announced its conditions, none is marked.
- */
 function describe(rule: TemplateRule): Part[] {
   const conditions = Object.entries(rule.when ?? {}).map(([name, value]): Part[] => {
     const descriptor = offered.value.get(name);
@@ -452,11 +429,8 @@ function describe(rule: TemplateRule): Part[] {
   ];
 }
 
-// ── editing ────────────────────────────────────────────────────────────────
-
-/** the rule the form edits: its index (-1: a new one, added at the end) */
 const editing = ref<{ index: number; rule: TemplateRule }>();
-// the index is into the list the form was opened on: another list (another page type, the rules read again) closes it
+// The index is into the list the form was opened on, so another list closes the form.
 watch(list, () => (editing.value = undefined));
 const add = () => (editing.value = { index: -1, rule: { id: newRuleId(props.rules.rules.value), template: props.templateKey, when: {} } });
 const edit = (index: number) => (editing.value = { index, rule: list.value[index] });
@@ -477,7 +451,7 @@ async function remove(index: number) {
   if (await showConfirmation(t("PAGE_BUILDER.DESIGNER.RULES.CONFIRM_REMOVE"))) setList(list.value.filter((_, i) => i !== index));
 }
 
-// drag by the handle; Sortable moves the DOM, the rules are the truth: put the DOM back and move the data
+// Sortable moves the DOM but the rules are the source of truth, so put the DOM back and move the data.
 const sortable = useTemplateRef<HTMLElement>("sortable");
 useSortable(sortable, [], {
   handle: ".pd-rules__handle",
@@ -491,13 +465,11 @@ useSortable(sortable, [], {
   },
 });
 
-// ── "Use this template for…": rules from what the previewed entity belongs to ──
-
 const facts = ref<ProductFacts>();
 watch(
   () => [props.type, props.previewed?.id] as const,
   async ([type, id], _, onCleanup) => {
-    // the facts of a product previewed before, answering after the next one's, aren't this one's
+    // A previously previewed product's facts may answer after the current one's and must be ignored.
     let previewedSince = false;
     onCleanup(() => (previewedSince = true));
     facts.value = undefined;
@@ -533,7 +505,7 @@ const allSuggestions = computed<{ label: string; when: Record<string, unknown> }
   ];
 });
 
-/** a rule for the open template, first: it is about this very product, so nothing broader before it may win */
+/** The rule goes first: it is about this very product, so nothing broader before it may win. */
 function useFor(when: Record<string, unknown>) {
   for (const id of categoryIds(when[CATEGORY_CONDITION])) {
     const category = facts.value?.categories.find((x) => x.id === id) ?? (props.previewed?.id === id ? props.previewed : undefined);
@@ -544,8 +516,6 @@ function useFor(when: Record<string, unknown>) {
   notification.success(t("PAGE_BUILDER.DESIGNER.RULES.ADDED", { text: describe(rule).map((x) => x.text).join("") }));
 }
 
-// ── Edit as JSON ───────────────────────────────────────────────────────────
-
 const jsonText = ref<string>();
 const jsonErrors = ref<RuleError[]>([]);
 function openJson() {
@@ -554,7 +524,6 @@ function openJson() {
 }
 function formatJson() {
   const { rules, errors } = parseRules(jsonText.value ?? "", props.conditions);
-  // a file with mistakes is formatted too, as long as it is JSON
   if (rules || errors[0]?.code !== "SYNTAX") jsonText.value = JSON.stringify(JSON.parse(jsonText.value ?? ""), null, 2);
   jsonErrors.value = errors;
 }

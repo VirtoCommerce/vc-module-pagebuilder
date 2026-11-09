@@ -14,7 +14,6 @@ using VirtoCommerce.PageBuilderModule.Core.GitContent;
 
 namespace VirtoCommerce.PageBuilderModule.Data.GitContent;
 
-/// <summary>GitHub API over the module's named HTTP clients.</summary>
 public class GitHubApiClient(IHttpClientFactory httpClientFactory) : IGitHubApiClient
 {
     public const string HttpClientName = "PageBuilderGitContent";
@@ -214,7 +213,6 @@ public class GitHubApiClient(IHttpClientFactory httpClientFactory) : IGitHubApiC
     protected virtual Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, string operation, CancellationToken cancellationToken) =>
         SendRequestAsync(httpClientFactory.CreateClient(HttpClientName), request, operation, cancellationToken);
 
-    /// <summary>Configures a client of the GitHub API.</summary>
     public static void ConfigureHttpClient(HttpClient httpClient, GitContentOptions options)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
@@ -226,7 +224,6 @@ public class GitHubApiClient(IHttpClientFactory httpClientFactory) : IGitHubApiC
         AddDefaultHeaders(httpClient.DefaultRequestHeaders);
     }
 
-    /// <summary>Adds the headers GitHub expects on every request.</summary>
     public static void AddDefaultHeaders(HttpRequestHeaders headers)
     {
         ArgumentNullException.ThrowIfNull(headers);
@@ -237,7 +234,6 @@ public class GitHubApiClient(IHttpClientFactory httpClientFactory) : IGitHubApiC
         headers.UserAgent.ParseAdd(UserAgent);
     }
 
-    /// <summary>Sends the request; a transport failure or a timeout becomes a <see cref="GitContentException"/>.</summary>
     public static async Task<HttpResponseMessage> SendRequestAsync(HttpClient client, HttpRequestMessage request, string operation, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(client);
@@ -256,7 +252,6 @@ public class GitHubApiClient(IHttpClientFactory httpClientFactory) : IGitHubApiC
         }
     }
 
-    /// <summary>Sends a request to the url; a transport failure or a timeout becomes a <see cref="GitContentException"/>.</summary>
     public static async Task<HttpResponseMessage> SendRequestAsync(HttpClient client, HttpMethod method, string url, HttpContent content, string operation,
         CancellationToken cancellationToken)
     {
@@ -264,7 +259,6 @@ public class GitHubApiClient(IHttpClientFactory httpClientFactory) : IGitHubApiC
         return await SendRequestAsync(client, request, operation, cancellationToken);
     }
 
-    /// <summary>Throws a <see cref="GitContentException"/> unless the response is a success.</summary>
     public static async Task EnsureSuccessAsync(HttpResponseMessage response, string operation, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(response);
@@ -275,7 +269,6 @@ public class GitHubApiClient(IHttpClientFactory httpClientFactory) : IGitHubApiC
         }
     }
 
-    /// <summary>Reads a successful JSON response.</summary>
     public static async Task<T> ReadAsAsync<T>(HttpResponseMessage response, string operation, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(response);
@@ -315,7 +308,6 @@ public class GitHubApiClient(IHttpClientFactory httpClientFactory) : IGitHubApiC
         return new StringContent(body.ToString(), Encoding.UTF8, JsonMediaType);
     }
 
-    /// <summary>Creates a GraphQL request on behalf of the owner.</summary>
     public static HttpRequestMessage CreateGraphQlRequest(Uri url, string owner, JObject body)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = CreateJsonContent(body) };
@@ -324,7 +316,6 @@ public class GitHubApiClient(IHttpClientFactory httpClientFactory) : IGitHubApiC
         return request;
     }
 
-    /// <summary>Splits "owner/name" into its parts.</summary>
     public static (string Owner, string Name) ParseRepository(string repository)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(repository);

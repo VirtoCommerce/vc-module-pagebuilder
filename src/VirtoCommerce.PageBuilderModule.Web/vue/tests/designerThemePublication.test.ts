@@ -21,7 +21,7 @@ test("parseThemeStatus reads the publication, the drafts and the new ones, and n
     drafts: ["templates/product.json", "sections/header-group.json"],
     newDrafts: ["templates/product.json"],
   });
-  // the platform leaves out a null publication: before the first one
+  // The platform leaves out a null publication, which is the state before the first one.
   assert.deepEqual(parseThemeStatus({ drafts: [] }), { publication: undefined, drafts: [], newDrafts: [] });
   assert.deepEqual(parseThemeStatus({ publication: "3", drafts: ["config/brand.json", 7, null] }), { publication: undefined, drafts: ["config/brand.json"], newDrafts: [] });
   assert.deepEqual(parseThemeStatus(null), { publication: undefined, drafts: [], newDrafts: [] });
@@ -33,7 +33,6 @@ test("hasThemeDraft matches a file as saves name it to the status's path in the 
   assert.equal(hasThemeDraft(drafts, "default", "default/sections/header-group.json"), true);
   assert.equal(hasThemeDraft(drafts, "default", "default/config/template_rules.json"), true);
   assert.equal(hasThemeDraft(drafts, "default", "default/sections/footer-group.json"), false);
-  // another theme's file of the same path is not this theme's draft
   assert.equal(hasThemeDraft(drafts, "b2c", "default/sections/header-group.json"), false);
   assert.equal(hasThemeDraft(undefined, "default", "default/sections/header-group.json"), false);
 });
@@ -44,7 +43,6 @@ test("templateStatus: changed while the template has a draft, unpublished before
   assert.deepEqual(templateStatus(status(["templates/product.json"], 4), "default", path), { published: true, hasChanges: true });
   assert.deepEqual(templateStatus(status(["sections/header-group.json"], 4), "default", path), { published: true, hasChanges: false });
   assert.deepEqual(templateStatus(status(["templates/product.json"]), "default", path), { published: false, hasChanges: true });
-  // the status could not be read: nothing to publish or discard is claimed
   assert.deepEqual(templateStatus(undefined, "default", path), { published: true, hasChanges: false });
 });
 
@@ -67,7 +65,6 @@ test("Publish theme counts the theme files waiting and is enabled only with some
 test("publishActions: a page publishes itself, a template only with the theme, a shared component neither; nothing without builder:publish", () => {
   assert.deepEqual(publishActions({ template: false, shared: false, mayPublish: true }), { page: true, theme: true });
   assert.deepEqual(publishActions({ template: false, shared: false, mayPublish: false }), { page: false, theme: false });
-  // a template's Publish is the theme's; it has no Unpublish
   assert.deepEqual(publishActions({ template: true, shared: false, mayPublish: true }), { page: false, theme: true });
   assert.deepEqual(publishActions({ template: true, shared: false, mayPublish: false }), { page: false, theme: false });
   assert.deepEqual(publishActions({ template: false, shared: true, mayPublish: true }), { page: false, theme: false });
@@ -78,7 +75,6 @@ test("the theme's publication names the catalog previewed", () => {
 
   assert.equal(url.pathname, "/api/pagebuilder/theme/publish");
   assert.deepEqual(Object.fromEntries(url.searchParams), { storeId: "B2B-store", catalogHash: "abc12345" });
-  // without a handshake there is none: the server answers why
   assert.deepEqual(query(publishThemeUrl("B2B-store")), { storeId: "B2B-store" });
 });
 
@@ -86,7 +82,6 @@ test("themeErrors lists what a refused theme save or publication names", () => {
   const body = JSON.stringify({ error: "The theme is not valid: …", errors: ["templates/product.json: 's1' has a type the storefront does not have, 'carousel'"] });
 
   assert.deepEqual(themeErrors(400, body), ["templates/product.json: 's1' has a type the storefront does not have, 'carousel'"]);
-  // a refusal with one error only: a live theme write on a New Page Builder store
   assert.deepEqual(themeErrors(400, JSON.stringify({ error: "theme files are published with theme/publish" })), ["theme files are published with theme/publish"]);
   assert.deepEqual(themeErrors(400, JSON.stringify({ errors: [], error: "" })), []);
   assert.deepEqual(themeErrors(400, "Bad Request"), []);

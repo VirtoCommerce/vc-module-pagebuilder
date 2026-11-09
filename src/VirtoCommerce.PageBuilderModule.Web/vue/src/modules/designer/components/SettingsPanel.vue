@@ -132,8 +132,6 @@
 </template>
 
 <script setup lang="ts">
-// The right panel: the selected section's, block's or page's settings, split in the schema's tabs (Content, Settings).
-// Close deselects it (the panel hides).
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { usePopup } from "@vc-shell/framework";
@@ -151,7 +149,6 @@ const emit = defineEmits<{ copy: []; paste: []; close: []; "edit-shared": [compo
 const { t } = useI18n({ useScope: "global" });
 const sel = computed(() => props.selection);
 const item = computed(() => props.designer.selectedItem.value);
-/** the header's or footer's section or block edited */
 const groupItem = computed<GroupItem | undefined>(() => {
   const kind = sel.value.kind;
   const group = props.designer.selectedSection.value?.__group;
@@ -159,7 +156,6 @@ const groupItem = computed<GroupItem | undefined>(() => {
 });
 const schema = computed(() => (sel.value.kind === "block" ? props.designer.blockSchema(item.value?.type) : props.designer.sectionSchema(item.value?.type)));
 
-// a placed shared component: no fields here (it is edited as the component), only its info and Detach
 const placed = computed(() => (item.value && isComponentRef(item.value) ? item.value : undefined));
 const component = computed(() => (placed.value ? props.designer.components.get(placed.value.componentRef) : undefined));
 const pageRow = computed(() => (sel.value.kind === "page" ? props.designer.pageRows.value.find((x) => x.key === (sel.value as { key: string }).key) : undefined));
@@ -180,11 +176,9 @@ const tabs = computed(() => [...new Set(props.designer.selectedFields.value.map(
 const activeTab = ref<string>();
 const menuOpen = ref(false);
 watch(itemKey, () => (activeTab.value = undefined));
-// the picked tab while the item has it, else its first
 const currentTab = computed(() => (activeTab.value && tabs.value.includes(activeTab.value) ? activeTab.value : tabs.value[0]));
 const tabFields = computed(() => props.designer.selectedFields.value.filter((x) => (x.tab ?? t("PAGE_BUILDER.DESIGNER.CONTENT")) === currentTab.value));
 
-// what the schemas' visibility expressions see as `this` (the Angular designer's control context)
 const context = computed(() => {
   const doc = props.designer.doc.value;
   return {
@@ -199,7 +193,6 @@ const context = computed(() => {
   };
 });
 
-// the open template's main section stays, shown
 const isMain = computed(() => sel.value.kind === "section" && props.designer.isMainKept(sel.value.id));
 const hideLocked = computed(() => sel.value.kind === "section" && props.designer.isMainShown(sel.value.id));
 
@@ -230,7 +223,6 @@ const actions = computed(() => {
 </script>
 
 <style lang="scss" scoped>
-// the left rail's scale: 13px text, a 14px title, the same pill tabs
 .pd-settings {
   display: flex;
   flex-direction: column;

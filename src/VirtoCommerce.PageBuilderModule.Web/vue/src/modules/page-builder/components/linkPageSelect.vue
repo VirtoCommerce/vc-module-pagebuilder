@@ -1,8 +1,8 @@
 <template>
-  <!-- Shown in the language row, not in a popup: the select's option list opens in the app root, under a popup. -->
+  <!-- Kept out of a popup: the select's option list opens in the app root, under any popup. -->
   <VcCol class="tw-gap-2">
     <div class="tw-flex tw-items-end tw-gap-3">
-      <!-- min-w-0: a long page title shrinks the select instead of pushing the buttons out of the row. -->
+      <!-- min-w-0 lets a long page title shrink the select, so it cannot push the buttons out of the row. -->
       <VcSelect
         v-model="groupId"
         class="tw-min-w-0 tw-grow"
@@ -36,7 +36,6 @@ import { PageBuilderPageListItem } from "../../../api_client/virtocommerce.pageb
 
 interface Props {
   cultureName: string;
-  /** Landing Pages of the language that can become its version. */
   findPages: (
     cultureName: string,
     keyword?: string,

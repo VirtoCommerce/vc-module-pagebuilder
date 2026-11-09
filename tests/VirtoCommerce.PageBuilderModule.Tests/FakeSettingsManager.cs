@@ -6,7 +6,6 @@ using VirtoCommerce.Platform.Core.Settings;
 
 namespace VirtoCommerce.PageBuilderModule.Tests
 {
-    /// <summary>Records the last lookup; answers <c>value</c>, <c>repository</c> for the repository setting, or what <see cref="Values"/> holds.</summary>
     internal sealed class FakeSettingsManager : ISettingsManager
     {
         private readonly object _value;
@@ -20,7 +19,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
         public Dictionary<string, object> Values { get; } = [];
 
-        /// <summary>Thrown by every single-setting read, as a database that does not answer.</summary>
         public Exception ReadFailure { get; init; }
 
         public string AskedName { get; private set; }

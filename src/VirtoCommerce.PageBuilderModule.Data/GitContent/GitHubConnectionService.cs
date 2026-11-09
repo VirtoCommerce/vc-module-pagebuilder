@@ -16,10 +16,6 @@ using VirtoCommerce.Platform.Core.Settings;
 
 namespace VirtoCommerce.PageBuilderModule.Data.GitContent;
 
-/// <summary>
-/// GitHub connection: the configuration when it is complete, else the GitHub App of the one-click setup, kept in a
-/// hidden setting encrypted with the platform's data protection keys.
-/// </summary>
 public class GitHubConnectionService(
     IOptions<GitContentOptions> options,
     IConfiguration configuration,
@@ -29,7 +25,6 @@ public class GitHubConnectionService(
     ILogger<GitHubConnectionService> logger)
     : IGitHubConnectionService
 {
-    /// <summary>Base branch of the store repositories when the configuration names none.</summary>
     public const string DefaultBaseBranch = "main";
 
     private const string ProtectionPurpose = "VirtoCommerce.PageBuilderModule.GitHubAppConnection";
@@ -182,10 +177,7 @@ public class GitHubConnectionService(
         connection.App = app;
     }
 
-    /// <summary>
-    /// Marks the connection as a saved App that cannot be used, enabled unless the configuration switches git content off, so a
-    /// store that opted in refuses git operations instead of falling back to the blob flow.
-    /// </summary>
+    /// <summary>Keeps the connection enabled unless the configuration switches git content off, so a store that opted in refuses git operations and never falls back to the blob flow.</summary>
     protected virtual GitHubConnection SetError(GitHubConnection connection, string error)
     {
         connection.IsEnabled = !_isSwitchedOff;
@@ -193,7 +185,6 @@ public class GitHubConnectionService(
         return connection;
     }
 
-    /// <summary>Gets the GitHub web site of the API: github.com, or the GitHub Enterprise server itself.</summary>
     protected virtual Uri GetWebUrl(Uri apiUrl) =>
         string.Equals(apiUrl.Host, GitHubApiHost, StringComparison.OrdinalIgnoreCase)
             ? new Uri(GitHubWebUrl)

@@ -61,8 +61,7 @@
 </template>
 
 <script setup lang="ts">
-// The store's category tree, loaded a level at a time, to pick the categories a rule is for. A rule's category holds
-// for its subcategories too, so those show checked under a picked one.
+// A rule's category holds for its subcategories too, so they show checked under a picked one.
 import { computed, onMounted, reactive, ref } from "vue";
 import { VcIcon } from "@vc-shell/framework/ui";
 import { childCategories, type CatalogContext, type NamedEntity } from "../api";
@@ -72,13 +71,11 @@ type Node = NamedEntity & { hasChildren: boolean };
 const props = defineProps<{
   catalog: CatalogContext;
   modelValue: string[];
-  /** the names of the categories shown, kept for the rules' descriptions */
   names: Map<string, string>;
   label?: string;
 }>();
 const emit = defineEmits<{ "update:modelValue": [ids: string[]] }>();
 
-/** each category's subcategories, as loaded ("" the top ones) */
 const children = reactive(new Map<string, Node[]>());
 const parents = new Map<string, string>();
 const expanded = reactive(new Set<string>());

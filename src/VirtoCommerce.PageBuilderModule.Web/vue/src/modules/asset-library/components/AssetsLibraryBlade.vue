@@ -15,9 +15,6 @@ import { IBladeToolbar, useBlade } from "@vc-shell/framework";
 import { VcBlade } from "@vc-shell/framework/ui";
 import AssetsLibraryContent, { type ExposedAssetsLibraryContent } from "./AssetsLibraryContent.vue";
 
-// The Assets Library blade's body, defined as a blade by the standalone app (AssetsLibrary, a workspace)
-// and by the Admin Shell UI (PageBuilderAssets, opened from a store's pages).
-
 const { exposeToChildren } = useBlade();
 const { t } = useI18n({ useScope: "global" });
 const assetsLibraryRef = useTemplateRef<ExposedAssetsLibraryContent>("assetsLibraryRef");

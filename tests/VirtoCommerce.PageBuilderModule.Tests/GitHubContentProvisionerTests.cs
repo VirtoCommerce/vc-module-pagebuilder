@@ -94,7 +94,7 @@ public class GitHubContentProvisionerTests
     [Fact]
     public async Task EnsureRepositoryAsync_RepositoryOfAnotherStore_ThrowsOwnershipException()
     {
-        // "S1" and "s1" name the same repository
+        // "S1" and "s1" are different stores that name the same repository.
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Json(RepoJson(GitHubContentOwnership.DescriptionPrefix + "S1"))));
 
@@ -146,7 +146,7 @@ public class GitHubContentProvisionerTests
     [InlineData(null, "acme/website")]
     public async Task EnsureRepositoryAsync_AssignedRepositoryWithoutBaseBranch_ThrowsWithoutCuttingBranches(string organization, string shared)
     {
-        // its deployment follows its own branches, not ones cut from its default branch
+        // An assigned repository's deployment follows its own branches, so none are cut from its default branch.
         var github = new GitHubScript(
             ("GET", "repos/acme/website", (_, _) => GitHubScript.Json(RepoJson("Our web site", defaultBranch: "master"))),
             ("GET", "repos/acme/website/git/ref/heads/main", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)));
@@ -299,8 +299,6 @@ public class GitHubContentProvisionerTests
         Assert.Equal(Repo, status.Repository);
         Assert.Contains("HttpClient.Timeout", status.Error);
     }
-
-    // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
     private static GitHubContentProvisioner Provisioner(GitHubScript github, FakeSettingsManager settings = null, string repository = null,
         Action<GitContentOptions> configure = null, FakeGitContentOwnership ownership = null, FakeStoreService stores = null)

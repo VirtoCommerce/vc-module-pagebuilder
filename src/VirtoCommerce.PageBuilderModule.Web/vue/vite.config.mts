@@ -1,9 +1,7 @@
 import path from "node:path";
 import { getDynamicModuleConfiguration } from "@vc-shell/mf-module";
 
-// Page Builder contributions to the Admin Shell: a Module Federation remote of the Admin Shell host.
-// Output: <module>/plugins/admin-shell/ (remoteEntry.js + public/plugin.json),
-// served by the platform at /modules/$(VirtoCommerce.PageBuilderModule)/plugins/admin-shell/.
+// The platform serves the Admin Shell remote from this path.
 const base = "/modules/$(VirtoCommerce.PageBuilderModule)/plugins/admin-shell/";
 process.env.APP_BASE_PATH = base;
 

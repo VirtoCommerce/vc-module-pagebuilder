@@ -10,9 +10,6 @@ using Permissions = VirtoCommerce.PageBuilderModule.Core.ModuleConstants.Securit
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>
-/// Either allows or refuses everything, or a user who works in one store with builder:read and the permissions listed.
-/// </summary>
 internal sealed class FakeAuthorizationService(bool allowed) : IAuthorizationService
 {
     private readonly string _storeId;

@@ -1,4 +1,3 @@
-/** Adapt legacy Designer exports to the envelope required by atomic page creation. */
 export function serializeImportedPageContent(content: unknown): string {
   const document = typeof content === "string" ? JSON.parse(content) : content;
   if (Array.isArray(document)) {

@@ -10,30 +10,17 @@ import PageBuilderDesigner from "../src/modules/pages/PageBuilderDesigner.vue";
 import PageBuilderGit from "../src/modules/pages/PageBuilderGit.vue";
 import PageBuilderGitHub from "../src/modules/pages/PageBuilderGitHub.vue";
 
-// the Vue designer here too: "Edit in designer" opens it as a full-screen blade instead of the Angular app in a new tab;
-// its Enable history opens the site's history blade, which opens the GitHub connection
 const Designer = defineAppModule({ blades: { PageBuilderDesigner, PageBuilderGit, PageBuilderGitHub } });
 
-// Load required CSS
 import "@vc-shell/framework/dist/index.css";
 
-// The standalone app's menu: a workspace per page status, with its page count
 setMenuBadge("DraftPagesList", { content: pageCounts.draft, variant: "warning" });
 setMenuBadge("PendingPagesList", { content: pageCounts.pending, variant: "info" });
 setMenuBadge("ActivePagesList", { content: pageCounts.active, variant: "success" });
 setMenuBadge("ArchivedPagesList", { content: pageCounts.archived, variant: "secondary" });
 setMenuBadge("AllPagesList", { content: pageCounts.all, variant: "primary" });
 
-// Bridge platform auth to vc-shell. PageBuilder is embedded inside the VC platform admin, which
-// uses cookie-based session login and (separately) the AngularJS Designer stores a JWT under
-// "ls.authenticationData". vc-shell's useUser() reads from "vc_auth_data" only.
-//
-// Strategy:
-//   1. If "ls.authenticationData" already has a non-expired JWT, mirror it to "vc_auth_data".
-//   2. Otherwise exchange the cookie session for a JWT via /connect/token grant_type=impersonate
-//      (same call the Designer uses in AppInitializator), write to BOTH keys.
-//   3. Listen for cross-tab `storage` events so login / refresh / logout in the admin tab keeps
-//      "vc_auth_data" in sync.
+// vc-shell's useUser() reads only "vc_auth_data", while the platform admin has a cookie session and a JWT in "ls.authenticationData".
 const LEGACY_AUTH_KEY = "ls.authenticationData";
 const SHELL_AUTH_KEY = "vc_auth_data";
 
@@ -136,10 +123,7 @@ async function bridgeLegacyAuthData() {
   });
 }
 
-// Resolves the AI agent (Virto OZ) iframe URL from the platform setting registered
-// by the .NET module (`VirtoCommerce.PageBuilderModule.General.OzAgentUrl`). Empty / missing
-// setting means the AI integration is disabled — the framework's `aiAgentPlugin` will skip
-// its install when `config.url` is empty (and the env fallback is not bundled in production).
+// An empty OzAgentUrl setting disables the AI integration: vc-shell's aiAgentPlugin skips its install when config.url is empty.
 async function fetchOzAgentUrl(): Promise<string> {
   try {
     const auth = localStorage.getItem(SHELL_AUTH_KEY);
@@ -186,7 +170,6 @@ async function startApp() {
         },
       },
     })
-    // PageBuilder module initialization
     .use(PageBuilder)
     .use(AssetLibrary)
     .use(SharedComponents)

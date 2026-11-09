@@ -41,7 +41,6 @@ const { t } = useI18n({ useScope: "global" });
 const pagesListRef = useTemplateRef<ExposedPagesList>("pagesListRef");
 const bladeTitle = computed(() => t("PAGE_BUILDER.PAGES.LIST.ACTIVE_TITLE"));
 
-// here should be additional filter by dates
 const bladeToolbar = usePagesListToolbar(PageLifecycleFilters.Active, pagesListRef);
 
 async function reload() {

@@ -1,6 +1,6 @@
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-// the tokens vc-frontend announces: the keys of its default light and dark presets
+// These are the tokens vc-frontend announces: the keys of its default light and dark presets.
 internal static class StorefrontPaletteTokens
 {
     public static string[] Light { get; } =

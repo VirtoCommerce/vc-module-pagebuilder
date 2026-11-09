@@ -5,9 +5,7 @@ export interface PageDesignerContext {
   status?: string | null;
 }
 
-// the Page Builder app (it opens the designer from ?storeId=…&designGroup=…)
 const appPath = "/apps/page-builder-shell/";
-// the Angular designer, for stores without the New Page Builder switch
 const classicDesignerPath = "/Modules/$(VirtoCommerce.PageBuilderModule)/Content/page-builder-designer/index.html";
 
 export function canOpenPageDesigner(
@@ -41,7 +39,6 @@ export function buildClassicDesignerUrl(context: PageDesignerContext, platformUr
   return `${platformUrl.replace(/\/+$/, "")}${classicDesignerPath}?storeId=${storeId}#/pages?${routeParameters.toString()}`;
 }
 
-/** Opens the page in a new tab: in the Page Builder app, or in the Angular designer when `classic`. */
 export function openPageDesigner(context: PageDesignerContext, classic = false): void {
   const platformUrl = (import.meta.env.DEV && import.meta.env.APP_PLATFORM_URL) || window.location.origin;
   const url = classic ? buildClassicDesignerUrl(context, platformUrl) : buildPageDesignerUrl(context, platformUrl);

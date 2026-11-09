@@ -13,7 +13,6 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
     /// </summary>
     public static class GitCommitSha
     {
-        /// <summary>Length of a sha as git shortens it.</summary>
         public const int ShortShaLength = 7;
 
         private static readonly Regex Pattern = new("^[0-9a-f]{40}$", RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
@@ -22,7 +21,6 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
 
         public static bool IsSha(string value) => !string.IsNullOrEmpty(value) && Pattern.IsMatch(value);
 
-        /// <summary>Checks for an abbreviated commit sha.</summary>
         public static bool IsAbbreviatedSha(string value) => !string.IsNullOrEmpty(value) && AbbreviatedPattern.IsMatch(value);
     }
 }

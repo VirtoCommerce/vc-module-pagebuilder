@@ -56,7 +56,6 @@ public class GitHubConnectionServiceTests
         var saved = (string)settings.Values[ModuleConstants.Settings.GitHub.AppConnection.Name];
         Assert.DoesNotContain("PRIVATE KEY", saved);
 
-        // another server of the same platform, sharing its keys
         var options = new GitContentOptions { RepositoryPrefix = "web-" };
         var service = CreateService(options, settings, keys);
         var connection = await service.GetConnectionAsync(TestContext.Current.CancellationToken);
@@ -69,7 +68,6 @@ public class GitHubConnectionServiceTests
         Assert.Equal(AppPrivateKey, connection.PrivateKey);
         Assert.Equal("main", connection.BaseBranch);
         Assert.True(connection.AutoCreateRepositories);
-        // the App's organization, with the configuration's naming
         var policy = new GitContentPolicy(service, Options.Create(options), settingsManager: null, storeService: null, new FakeGitContentOwnership());
         Assert.Equal("Acme/web-b2b", (await policy.GetConfiguredRepositoryAsync("b2b", string.Empty, TestContext.Current.CancellationToken))!.Name);
     }
@@ -124,7 +122,6 @@ public class GitHubConnectionServiceTests
         var settings = new FakeSettingsManager();
         await CreateService(settings, new EphemeralDataProtectionProvider(), CreateManifestConversion("Acme")).CreateAppAsync("c0de", "acme", TestContext.Current.CancellationToken);
 
-        // a restored database, or a server whose keys were lost: other keys
         var connection = await CreateService(settings, new EphemeralDataProtectionProvider()).GetConnectionAsync(TestContext.Current.CancellationToken);
 
         Assert.False(connection.IsConfigured);

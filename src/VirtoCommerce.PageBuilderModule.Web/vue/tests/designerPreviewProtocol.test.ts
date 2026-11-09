@@ -23,7 +23,7 @@ import {
 import { readRules } from "../src/modules/designer/rules";
 import type { Item, PageDocument } from "../src/modules/designer/types";
 
-/** a `loaded` as the storefront (vc-frontend preview-v2.ts buildPreviewCatalog) sends it */
+/** Mirrors the `loaded` message that vc-frontend's buildPreviewCatalog in preview-v2.ts sends. */
 const loadedData = (extra: Record<string, unknown> = {}) => ({
   blocks: { link: { name: "Link" } },
   sections: { "site-header": { name: "Header", groups: ["header"] }, text: { name: "Text" } },
@@ -41,7 +41,6 @@ const loadedData = (extra: Record<string, unknown> = {}) => ({
 
 const fromPreview = (data: unknown, type = "loaded") => ({ source: "preview", type, data });
 
-/** console.warn calls while `run` runs */
 async function warnings(run: () => unknown): Promise<unknown[][]> {
   const calls: unknown[][] = [];
   const original = console.warn;
@@ -53,8 +52,6 @@ async function warnings(run: () => unknown): Promise<unknown[][]> {
   }
   return calls;
 }
-
-// ── loaded ───────────────────────────────────────────────────────────────────
 
 test("a protocol 2 loaded gives the catalog without the handshake's own fields, and the handshake", () => {
   const loaded = parseLoaded(loadedData()) as Loaded;
@@ -86,8 +83,6 @@ test("a protocol 2 loaded of another shape is dropped; a condition it can't read
   assert.equal(calls.length, 1);
 });
 
-// ── the other preview messages ───────────────────────────────────────────────
-
 test("select names a section, or a block and its section", () => {
   assert.deepEqual(parsePreviewMessage(fromPreview({ sectionId: "s1" }, "select")), { type: "select", sectionId: "s1" });
   assert.deepEqual(parsePreviewMessage(fromPreview({ sectionId: "s1", blockId: "b1" }, "select")), { type: "select", sectionId: "s1", blockId: "b1" });
@@ -103,7 +98,6 @@ test("resolved carries the url, the template rendered, the rules' pick and what 
     overriddenByWhiteLabeling: ["palette", "brand.logoUrl"],
   };
   assert.deepEqual(parsePreviewMessage(fromPreview(data, "resolved")), { type: "resolved", resolved: data });
-  // an open template is rendered by no rule; the rules' own pick comes apart
   const open = { ...data, template: "product.printer", ruleId: null, rules: { template: "product", ruleId: null } };
   assert.deepEqual(parsePreviewMessage(fromPreview(open, "resolved")), { type: "resolved", resolved: open });
 });
@@ -158,7 +152,7 @@ test("a preview message of another shape is dropped with a warning; others' mess
     fromPreview({ itemId: "s1", path: [], value: "x" }, "edit"),
     fromPreview({ itemId: "s1", path: [{}], value: "x" }, "edit"),
     fromPreview({ itemId: "s1", path: ["title"], value: 1 }, "edit"),
-    // the protocol 1 shape: a rule's index
+    // A storefront on preview protocol 1 names a rule by its index.
     fromPreview({ pageType: "product", template: "product", rule: 0 }, "resolved"),
     fromPreview({}, "unknown"),
   ];
@@ -170,8 +164,6 @@ test("a preview message of another shape is dropped with a warning; others' mess
   });
   assert.equal(quiet.length, 0);
 });
-
-// ── render and draft ─────────────────────────────────────────────────────────
 
 const doc = (content: Item[]): PageDocument => ({ version: 2, settings: { id: "settings", type: "settings" }, content });
 
@@ -272,7 +264,6 @@ test("the draft carries the templates to a storefront that renders them from the
   const templates = { product: { settings: {} as Item, content: [{ id: "p1", type: "product-info" }] } };
   assert.deepEqual(draftMessage({ templates, capabilities: ["templates"] }), { type: "draft", theme: { templates } });
   assert.deepEqual(draftMessage({ templates, capabilities: ["groups"] }), { type: "draft", theme: {} });
-  // none: the published ones
   assert.deepEqual(draftMessage({ capabilities: ["templates"] }), { type: "draft", theme: {} });
 });
 
@@ -280,9 +271,9 @@ test("the draft carries the brand and the palette the Theme tab has, whatever th
   const brand = { logoUrl: "/logo.svg" };
   const palette = { light: { color_primary_500: "#f99e24" } };
   assert.deepEqual(draftMessage({ look: { brand, palette }, capabilities: [] }), { type: "draft", theme: { brand, palette } });
-  // a null palette: the theme has none, the storefront's preset shows
+  // A null palette means the theme has none, so the storefront's preset shows.
   assert.deepEqual(draftMessage({ look: { brand, palette: null }, capabilities: [] }), { type: "draft", theme: { brand, palette: null } });
-  // left out (the Theme tab not loaded): the published palette; no brand: the published one, so its logo still shows
+  // A palette left out (the Theme tab not loaded) or no brand means the published one stays, so its logo still shows.
   assert.deepEqual(draftMessage({ look: { brand }, capabilities: [] }), { type: "draft", theme: { brand } });
   assert.deepEqual(draftMessage({ look: {}, capabilities: [] }), { type: "draft", theme: {} });
 });
@@ -297,15 +288,12 @@ test("after loaded: who the preview renders as, the inspector, light or dark, th
     draft,
     render,
   ]);
-  // as a customer: the access token alone
   assert.deepEqual(handshakeMessages({ auth: authMessage("u1", "jwt"), inspector: false, colorScheme: "light", draft, render })[0], {
     type: "auth",
     token: { access_token: "jwt" },
     userId: "u1",
   });
 });
-
-// ── what the preview reports ─────────────────────────────────────────────────
 
 test("a click selects the block it names, in the section that has it; else the section", () => {
   const page = doc([
@@ -327,7 +315,6 @@ test("the storefront's rule id names the designer's rule by its id, the ids a ve
   assert.equal(ruleIndex(rules, "product", "big"), 1);
   assert.equal(ruleIndex(rules, "product", "product-2"), 2);
   assert.equal(ruleIndex(rules, "product", "product-1"), undefined);
-  // a rule the storefront can't read takes no place
   assert.equal(ruleIndex(rules, "page", "page-1"), 1);
   assert.equal(ruleIndex(rules, "product", null), null);
   assert.equal(ruleIndex(rules, "constructor", "constructor-0"), undefined);
@@ -341,15 +328,11 @@ test("a rule moved keeps the storefront's id pointing at it", () => {
 
 test("a page type without rules of its own: the storefront's id names one of its default rules", () => {
   assert.equal(ruleIndex(readRules({ page: [] }), "product", "default-b2c"), 0);
-  // an empty list has none
   assert.equal(ruleIndex(readRules({ product: [] }), "product", "default-b2c"), undefined);
-  // without the designer's rules, no rule is named
   assert.equal(ruleIndex(undefined, "product", "default-b2c"), undefined);
   assert.equal(ruleIndex(undefined, "category", "category-3"), undefined);
   assert.equal(ruleIndex(undefined, "category", null), null);
 });
-
-// ── the catalog ──────────────────────────────────────────────────────────────
 
 const catalog = (parseLoaded(loadedData()) as Loaded).catalog;
 
@@ -413,8 +396,6 @@ test("a failed upload is logged and tried again; an editor who may not upload it
   assert.equal(quiet.length, 0);
   assert.deepEqual(forbidden.calls, ["GET b2c 0badc0de", "PUT b2c 0badc0de"]);
 });
-
-// ── the channel ──────────────────────────────────────────────────────────────
 
 function channel(options: { prepare?: () => Promise<void> } = {}) {
   const posted: DesignerMessage[] = [];

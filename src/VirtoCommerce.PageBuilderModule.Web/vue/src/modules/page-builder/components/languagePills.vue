@@ -25,7 +25,6 @@ import { getLanguagePillText } from "../composables/useMultilanguagePageDetails/
 
 interface Props {
   languages: MultilanguagePageLanguage[];
-  /** Shows the status text next to a single pill. */
   withStatus?: boolean;
 }
 
@@ -103,7 +102,6 @@ function tooltip(language: MultilanguagePageLanguage): string {
       border-color: var(--danger-200);
     }
 
-    // No version yet: not an error, just absent.
     &--missing {
       color: var(--neutrals-500);
       border-style: dashed;

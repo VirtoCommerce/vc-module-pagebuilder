@@ -25,10 +25,8 @@ internal sealed class FakeBlobStorage : IBlobContentStorageProvider, IBlobConten
 
     public FakeStoreService StoreService { get; } = new(new Store { Id = "s1", DynamicProperties = [] });
 
-    /// <summary>Runs before a blob is opened for writing; a test throws from it to fail the write.</summary>
     public Action<string> BeforeWrite { get; set; }
 
-    /// <summary>Runs before each blob is removed; a test throws from it to fail the removal there.</summary>
     public Action<string> BeforeRemove { get; set; }
 
     public IBlobContentStorageProvider CreateProvider(string basePath) => this;
@@ -108,7 +106,7 @@ internal sealed class FakeBlobStorage : IBlobContentStorageProvider, IBlobConten
     public Task CopyAsync(string srcUrl, string destUrl) => throw new NotSupportedException();
     public string GetAbsoluteUrl(string blobKey) => throw new NotSupportedException();
 
-    // The writer and its owner both dispose it: the content is handed over once
+    // The writer and its owner both dispose this stream, so the content must be handed over only once.
     private sealed class CapturingStream(Action<string> onClose) : MemoryStream
     {
         private bool _closed;

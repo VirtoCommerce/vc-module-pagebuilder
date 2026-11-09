@@ -4,7 +4,6 @@ using VirtoCommerce.Platform.Core.Common;
 
 namespace VirtoCommerce.PageBuilderModule.Core.Theme;
 
-/// <summary>The snapshot document the storefront reads.</summary>
 public class ThemeSnapshotContent : ICloneable
 {
     public int Format { get; set; }

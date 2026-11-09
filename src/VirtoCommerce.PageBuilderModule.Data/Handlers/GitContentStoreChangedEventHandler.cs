@@ -10,7 +10,6 @@ using VirtoCommerce.StoreModule.Core.Events;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Handlers;
 
-/// <summary>Creates a repository for a new store and archives the repository of a deleted store.</summary>
 public class GitContentStoreChangedEventHandler(
     IGitHubConnectionService gitHubConnectionService,
     IGitContentPolicy gitContentPolicy,
@@ -28,8 +27,7 @@ public class GitContentStoreChangedEventHandler(
         {
             try
             {
-                // The static facade, not an injected IBackgroundJob: RegisterEventHandler resolves this handler once from
-                // the root provider and holds it for the process lifetime, so it must not capture a Scoped dependency.
+                // RegisterEventHandler resolves this handler once from the root provider, so it must not capture a Scoped IBackgroundJob.
                 await BackgroundJob.Enqueue<GitContentRepositoryJob>(payload, _enqueueOptions);
             }
             catch (Exception ex)
@@ -39,7 +37,6 @@ public class GitContentStoreChangedEventHandler(
         }
     }
 
-    /// <summary>Gets the jobs for the store changes. Edited stores get none.</summary>
     protected virtual async Task<IList<GitContentRepositoryJobPayload>> GetJobPayloadsAsync(StoreChangedEvent message)
     {
         var payloads = new List<GitContentRepositoryJobPayload>();

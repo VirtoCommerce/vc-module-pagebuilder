@@ -107,8 +107,6 @@ import {
 import { pageLifecycle } from "../page-builder/pageLifecycle";
 import LanguagePills from "../page-builder/components/languagePills.vue";
 
-// The site page's (Content module's SiteDetails) Pages tab: the site's pages in a calm list. useBlade() is that blade,
-// so the pages open next to it.
 const props = defineProps<{
   storeId: string;
   store?: { url?: string; languages?: string[] } | null;
@@ -121,7 +119,7 @@ const { openBlade } = useBlade();
 const { setStoreId } = useUrlParams();
 
 setStoreId(props.storeId, props.store);
-// the host keeps its tabs alive: back on this one, it's this site again (one store at a time)
+// The host keeps its tabs alive, so coming back to this one restores this site's store.
 onActivated(() => setStoreId(props.storeId, props.store));
 watch(
   () => props.storeId,
@@ -160,8 +158,7 @@ async function reload() {
   await loadPages({ ...searchQuery.value, skip: pagination.skip });
 }
 
-// a page opens in the designer, as a designed file page does; archived ones (no designer) and Multilanguage Pages
-// (a designer per language) show their details
+// Archived pages have no designer and Multilanguage Pages have one per language, so these open their details.
 const designPage = usePageDesigner();
 function openDesigner(row: PageBuilderPageListItem) {
   const page = row.page;
@@ -174,7 +171,6 @@ function openDesigner(row: PageBuilderPageListItem) {
   });
 }
 
-/** A page's details (name, permalink, audience, schedule), or a new page without a row. */
 function openPage(row?: PageBuilderPageListItem) {
   const id = row?.id;
   openBlade({
@@ -186,7 +182,6 @@ function openPage(row?: PageBuilderPageListItem) {
   });
 }
 
-// the tab's actions, shown in the site blade's toolbar while this tab is open
 defineExpose({
   toolbar: computed<IBladeToolbar[]>(() => [
     {
@@ -199,7 +194,6 @@ defineExpose({
   ]),
 });
 
-// pages changed in their details or in the designer
 watch(pagesChanged, reload);
 onMounted(reload);
 </script>

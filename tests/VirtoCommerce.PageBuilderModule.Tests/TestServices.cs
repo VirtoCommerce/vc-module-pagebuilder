@@ -14,7 +14,6 @@ using Fakes = VirtoCommerce.PageBuilderModule.Tests.PublishedRenameContentPreser
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>The services the controllers delegate to, built over the fakes a test already has.</summary>
 internal static class TestServices
 {
     public static ContentPermissionService Permissions(IAuthorizationService authorizationService) => new(authorizationService);

@@ -71,7 +71,6 @@
           </VcCol>
         </VcCard>
 
-        <!-- the page's search engine listing, as Shopify's page form has it: the content's SEO, saved into its draft -->
         <VcCard
                 v-if="item.id"
                 class="tw-p-4"
@@ -164,7 +163,6 @@ const {
   importData: options.value?.importData as PageExportData | undefined,
 });
 
-// the page and its SEO are one form: either unsaved enables Save and asks before closing
 const form = computed({
   get: () => ({ item: item.value, seo: seo.value }),
   set: (value) => {
@@ -178,8 +176,7 @@ const { canSave, isModified, setBaseline, markReady, formMeta } = useBladeForm({
   canSaveOverride: computed(() => !isReadOnly.value),
 });
 
-// WORKAROUND: push storeId + current page into the AI agent context so pagebuilder
-// tools can read them. See docs/storeId-missing-in-ai-context.md for the proper fix.
+// Workaround: the AI agent contract has no storeId, so the page tools read it and the current page from this context.
 const aiContextItem = computed(() =>
   item.value?.id
     ? { id: item.value.id, objectType: "pagebuilder.page", name: item.value.name }
@@ -216,7 +213,6 @@ watch(
 );
 const permalinkRules = computed(() => getPermalinkRules(item.value?.permalink, storedPermalink.value));
 
-// A language version of a Multilanguage Page: the name is shared and the language is fixed.
 const isLanguageVersion = computed(() => !!item.value?.multilanguagePageId);
 
 // As saved: the backend marks a field overridden when its value differs from the Multilanguage Page.
@@ -261,7 +257,6 @@ async function confirmPagePermalinkUsage(): Promise<boolean> {
 // Converting needs a second store language to translate into.
 const hasSeveralStoreLanguages = ref(false);
 
-// Toolbar
 const bladeToolbar = computed((): IBladeToolbar[] => [
   {
     id: "save",
@@ -297,7 +292,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     disabled: !param.value || isReadOnly.value,
     clickHandler: () => {
       openDraftDesigner(async () => {
-        // the designer saves on its own: show what it left, unless this blade has edits of its own
+        // The designer saves on its own, so show what it left unless this blade has edits of its own.
         if (!isModified.value) {
           await loadGroup();
           setBaseline();
@@ -316,7 +311,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
         await downloadContent();
         notification.success(t("PAGE_BUILDER.PAGES.ALERTS.DOWNLOAD_SUCCESS"));
       } catch {
-        // error is handled by useAsync / global error handler
+        // useAsync and the global error handler report the error.
       }
     },
   },
@@ -378,7 +373,6 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
   },
 ]);
 
-// Methods
 async function loadCultureNamesAsync() {
   const langs = await getLanguages();
   return {
@@ -393,7 +387,6 @@ async function handleSave() {
   rememberPermalinkTarget();
   notifyPagesChanged();
 
-  // a new page continues as the saved one (the opener may be any blade: a pages list, a site page)
   if (!param.value && group.id) {
     await openPage(group.id);
   }
@@ -405,7 +398,6 @@ async function openPage(id: string | undefined) {
   }
 }
 
-// Lifecycle
 onMounted(async () => {
   await loadGroup();
   rememberPermalinkTarget();
@@ -414,7 +406,7 @@ onMounted(async () => {
   } else {
     setBaseline();
   }
-  // opened by a link or a reload, with no opener to say: the page names its own store (its address, the permalink's)
+  // A blade opened by a link or a reload has no opener to set the store, so the page names its own.
   if (!storeId.value && item.value.storeId) setStoreId(item.value.storeId);
   storeUrl.value = await getStoreUrl();
   hasSeveralStoreLanguages.value = (await getLanguages()).length > 1;

@@ -5,17 +5,11 @@ import { impersonate, loadPreviewUsers } from "./api";
 import { ANONYMOUS, authMessage, type AuthMessage } from "./previewMessages";
 import { IMPERSONATE_PERMISSION, TOKEN_MARGIN_MS, usableToken, type PreviewToken, type PreviewUser } from "./previewUsers";
 
-/** The shortest wait before a token is renewed, so a short-lived one isn't asked for in a loop */
+/** Keeps a short-lived token from being requested in a loop. */
 const MIN_RENEW_MS = 10_000;
 
-/**
- * Whom the preview renders as: an anonymous visitor, or one of the accounts the store lists (remembered per store).
- * `message` is the `auth` the preview gets after every `loaded`; `refresh` gets a token for it first, and a token is
- * renewed before it expires. A grant that fails goes back to the anonymous visitor, through `onFailed`.
- */
 export function usePreviewUser(options: { send: (message: AuthMessage) => void; onFailed: (user: PreviewUser | undefined) => void }) {
   const { hasAccess } = usePermissions();
-  /** the editor may impersonate: without it the control hides */
   const allowed = computed(() => hasAccess(IMPERSONATE_PERMISSION));
   const users = shallowRef<PreviewUser[]>([]);
   const userId = ref<string | null>(null);
@@ -27,7 +21,6 @@ export function usePreviewUser(options: { send: (message: AuthMessage) => void; 
   let message: AuthMessage = ANONYMOUS;
   let requests = 0;
   let renewal: ReturnType<typeof setTimeout> | undefined;
-  /** the designer closed: a grant still under way is dropped, and nothing is renewed or asked for any more */
   let disposed = false;
   onBeforeUnmount(() => {
     disposed = true;
@@ -40,11 +33,10 @@ export function usePreviewUser(options: { send: (message: AuthMessage) => void; 
     users.value = allowed.value ? await loadPreviewUsers(store).catch(() => []) : [];
     const saved = picks.value[store];
     userId.value = saved && users.value.some((x) => x.id === saved) ? saved : null;
-    // a preview that connected meanwhile renders as the anonymous visitor
+    // A preview that connected meanwhile is rendering as the anonymous visitor, so it gets the message now.
     if (userId.value && (await refresh())) options.send(message);
   }
 
-  /** Makes `message` the one for the user picked, with a token valid for a while yet; true when it is still the latest */
   async function refresh(): Promise<boolean> {
     if (disposed) return false;
     const request = ++requests;
@@ -79,7 +71,6 @@ export function usePreviewUser(options: { send: (message: AuthMessage) => void; 
     if (storeId) picks.value = { ...picks.value, [storeId]: id ?? "" };
   }
 
-  /** Renders the preview as the account (null: an anonymous visitor) */
   async function pick(id: string | null) {
     if (id === userId.value) return;
     choose(id);

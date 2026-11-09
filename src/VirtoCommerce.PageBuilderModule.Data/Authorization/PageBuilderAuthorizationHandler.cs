@@ -52,7 +52,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.Authorization
             }
         }
 
-        /// <summary>The stores the resource belongs to; <c>null</c> for a resource that names none.</summary>
         private static IList<string> GetStoreIds(object resource) => resource switch
         {
             Store store => [store.Id],
