@@ -100,6 +100,39 @@ public class ThemeSnapshotBuilderTests
     }
 
     [Fact]
+    public void Build_LocalizedTexts_TakesBcp47NamesAndFallsBackToTheLanguagePart()
+    {
+        var source = Source(templates: new()
+        {
+            ["page"] = JObject.Parse("""
+                {
+                  "settings": { "type": "settings" },
+                  "content": [
+                    {
+                      "id": "s1", "type": "banner",
+                      "title": { "en-US": "Shipping", "SR-latn-rs": "Dostava" },
+                      "part": { "en-US": "Shop", "de": "Kaufen", "de-DE": "Einkaufen" },
+                      "same": { "en-US": "Cart", "de-DE": "Warenkorb" },
+                      "skus": [ { "sku": "X1" }, { "en": "short", "de": "kurz" } ]
+                    },
+                    { "id": "p", "type": "page-content" }
+                  ]
+                }
+                """),
+        });
+
+        var set = _builder.Build(source, null, null, ["en-US", "sr-Latn-RS", "de-AT"], "en-US", 1, Published);
+
+        Assert.Equal("Dostava", Section(set.Files["sr-Latn-RS"], "page").Value<string>("title"));
+        var at = Section(set.Files["de-AT"], "page");
+        Assert.Equal("Kaufen", at.Value<string>("part"));
+        Assert.Equal("Warenkorb", at.Value<string>("same"));
+        // objects without a culture name with a subtag are not dictionaries
+        Assert.Equal("X1", at["skus"]![0]!.Value<string>("sku"));
+        Assert.Equal("kurz", at["skus"]![1]!.Value<string>("de"));
+    }
+
+    [Fact]
     public void Build_StoreLanguages_ReturnsSnapshotPerLanguageAndDefault()
     {
         var set = _builder.Build(Source(), null, "abc12345", ["de-DE"], "en-US", 7, Published);

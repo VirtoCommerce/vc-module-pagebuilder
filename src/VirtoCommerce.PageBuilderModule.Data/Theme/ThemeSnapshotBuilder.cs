@@ -27,7 +27,11 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
 
     private static readonly Regex TemplateKeyPattern = new("^(product|category|page)(\\.[a-z0-9]+(?:-[a-z0-9]+)*)?$", RegexOptions.None, TimeSpan.FromSeconds(1));
 
-    private static readonly Regex LanguageNamePattern = new("^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})+$", RegexOptions.None, TimeSpan.FromSeconds(1));
+    // A culture name of BCP-47 shape: en, en-US, sr-Latn-RS.
+    private static readonly Regex CultureNamePattern = new("^[a-z]{2,3}(-[a-z0-9]{2,8})*$", RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
+
+    // A dictionary has a culture name with a subtag, so that a row such as { "sku": "X1" } stays a row.
+    private static readonly Regex SubtaggedCultureNamePattern = new("^[a-z]{2,3}(-[a-z0-9]{2,8})+$", RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
 
     private static readonly JObject DefaultTemplateRules = JObject.Parse("""
         {
@@ -256,16 +260,31 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
 
     protected virtual bool IsTranslation(JObject dictionary)
     {
-        return dictionary.HasValues
-            && dictionary.Properties().All(x => LanguageNamePattern.IsMatch(x.Name) && x.Value.Type == JTokenType.String);
+        return dictionary.Properties().Any(x => SubtaggedCultureNamePattern.IsMatch(x.Name))
+            && dictionary.Properties().All(x => CultureNamePattern.IsMatch(x.Name) && x.Value.Type == JTokenType.String);
     }
 
+    /// <summary>
+    /// The text of the language, culture names compared ignoring case: the exact culture, else its language part
+    /// (<c>de</c> for <c>de-AT</c>), else a culture of that language, else the store default language, else the first text.
+    /// </summary>
     protected virtual string GetTranslation(JObject dictionary, string language, string defaultLanguage)
     {
-        string GetText(string name) =>
-            dictionary.Properties().FirstOrDefault(x => string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase))?.Value.Value<string>();
+        var languagePart = GetLanguagePart(language);
 
-        return GetText(language) ?? GetText(defaultLanguage) ?? dictionary.Properties().First().Value.Value<string>();
+        string Find(Func<string, bool> matches) =>
+            dictionary.Properties().FirstOrDefault(x => matches(x.Name))?.Value.Value<string>();
+
+        return Find(x => string.Equals(x, language, StringComparison.OrdinalIgnoreCase))
+            ?? Find(x => string.Equals(x, languagePart, StringComparison.OrdinalIgnoreCase))
+            ?? Find(x => string.Equals(GetLanguagePart(x), languagePart, StringComparison.OrdinalIgnoreCase))
+            ?? Find(x => string.Equals(x, defaultLanguage, StringComparison.OrdinalIgnoreCase))
+            ?? dictionary.Properties().First().Value.Value<string>();
+    }
+
+    private static string GetLanguagePart(string cultureName)
+    {
+        return cultureName.Split('-')[0];
     }
 
     protected virtual bool IsTemplateKey(string key) => TemplateKeyPattern.IsMatch(key);
