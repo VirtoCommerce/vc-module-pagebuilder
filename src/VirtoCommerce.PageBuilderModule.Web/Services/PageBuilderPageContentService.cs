@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
@@ -92,12 +93,8 @@ public sealed class PageBuilderPageContentService(
     public async Task<PageBuilderConditionalContentWriteResult> SaveConditionalContentAsync(
         GroupedPageBuilderPage group, string content, string expectedETag, CancellationToken cancellationToken)
     {
-        var result = await VersionedContent.SaveGroupContentAsync(group, content, expectedETag, cancellationToken);
-        if (result.ContentWritten && !result.GroupedEventsPublished)
-        {
-            await RaisePageContentChangedAsync(result.PageId, cancellationToken);
-        }
-        return result;
+        return await new GroupedPageContentWriter(VersionedContent, pageService, eventPublisher)
+            .SaveContentAsync(group, content, expectedETag, cancellationToken);
     }
 
     public async Task<PageBuilderPageContentWriteResult> CopyContentAsync(

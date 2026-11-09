@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using VirtoCommerce.ContentModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
@@ -9,7 +8,6 @@ using VirtoCommerce.PageBuilderModule.Core.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
-using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.StoreModule.Core.Services;
 using Fakes = VirtoCommerce.PageBuilderModule.Tests.PublishedRenameContentPreservationTests;
@@ -51,8 +49,7 @@ internal static class TestServices
     {
         var contentWriter = pages == null
             ? null
-            : new GroupedPageContentWriter(new PageBuilderPageContentService(new Fakes.FakePageBuilderPageService(pages), pages,
-                events ?? new Fakes.NoopEventPublisher(), NullLogger<PageBuilderPageContentService>.Instance));
+            : new GroupedPageContentWriter(pages, new Fakes.FakePageBuilderPageService(pages), events ?? new Fakes.NoopEventPublisher());
 
         return new DesignerContentService(themeDrafts, themePublisher, themeSnapshots, pages == null ? null : new Fakes.FakePageBuilderPageService(pages),
             pages, pages, contentWriter, filePageDrafts, contentHistory);
