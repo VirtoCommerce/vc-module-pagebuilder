@@ -54,17 +54,28 @@ at once:
    [Section schema catalog](#section-schema-catalog)). A file that fails stops the publication; nothing is written.
 3. For each store language it writes `snapshots/{n}/{cultureName}.json`, where `n` is one more than the highest
    publication of the theme; the translatable texts are resolved there
-   ([Translatable fields](#translatable-fields)). Then it writes the record, `snapshots/{n}/publication.json`.
-4. It rewrites `snapshots/current.json` to `n`. This is the moment the storefront sees the new theme.
-5. It writes the drafts over the live files and deletes the drafts.
+   ([Translatable fields](#translatable-fields)).
+4. It writes the drafts over the live files.
+5. It writes the record, `snapshots/{n}/publication.json`.
+6. It rewrites `snapshots/current.json` to `n`. This is the moment the storefront sees the new theme.
+7. It deletes the drafts.
 
-Steps 1–5 hold the lock. The publication is then recorded in the history, after the lock, as one version holding every
+Steps 1–7 hold the lock. The publication is then recorded in the history, after the lock, as one version holding every
 file it put live: the history lives on GitHub, and a slow answer from it must not hold up the store's theme saves.
 
-The snapshots and the record are written before the pointer, so the pointer never names a publication that is not
-complete. A pointer that exists but is not valid JSON (a write cut off on a file system) is read as the highest
-complete publication: the highest one whose record is whole. When none is, the server publishes the live files again,
-as on the first request. When step 5 fails, the publication stands; publishing again writes the live files.
+The pointer is written after the snapshots, the live files and the record, so it never names a publication that is not
+complete. A failure in steps 3–6 puts the live files written so far back as they were and fails the publication: the
+previous publication stays current, every draft stays, and nothing is recorded in the history. Publishing again does
+the whole publication, under the next number. A failure in step 7 does not fail the publication: it is recorded in the
+history, and each draft left holds what its live file holds. `theme/status` lists those files as drafts until the next
+publication, which puts the same content live again.
+
+A draft and its live file hold the same content from step 4 on, so the version the designer reads for a theme file (the
+draft, else the live file) does not change across a publication.
+
+A pointer that exists but is not valid JSON (a write cut off on a file system) is read as the highest complete
+publication: the highest one whose record is whole. When none is, the server publishes the live files again, as on
+the first request.
 
 To go back to an earlier theme, the editor restores its version from the history and publishes it. The header, the
 footer and the rules are published this way only, not through the Content module's publishing endpoint. Publishing a

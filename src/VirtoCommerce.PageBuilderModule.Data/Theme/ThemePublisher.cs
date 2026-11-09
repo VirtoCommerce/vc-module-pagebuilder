@@ -131,13 +131,27 @@ public class ThemePublisher(
 
         var record = AbstractTypeFactory<ThemePublicationRecord>.TryCreateInstance();
         record.DefaultLanguage = defaultLanguage;
-        await storage.WritePublicationRecordAsync(publication, record);
-        await storage.SetCurrentPublicationAsync(publication);
+
+        // the pointer moves last: a failure before it leaves the previous publication current and every draft unpublished
+        var replaced = new List<LiveFile>();
+        try
+        {
+            await WriteLiveFilesAsync(storage, source.Drafts, replaced);
+            await storage.WritePublicationRecordAsync(publication, record);
+            await storage.SetCurrentPublicationAsync(publication);
+        }
+        catch
+        {
+            await RestoreLiveFilesAsync(storeId, storage, replaced);
+            throw;
+        }
+
         ThemeSnapshotCacheRegion.ExpireTokenForKey(storeId, propagate: true);
+        await RemoveDraftsAsync(storeId, storage, source.Drafts.Keys);
 
         var result = AbstractTypeFactory<ThemePublishResult>.TryCreateInstance();
         result.Publication = publication;
-        result.PublishedFiles = await PublishDraftsAsync(storage, source.Drafts);
+        result.PublishedFiles = GetPublishedFiles(storage, source.Drafts);
 
         return result;
     }
@@ -248,20 +262,61 @@ public class ThemePublisher(
             .ToList();
     }
 
-    protected virtual async Task<IList<PublishedThemeFile>> PublishDraftsAsync(IThemeStorage storage, IDictionary<string, string> drafts)
+    /// <summary>Writes each draft over its live file, adding the live file as it was to <paramref name="replaced"/> before writing it.</summary>
+    protected virtual async Task WriteLiveFilesAsync(IThemeStorage storage, IDictionary<string, string> drafts, IList<LiveFile> replaced)
     {
-        if (drafts.Count == 0)
-        {
-            return [];
-        }
-
         foreach (var (file, content) in drafts)
         {
+            replaced.Add(new LiveFile(file, await storage.ReadAsync(file)));
             await storage.WriteAsync(file, content);
         }
+    }
 
-        await storage.RemoveAsync(drafts.Keys.Select(storage.GetDraftPath));
+    /// <summary>Puts the live files back as they were, the last written first.</summary>
+    protected virtual async Task RestoreLiveFilesAsync(string storeId, IThemeStorage storage, IList<LiveFile> files)
+    {
+        foreach (var file in files.Reverse())
+        {
+            try
+            {
+                if (file.Content == null)
+                {
+                    await storage.RemoveAsync([file.File]);
+                }
+                else
+                {
+                    await storage.WriteAsync(file.File, file.Content);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Could not put back the live file {File} of theme {Theme} (store {StoreId}) after a failed publication.",
+                    file.File, storage.ThemeName, storeId);
+            }
+        }
+    }
 
+    /// <summary>Removes the drafts of a current publication. A draft left behind holds what is live, so a failure does not fail the publication.</summary>
+    protected virtual async Task RemoveDraftsAsync(string storeId, IThemeStorage storage, ICollection<string> files)
+    {
+        if (files.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            await storage.RemoveAsync(files.Select(storage.GetDraftPath));
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not remove the published drafts of theme {Theme} (store {StoreId}); they hold what is live.",
+                storage.ThemeName, storeId);
+        }
+    }
+
+    protected virtual IList<PublishedThemeFile> GetPublishedFiles(IThemeStorage storage, IDictionary<string, string> drafts)
+    {
         return drafts
             .Select(x =>
             {
@@ -319,4 +374,7 @@ public class ThemePublisher(
                 publication, storeId, language, compressed.Length, threshold);
         }
     }
+
+    /// <summary>A live theme file as it was before the publication wrote its draft over it; null content when there was none.</summary>
+    protected sealed record LiveFile(string File, string Content);
 }

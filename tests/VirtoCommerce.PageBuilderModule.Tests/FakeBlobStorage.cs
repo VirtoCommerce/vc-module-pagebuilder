@@ -25,6 +25,12 @@ internal sealed class FakeBlobStorage : IBlobContentStorageProvider, IBlobConten
 
     public FakeStoreService StoreService { get; } = new(new Store { Id = "s1", DynamicProperties = [] });
 
+    /// <summary>Runs before a blob is opened for writing; a test throws from it to fail the write.</summary>
+    public Action<string> BeforeWrite { get; set; }
+
+    /// <summary>Runs before each blob is removed; a test throws from it to fail the removal there.</summary>
+    public Action<string> BeforeRemove { get; set; }
+
     public IBlobContentStorageProvider CreateProvider(string basePath) => this;
 
     public string GetContentBasePath(string contentType, string storeId, string themeName = null) => $"{contentType}/{storeId}";
@@ -38,17 +44,23 @@ internal sealed class FakeBlobStorage : IBlobContentStorageProvider, IBlobConten
         return Task.CompletedTask;
     }
 
-    public Task<Stream> OpenWriteAsync(string blobUrl) => Task.FromResult<Stream>(new CapturingStream(content =>
+    public Task<Stream> OpenWriteAsync(string blobUrl)
     {
-        Files[blobUrl] = content;
-        Written.Add(blobUrl);
-    }));
+        BeforeWrite?.Invoke(blobUrl);
+
+        return Task.FromResult<Stream>(new CapturingStream(content =>
+        {
+            Files[blobUrl] = content;
+            Written.Add(blobUrl);
+        }));
+    }
 
     public Task RemoveAsync(string[] urls)
     {
-        Removed.AddRange(urls);
         foreach (var url in urls)
         {
+            BeforeRemove?.Invoke(url);
+            Removed.Add(url);
             Files.Remove(url);
         }
 
