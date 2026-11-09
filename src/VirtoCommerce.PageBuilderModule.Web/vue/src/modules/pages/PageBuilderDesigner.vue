@@ -669,6 +669,7 @@ import {
   type ThemePart,
 } from "../designer/history";
 import { publishActions, themeErrors, themePublishButton } from "../designer/themePublication";
+import { CatalogPendingError } from "../designer/designerSave";
 import type { Field, Item, PageDocument, SectionGroup, Selection } from "../designer/types";
 import { draftTemplates, savedTemplatesReader } from "../designer/templateDrafts";
 import TemplateSwitcher from "../designer/components/TemplateSwitcher.vue";
@@ -1093,9 +1094,13 @@ const save = () =>
 // the toast is rendered by the shell, outside this blade's scoped styles
 const ERROR_LIST_STYLE = { margin: "4px 0 0", paddingLeft: "18px", listStyle: "disc" };
 
-/** An error toast; a theme file the server refused lists why (what doesn't fit the storefront's catalog), until closed */
+/**
+ * An error toast; a theme file the server refused lists why (what doesn't fit the storefront's catalog), as does one
+ * held back until the preview names its catalog, until closed
+ */
 function notifyFailure(title: string, e: unknown) {
-  const errors = e instanceof ApiError ? themeErrors(e.status, e.body) : [];
+  const pending = e instanceof CatalogPendingError ? [t("PAGE_BUILDER.DESIGNER.CATALOG_PENDING")] : [];
+  const errors = e instanceof ApiError ? themeErrors(e.status, e.body) : pending;
   if (!errors.length) notification.error(title);
   else notification.error(h("div", [h("p", title), h("ul", { style: ERROR_LIST_STYLE }, errors.map((x) => h("li", x)))]), { timeout: false });
 }

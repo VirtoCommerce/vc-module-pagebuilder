@@ -331,6 +331,7 @@
       "OPEN_PREVIEW": "Preview",
       "CONFLICT": "This page changed while you were editing it. Reopen it to get the latest version; your changes weren't saved.",
       "NO_VERSION": "This page can't be saved: its version is unknown. Reopen it and try again.",
+      "CATALOG_PENDING": "Theme changes are saved once the storefront preview has loaded: it names the schemas they are checked against.",
       "SAVE_FAILED": "The page couldn't be saved.",
       "SAVE_FORBIDDEN": "You don't have permission to save: {parts}. Nothing was saved.",
       "SAVE_FORBIDDEN_ANY": "You don't have permission to save these changes. Nothing was saved.",

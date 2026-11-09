@@ -331,6 +331,7 @@
       "OPEN_PREVIEW": "Aperçu",
       "CONFLICT": "Cette page a été modifiée pendant que vous la modifiiez. Rouvrez-la pour obtenir la dernière version ; vos modifications n'ont pas été enregistrées.",
       "NO_VERSION": "Cette page ne peut pas être enregistrée : sa version est inconnue. Rouvrez-la et réessayez.",
+      "CATALOG_PENDING": "Les modifications du thème sont enregistrées une fois l'aperçu de la boutique chargé : il indique les schémas par rapport auxquels elles sont vérifiées.",
       "SAVE_FAILED": "La page n'a pas pu être enregistrée.",
       "SAVE_FORBIDDEN": "Vous n'avez pas l'autorisation d'enregistrer : {parts}. Rien n'a été enregistré.",
       "SAVE_FORBIDDEN_ANY": "Vous n'avez pas l'autorisation d'enregistrer ces modifications. Rien n'a été enregistré.",

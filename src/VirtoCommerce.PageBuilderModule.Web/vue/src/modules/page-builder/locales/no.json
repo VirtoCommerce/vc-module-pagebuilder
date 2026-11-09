@@ -331,6 +331,7 @@
       "OPEN_PREVIEW": "Forhåndsvisning",
       "CONFLICT": "Denne siden ble endret mens du redigerte den. Åpne den på nytt for å få siste versjon; endringene dine ble ikke lagret.",
       "NO_VERSION": "Denne siden kan ikke lagres: versjonen er ukjent. Åpne den på nytt og prøv igjen.",
+      "CATALOG_PENDING": "Temaendringer lagres når forhåndsvisningen av nettbutikken er lastet inn: den angir skjemaene de kontrolleres mot.",
       "SAVE_FAILED": "Siden kunne ikke lagres.",
       "SAVE_FORBIDDEN": "Du har ikke tilgang til å lagre: {parts}. Ingenting ble lagret.",
       "SAVE_FORBIDDEN_ANY": "Du har ikke tilgang til å lagre disse endringene. Ingenting ble lagret.",

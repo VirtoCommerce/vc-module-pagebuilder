@@ -22,7 +22,7 @@ import {
 import { resolveTranslations, type Translating } from "./translatable";
 import type { Capability, Handshake } from "./previewMessages";
 import { hasThemeDraft, templateStatus, type ThemeStatus } from "./themePublication";
-import type { DesignerDiscardPage, DesignerSaveFile, DesignerSavePage } from "./designerSave";
+import { CatalogPendingError, type DesignerDiscardPage, type DesignerSaveFile, type DesignerSavePage } from "./designerSave";
 
 const EMPTY_SCHEMAS: Schemas = { sections: {}, blocks: {}, shared: {}, objects: {} };
 /** A page-level row of the tree: the page template's own fields, or a static section's (Page Header: SEO). */
@@ -699,8 +699,9 @@ export function useDesigner() {
   /**
    * Saves the drafts as one Save, in one request: the page or template, the header and footer, and the theme files
    * given (the rules, the brand and palettes), each with the version it was read at. A shared component is saved on its
-   * own. Throws ApiError 412 when someone else saved the page or a theme file meanwhile, 428 without the page's version;
-   * edits made while saving stay unsaved. Returns the theme files' new versions by path, or false when nothing could be
+   * own. Throws ApiError 412 when someone else saved the page or a theme file meanwhile, 428 without the page's version,
+   * and CatalogPendingError, sending nothing, for theme files before the preview's handshake; edits made while saving
+   * stay unsaved. Returns the theme files' new versions by path, or false when nothing could be
    * saved: nothing is open, it couldn't be opened, or another action runs.
    */
   async function save(themeFiles: DesignerSaveFile[] = []): Promise<Record<string, string> | false> {
@@ -719,6 +720,8 @@ export function useDesigner() {
         files.unshift({ path, eTag: themeETags.value[path] ?? "", content: api.filePageContent(sent) });
       } else page = { path: file.value!.path, type: file.value!.type, content: api.filePageContent(sent) };
     }
+    // checked before a shared component's content goes, so that a Save sends all or nothing
+    if (files.length && !handshake.value?.hash) throw new CatalogPendingError();
     busy.value = "saving";
     try {
       const versions: Record<string, string> = {};

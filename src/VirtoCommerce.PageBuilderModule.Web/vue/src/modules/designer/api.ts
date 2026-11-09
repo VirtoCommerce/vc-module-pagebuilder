@@ -3,6 +3,7 @@ import { fromDocument, toDocument } from "./document";
 import { templateKeyOf } from "./templates";
 import { groupPath, historyStatusUrl, historyUrl, parseHistoryPage, parseHistoryStatus, restoreUrl, versionUrl, type HistoryStatus } from "./history";
 import {
+  CatalogPendingError,
   designerDiscardBody,
   designerDiscardUrl,
   designerSaveBody,
@@ -333,13 +334,15 @@ export const sectionGroupFiles = (
  * One designer Save: the page and the theme files as drafts, all or nothing, one version of the site's history. 412: the
  * page or a theme file was saved by someone else since it was read; 428: one went without its version; 400 `{ error,
  * errors }`: a file doesn't fit the catalog named; 403: a part needs a permission the user lacks. Returns the new
- * versions: the page's (a database page) and each theme file's.
+ * versions: the page's (a database page) and each theme file's. Throws CatalogPendingError, sending nothing, for theme
+ * files without the catalog's hash.
  */
 export async function saveDesigner(
   storeId: string,
   save: { page?: DesignerSavePage; themeFiles: DesignerSaveFile[] },
   catalogHash?: string,
 ): Promise<{ saveId?: string; eTag?: string; themeFiles?: { path: string; eTag: string }[] }> {
+  if (save.themeFiles.length && !catalogHash) throw new CatalogPendingError();
   const res = await call(designerSaveUrl(storeId, catalogHash), {
     method: "POST",
     headers: { "Content-Type": "application/json" },

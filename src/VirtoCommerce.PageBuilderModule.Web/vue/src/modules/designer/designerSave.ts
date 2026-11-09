@@ -14,6 +14,13 @@ export interface DesignerSaveFile {
   content: unknown;
 }
 
+/** Theme files go with the catalog of the storefront previewed, which the server checks them against: none before its handshake */
+export class CatalogPendingError extends Error {
+  constructor() {
+    super("Theme files are saved with the catalog of the storefront previewed, which has not loaded yet.");
+  }
+}
+
 /** The save; theme files name the catalog of the storefront previewed, which the server checks them against */
 export function designerSaveUrl(storeId: string, catalogHash?: string) {
   const query = new URLSearchParams({ storeId });

@@ -331,6 +331,7 @@
       "OPEN_PREVIEW": "Vista previa",
       "CONFLICT": "Esta página cambió mientras la editaba. Vuelva a abrirla para obtener la última versión; sus cambios no se guardaron.",
       "NO_VERSION": "No se puede guardar esta página: se desconoce su versión. Vuelva a abrirla e inténtelo de nuevo.",
+      "CATALOG_PENDING": "Los cambios del tema se guardan cuando se ha cargado la vista previa de la tienda: indica los esquemas con los que se comprueban.",
       "SAVE_FAILED": "No se pudo guardar la página.",
       "SAVE_FORBIDDEN": "No tienes permiso para guardar: {parts}. No se guardó nada.",
       "SAVE_FORBIDDEN_ANY": "No tienes permiso para guardar estos cambios. No se guardó nada.",

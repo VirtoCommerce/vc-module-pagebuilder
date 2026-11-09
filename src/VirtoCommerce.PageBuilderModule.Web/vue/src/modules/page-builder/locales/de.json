@@ -331,6 +331,7 @@
       "OPEN_PREVIEW": "Vorschau",
       "CONFLICT": "Diese Seite wurde während der Bearbeitung geändert. Öffnen Sie sie erneut, um die neueste Version zu erhalten; Ihre Änderungen wurden nicht gespeichert.",
       "NO_VERSION": "Diese Seite kann nicht gespeichert werden: Ihre Version ist unbekannt. Öffnen Sie sie erneut und versuchen Sie es noch einmal.",
+      "CATALOG_PENDING": "Theme-Änderungen werden gespeichert, sobald die Storefront-Vorschau geladen ist: Sie nennt die Schemas, mit denen sie geprüft werden.",
       "SAVE_FAILED": "Die Seite konnte nicht gespeichert werden.",
       "SAVE_FORBIDDEN": "Sie haben keine Berechtigung zum Speichern von: {parts}. Es wurde nichts gespeichert.",
       "SAVE_FORBIDDEN_ANY": "Sie haben keine Berechtigung, diese Änderungen zu speichern. Es wurde nichts gespeichert.",

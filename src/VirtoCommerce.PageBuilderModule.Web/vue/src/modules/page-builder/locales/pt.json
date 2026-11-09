@@ -331,6 +331,7 @@
       "OPEN_PREVIEW": "Visualizar",
       "CONFLICT": "Esta página foi alterada enquanto você a editava. Reabra-a para obter a versão mais recente; suas alterações não foram salvas.",
       "NO_VERSION": "Não é possível salvar esta página: a versão dela é desconhecida. Reabra-a e tente novamente.",
+      "CATALOG_PENDING": "As alterações do tema são guardadas quando a pré-visualização da loja tiver carregado: ela indica os esquemas com que são verificadas.",
       "SAVE_FAILED": "A página não pôde ser salva.",
       "SAVE_FORBIDDEN": "Você não tem permissão para salvar: {parts}. Nada foi salvo.",
       "SAVE_FORBIDDEN_ANY": "Você não tem permissão para salvar estas alterações. Nada foi salvo.",

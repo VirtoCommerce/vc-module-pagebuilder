@@ -331,6 +331,7 @@
       "OPEN_PREVIEW": "Esikatselu",
       "CONFLICT": "Tätä sivua muutettiin, kun muokkasit sitä. Avaa se uudelleen saadaksesi uusimman version; muutoksiasi ei tallennettu.",
       "NO_VERSION": "Tätä sivua ei voi tallentaa: sen versio on tuntematon. Avaa se uudelleen ja yritä uudelleen.",
+      "CATALOG_PENDING": "Teeman muutokset tallennetaan, kun verkkokaupan esikatselu on latautunut: se kertoo skeemat, joita vasten ne tarkistetaan.",
       "SAVE_FAILED": "Sivua ei voitu tallentaa.",
       "SAVE_FORBIDDEN": "Sinulla ei ole oikeutta tallentaa: {parts}. Mitään ei tallennettu.",
       "SAVE_FORBIDDEN_ANY": "Sinulla ei ole oikeutta tallentaa näitä muutoksia. Mitään ei tallennettu.",

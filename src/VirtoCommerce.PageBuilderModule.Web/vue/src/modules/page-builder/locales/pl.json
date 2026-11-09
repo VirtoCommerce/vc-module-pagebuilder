@@ -331,6 +331,7 @@
       "OPEN_PREVIEW": "Podgląd",
       "CONFLICT": "Ta strona została zmieniona podczas jej edycji. Otwórz ją ponownie, aby pobrać najnowszą wersję; Twoje zmiany nie zostały zapisane.",
       "NO_VERSION": "Nie można zapisać tej strony: jej wersja jest nieznana. Otwórz ją ponownie i spróbuj jeszcze raz.",
+      "CATALOG_PENDING": "Zmiany motywu zostaną zapisane po załadowaniu podglądu sklepu: wskazuje on schematy, według których są sprawdzane.",
       "SAVE_FAILED": "Nie udało się zapisać strony.",
       "SAVE_FORBIDDEN": "Nie masz uprawnień do zapisania: {parts}. Nic nie zostało zapisane.",
       "SAVE_FORBIDDEN_ANY": "Nie masz uprawnień do zapisania tych zmian. Nic nie zostało zapisane.",

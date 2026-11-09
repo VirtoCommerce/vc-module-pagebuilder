@@ -331,6 +331,7 @@
       "OPEN_PREVIEW": "Förhandsgranska",
       "CONFLICT": "Sidan ändrades medan du redigerade den. Öppna den igen för att få den senaste versionen; dina ändringar sparades inte.",
       "NO_VERSION": "Sidan kan inte sparas: dess version är okänd. Öppna den igen och försök på nytt.",
+      "CATALOG_PENDING": "Temaändringar sparas när förhandsvisningen av butiken har laddats: den anger de scheman som de kontrolleras mot.",
       "SAVE_FAILED": "Sidan kunde inte sparas.",
       "SAVE_FORBIDDEN": "Du har inte behörighet att spara: {parts}. Inget sparades.",
       "SAVE_FORBIDDEN_ANY": "Du har inte behörighet att spara de här ändringarna. Inget sparades.",

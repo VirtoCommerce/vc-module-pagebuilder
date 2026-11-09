@@ -3,6 +3,7 @@ import { effectScope, nextTick } from "vue";
 import { useDesigner, type Designer } from "../../src/modules/designer/useDesigner";
 import * as api from "../../src/modules/designer/api";
 import { ApiError, type FilePage } from "../../src/modules/designer/api";
+import { CatalogPendingError } from "../../src/modules/designer/designerSave";
 import { useThemeLook } from "../../src/modules/designer/useThemeLook";
 import { themePublishButton } from "../../src/modules/designer/themePublication";
 import type { Handshake } from "../../src/modules/designer/previewMessages";
@@ -304,6 +305,30 @@ describe("useDesigner: editing and saving", () => {
     designer.setField("title", "Mine");
 
     await expect(designer.save()).rejects.toMatchObject({ status: 428 });
+    expect(saves()).toHaveLength(0);
+  });
+
+  it("holds theme files back until the preview names its catalog, sending nothing; the page alone goes", async () => {
+    await openDatabasePage();
+    designer.handshake.value = undefined;
+    designer.selection.value = { kind: "section", id: "header-1" };
+    designer.setField("announcement", "Free returns");
+
+    await expect(designer.save()).rejects.toBeInstanceOf(CatalogPendingError);
+    expect(saves()).toHaveLength(0);
+    expect(designer.dirty.value).toBe(true);
+
+    designer.undo();
+    designer.selection.value = { kind: "section", id: "hero-1" };
+    designer.setField("title", "Mine");
+    expect(await designer.save()).toEqual({});
+    expect(saves()[0].query).toEqual({ storeId: STORE });
+  });
+
+  it("sends no theme file without the catalog's hash, as a new template's first Save", async () => {
+    const template = { path: "default/templates/product.big.json", eTag: '"t0"', content: { settings: {}, content: [] } };
+
+    await expect(api.saveDesigner(STORE, { themeFiles: [template] })).rejects.toBeInstanceOf(CatalogPendingError);
     expect(saves()).toHaveLength(0);
   });
 
