@@ -259,8 +259,8 @@ Schemas are data, never code.
   comparisons, `&&`, `||`, `??`, `?:`, array literals and the evaluator's helper functions; or one of its known forms,
   matched as written. Anything else is not evaluated, and the field shows.
 - A field with `request` fetches options; `request.response.result` is a dotted path to the rows, not an expression.
-  The designer sends the admin token only when the request's URL is on the platform's origin; any other URL is not
-  requested. Expression keys only the Angular designer reads (`selector`, `optionsSelector`, `previewRule`) are
+  A URL on the platform's origin is requested with the admin token; a URL on any other origin is requested without
+  the `Authorization` header, and a 401 from it does not end the designer's session. Expression keys only the Angular designer reads (`selector`, `optionsSelector`, `previewRule`) are
   ignored by the Vue designer.
 - A field may be `"translatable": true` ([theme snapshot](theme-snapshot.md#translatable-fields)).
 - An `object` field and a row of a `list` field hold the fields under `element`; a `list` field without `element` is a
