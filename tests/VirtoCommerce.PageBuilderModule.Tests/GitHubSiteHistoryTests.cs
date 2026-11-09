@@ -299,6 +299,26 @@ public class GitHubSiteHistoryTests
     }
 
     [Fact]
+    public async Task ListAsync_MostItemsWithLongPaths_WritesACursorTheRequestAccepts()
+    {
+        // twenty theme files with long names, each with more history than one page shows: the cursor does not grow with the paths
+        var items = Enumerable.Range(0, 20)
+            .Select(i => new HistoryItem(HistoryItemType.Theme, $"b2b-storefront-theme/templates/{new string('p', 250)}-{i:D2}.json"))
+            .ToList();
+        var github = new GitHubScript(("POST", "graphql", (_, _) => Answer(items
+            .Select((_, i) => (true, $"{HexSha(i, 1)} 0", new[] { (HexSha(i, 1), 50 - i, "{}"), (HexSha(i, 2), 10, "{}") }))
+            .ToArray())));
+
+        var page = await History(github).ListAsync("s1", items, null, 1, Ct);
+
+        var request = new ContentHistoryRequest { StoreId = "s1", Items = items.Select(x => x.ToString()).ToList(), Cursor = page.Cursor };
+        var result = await RequestValidators.History("s1").ValidateAsync(request, Ct);
+        Assert.True(result.IsValid, $"a cursor of {page.Cursor.Length} characters: {result}");
+    }
+
+    private static string HexSha(int item, int commit) => $"{item:x2}{commit:x2}".PadRight(40, '0');
+
+    [Fact]
     public async Task ListAsync_GitHubFails_ThrowsGitContentException()
     {
         var github = new GitHubScript(("POST", "graphql", (_, _) => GitHubScript.Status(HttpStatusCode.BadGateway)));

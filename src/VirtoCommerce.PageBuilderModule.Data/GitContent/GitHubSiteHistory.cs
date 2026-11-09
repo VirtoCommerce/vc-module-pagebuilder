@@ -50,6 +50,8 @@ public class GitHubSiteHistory(
 
     private const int CommitShaBytes = 20;
 
+    private const int PositionKeyBytes = 9;
+
     public virtual async Task<ContentHistoryStatus> GetStatusAsync(string storeId, CancellationToken cancellationToken = default)
     {
         StoreRepository repository;
@@ -122,7 +124,7 @@ public class GitHubSiteHistory(
             .Select(item => (Item: item, Path: GetFilePath(item)))
             .Where(x => x.Path != null)
             .DistinctBy(x => x.Path, StringComparer.Ordinal)
-            .Select(x => new HistorySource(x.Item, x.Path, positions.TryGetValue(x.Path, out var position) ? position : null))
+            .Select(x => new HistorySource(x.Item, x.Path, positions.TryGetValue(GetPositionKey(x.Path), out var position) ? position : null))
             .Where(x => !x.Position.Done)
             .ToList();
         if (sources.Count == 0)
@@ -422,7 +424,7 @@ public class GitHubSiteHistory(
         foreach (var source in sources)
         {
             var read = source.Read == source.Nodes.Count;
-            positions[source.Path] = new HistoryPosition
+            positions[GetPositionKey(source.Path)] = new HistoryPosition
             {
                 After = read ? source.EndCursor : source.Position.After,
                 Skip = read ? 0 : source.Position.Skip + source.Read,
@@ -435,6 +437,13 @@ public class GitHubSiteHistory(
             ? null
             : _cursorProtector.Protect(JsonConvert.SerializeObject(new HistoryCursor { Head = head, Positions = new Dictionary<string, HistoryPosition>(positions, StringComparer.Ordinal) }));
     }
+
+    /// <summary>
+    /// Names a file's position in the cursor by a short hash of its path, so the cursor's length does not grow with the paths:
+    /// the request validator caps it.
+    /// </summary>
+    protected virtual string GetPositionKey(string path) =>
+        Base64Url.EncodeToString(SHA256.HashData(Encoding.UTF8.GetBytes(path)).AsSpan(0, PositionKeyBytes));
 
     private static string GetOid(JToken node) => node["oid"]?.Value<string>();
 
