@@ -233,28 +233,14 @@
         "CANCEL": "Anuluj"
       }
     },
-    "LIFECYCLE": {
-      "DRAFT": "Szkic",
-      "PENDING": "W trakcie przeglądu",
-      "ACTIVE": "Opublikowane",
-      "ARCHIVED": "Zarchiwizowane"
-    },
     "SITE_TAB": {
       "TITLE": "Strony",
       "SHOW": "Pokaż",
-      "FILTER": {
-        "ALL": "Wszystkie strony",
-        "DRAFT": "Szkice",
-        "PENDING": "W trakcie przeglądu",
-        "ACTIVE": "Opublikowane",
-        "ARCHIVED": "Zarchiwizowane"
-      },
       "NEW_PAGE": "Nowa strona",
       "EMPTY": "Brak tu jeszcze stron.",
       "DETAILS": "Szczegóły strony"
     },
     "DESIGNER": {
-      "TITLE": "Projektant: {name}",
       "SECTIONS": "Sekcje",
       "GROUPS": {
         "HEADER": "Nagłówek",
@@ -368,7 +354,6 @@
       "NOTHING_PUBLISHED": "Nic nie zostało opublikowane. Otwórz stronę ponownie, aby zobaczyć drugą wersję.",
       "HISTORY": {
         "TITLE": "Historia wersji",
-        "OTHERS": "Niepublikowane wersje innych osób: {count}",
         "EMPTY": "Brak wersji: zapisz stronę, aby utworzyć pierwszą.",
         "FAILED": "Nie udało się wczytać wersji.",
         "PUBLISHED": "Opublikowana",
@@ -644,7 +629,6 @@
       "WIDGET": "Historia",
       "ON": "Włączony",
       "OFF": "Wyłączony",
-      "STATUS": "Stan",
       "REPOSITORY": "Repozytorium",
       "BRANCH": "Gałąź",
       "LAST_CHANGE": "Ostatnia opublikowana zmiana",
@@ -675,13 +659,10 @@
       "OPEN_GITHUB": "Połączenie z GitHubem"
     },
     "GITHUB": {
-      "TITLE": "GitHub",
       "INTRO": "Połącz platformę z organizacją GitHub tylko raz. Każda witryna przechowuje wtedy wersje swoich stron we własnym, prywatnym repozytorium.",
       "CONNECTED_HINT": "Każda witryna przechowuje wersje swoich stron we własnym, prywatnym repozytorium w {organization}. Włącz historię witryny w jej panelu Historia.",
-      "STATUS": "Stan",
       "CONNECTED": "Połączono",
       "FAILING": "Nie działa",
-      "ORGANIZATION": "Organizacja",
       "APP": "Aplikacja GitHub",
       "FROM_CONFIGURATION": "Z konfiguracji platformy",
       "NEW_SITES": "Nowe witryny",

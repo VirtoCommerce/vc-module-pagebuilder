@@ -60,7 +60,7 @@
       "DELETED": "Współdzielony komponent został usunięty",
       "DELETE_BLOCKED_ONE": "Ten komponent jest używany na 1 stronie i nie można go usunąć.",
       "DELETE_BLOCKED_MANY": "Ten komponent jest używany na {count} stronach i nie można go usunąć.",
-      "DELETE_CONFLICT": "Komponent jest teraz używany i nie można go usunąć. Odśwież listę, aby zobaczyć miejsca użycia.",
+      "DELETE_CONFLICT": "Komponent jest teraz używany i nie można go usunąć.",
       "DELETE_MISSING": "Komponent już nie istnieje. Mógł go usunąć ktoś inny.",
       "ERROR_GENERIC": "Operacja na współdzielonym komponencie nie powiodła się"
     }

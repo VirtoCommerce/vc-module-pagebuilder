@@ -3,7 +3,7 @@ import { nextTick } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
 import SitePagesTab from "../../src/modules/widgets/SitePagesTab.vue";
 
-const tab = vi.hoisted(() => ({ designPage: vi.fn(), loadPages: vi.fn() }));
+const tab = vi.hoisted(() => ({ designPage: vi.fn(), loadPages: vi.fn(), page: {} as Record<string, unknown> }));
 
 vi.mock("@vc-shell/framework", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./support/vcShell")>()),
@@ -24,7 +24,7 @@ vi.mock("../../src/modules/page-builder/composables", async () => {
     PageTypes: { Landing: "Landing", Multilanguage: "Multilanguage" },
     pagesChanged: vueRef(0),
     usePageBuilderList: () => ({
-      items: vueComputed(() => [{ id: "g1", name: "About", permalink: "/about", type: "Landing", page: { id: "g1", status: "Draft", cultureName: "en-US" } }]),
+      items: vueComputed(() => [{ id: "g1", name: "About", permalink: "/about", type: "Landing", page: { id: "g1", status: "Draft", cultureName: "en-US", ...tab.page } }]),
       pagination: { pages: 1, currentPage: 1, skip: 0, reset: vi.fn(), goToPage: vi.fn() },
       searchQuery: vueComputed(() => ({})),
       loadPages: tab.loadPages,
@@ -39,6 +39,7 @@ vi.mock("../../src/modules/page-builder/composables", async () => {
 beforeEach(() => {
   tab.designPage.mockReset();
   tab.loadPages.mockReset();
+  tab.page = {};
 });
 
 describe("the site's pages tab", () => {
@@ -63,5 +64,15 @@ describe("the site's pages tab", () => {
     await nextTick();
     expect(row().classes()).not.toContain("site-pages__row--open");
     expect(tab.loadPages).toHaveBeenCalledTimes(1);
+  });
+
+  it("names the lifecycle of a page and of the filter as the menu does", async () => {
+    tab.page = { status: "Published", startDate: new Date(Date.now() + 86_400_000) };
+    const wrapper = mount(SitePagesTab, { props: { storeId: "B2B-store" } });
+    await flushPromises();
+
+    expect(wrapper.find(".site-pages__status").text()).toBe("Pending");
+    const options = wrapper.findComponent({ name: "VcSelect" }).props("options") as { label: string }[];
+    expect(options.map((x) => x.label)).toEqual(["All Pages", "Draft", "Pending", "Active", "Archived"]);
   });
 });

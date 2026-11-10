@@ -3,7 +3,6 @@ import { mount } from "@vue/test-utils";
 import Fields from "../../src/modules/designer/components/Fields.vue";
 import type { Field } from "../../src/modules/designer/types";
 import { fakePlatform, type FakePlatform } from "./support/fakePlatform";
-import { TEST_TOKEN } from "./support/vcShell";
 
 const searchField = (request: Field["request"]): Field => ({ id: "found", type: "search", button: true, request });
 
@@ -21,14 +20,13 @@ describe("a search field's request", () => {
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
   });
 
-  it("sends a GraphQL read to the platform with the token", async () => {
+  it("sends a GraphQL read to the platform", async () => {
     platform.on("POST", "/graphql", { data: { a: 1 } });
 
     const wrapper = await pressSearch(searchField({ url: "/graphql", method: "post", body: { query: "{ a }" }, response: { result: "data.a" } }));
 
     await vi.waitFor(() => expect(wrapper.emitted("update")?.length).toBe(1));
     const [request] = platform.to("/graphql", "POST");
-    expect(request.headers.authorization).toBe(`Bearer ${TEST_TOKEN}`);
     expect(request.body).toEqual({ query: "{ a }" });
   });
 

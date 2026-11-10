@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { loadStorefront } from "../../src/modules/designer/api";
+import { loadPreviewUsers, loadStorefront, storeTheme } from "../../src/modules/designer/api";
 import { fakePlatform, status, type FakePlatform } from "./support/fakePlatform";
-import { TEST_TOKEN } from "./support/vcShell";
 
 const STORE = "B2B store";
 
@@ -30,7 +29,6 @@ describe("loadStorefront", () => {
     });
     const [request] = platform.to("/api/pagebuilder/designer/storefront");
     expect(request.query).toEqual({ storeId: STORE });
-    expect(request.headers.authorization).toBe(`Bearer ${TEST_TOKEN}`);
     expect(platform.requests.some((x) => x.path.startsWith("/api/platform/settings"))).toBe(false);
   });
 
@@ -38,6 +36,16 @@ describe("loadStorefront", () => {
     platform.on("GET", "/api/pagebuilder/designer/storefront", { url: null, previewPath: "/designer-preview" });
 
     expect((await loadStorefront(STORE)).url).toBeUndefined();
+  });
+
+  it("reads the store once for the parts that ask at the same time, and again after", async () => {
+    platform.on("GET", "/api/pagebuilder/designer/storefront", { url: "https://shop.test", previewPath: "/designer-preview" });
+
+    await Promise.all([loadStorefront(STORE), storeTheme(STORE), loadPreviewUsers(STORE)]);
+    expect(platform.to("/api/stores/B2B%20store")).toHaveLength(1);
+
+    await storeTheme(STORE);
+    expect(platform.to("/api/stores/B2B%20store")).toHaveLength(2);
   });
 
   it("fails when the endpoint refuses", async () => {

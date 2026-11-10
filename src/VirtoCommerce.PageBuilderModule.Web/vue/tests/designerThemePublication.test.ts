@@ -13,7 +13,7 @@ import {
 
 const query = (url: string) => Object.fromEntries(new URL(url, "https://admin.example").searchParams);
 
-const status = (drafts: string[], publication?: number): ThemeStatus => ({ publication, drafts });
+const status = (drafts: string[], publication?: number): ThemeStatus => ({ publication, drafts, newDrafts: [] });
 
 test("parseThemeStatus reads the publication, the drafts and the new ones, and nothing else", () => {
   assert.deepEqual(parseThemeStatus({ publication: 3, drafts: ["templates/product.json", "sections/header-group.json"], newDrafts: ["templates/product.json"] }), {

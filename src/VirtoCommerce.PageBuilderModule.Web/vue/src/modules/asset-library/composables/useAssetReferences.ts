@@ -1,7 +1,7 @@
 import { ref, type Ref } from "vue";
 import type { AssetEntry, AssetReference, AssetReferenceDetails } from "../types";
 import { useAssetsLibraryApi } from "./useAssetsLibraryApi";
-import { getAssetKey, getReferencesCount as getEntryReferencesCount } from "../utilities/assetEntry";
+import { getAssetKey } from "../utilities/assetEntry";
 import { createAssetReferenceDetails } from "../utilities/assetReferences";
 
 type AssetReferenceState = Pick<
@@ -135,63 +135,27 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
   }
 
   async function getDeleteReferences(entry: AssetEntry): Promise<DeleteAssetReferences> {
-    const folderUrl = getAssetKey(entry);
+    const assetUrl = getAssetKey(entry);
 
-    if (!folderUrl || !storeId.value) {
+    if (!assetUrl || !storeId.value) {
       return emptyDeleteReferences(false);
     }
 
     if (entry.type === "blob") {
-      return getAssetReferences(
-        [folderUrl],
-        {
-          referencesCount: getEntryReferencesCount(entry),
-          pageReferencesCount: entry.pageReferencesCount ?? 0,
-          sharedComponentReferencesCount: entry.sharedComponentReferencesCount ?? 0,
-          referencePages: entry.referencePages ?? [],
-          referenceSharedComponents: entry.referenceSharedComponents ?? [],
-          usageKnown: true,
-        },
-        true,
-      );
+      return toDeleteReferences(await searchAssetReferences(storeId.value, [assetUrl], true));
     }
 
-    const reference = await searchFolderReferences(storeId.value, folderUrl, true);
+    const reference = await searchFolderReferences(storeId.value, assetUrl, true);
 
     if (!reference) {
       return emptyDeleteReferences();
     }
 
-    return toDeleteReferences([reference], true);
+    return toDeleteReferences([reference]);
   }
 
-  async function getAssetReferences(
-    assetUrls: string[],
-    fallback = emptyDeleteReferences(),
-    includePages = false,
-  ): Promise<DeleteAssetReferences> {
-    if (!storeId.value || !assetUrls.length) {
-      return fallback;
-    }
-
-    const references = await searchAssetReferences(storeId.value, assetUrls, includePages);
-    return toDeleteReferences(references, includePages);
-  }
-
-  function toDeleteReferences(references: AssetReference[], includeDetails: boolean): DeleteAssetReferences {
-    return includeDetails
-      ? { ...createAssetReferenceDetails(references), usageKnown: true }
-      : {
-          referencesCount: references.reduce((count, reference) => count + (reference.referencesCount ?? 0), 0),
-          pageReferencesCount: references.reduce((count, reference) => count + (reference.pageReferencesCount ?? 0), 0),
-          sharedComponentReferencesCount: references.reduce(
-            (count, reference) => count + (reference.sharedComponentReferencesCount ?? 0),
-            0,
-          ),
-          referencePages: [],
-          referenceSharedComponents: [],
-          usageKnown: true,
-        };
+  function toDeleteReferences(references: AssetReference[]): DeleteAssetReferences {
+    return { ...createAssetReferenceDetails(references), usageKnown: true };
   }
 
   function toReferenceState(reference: AssetReference, includeDetails: boolean): AssetReferenceState {

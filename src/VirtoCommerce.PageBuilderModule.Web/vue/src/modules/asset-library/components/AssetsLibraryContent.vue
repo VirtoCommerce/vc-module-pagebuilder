@@ -5,7 +5,7 @@
       v-model:sort="sort"
       :can-create="canCreate"
       :search-value="searchValue"
-      :total-count="fileCount"
+      :file-count="fileCount"
       @upload="openUploadDialog"
       @create-folder="openCreateFolderPopup"
       @search-change="onSearchChange"
@@ -211,9 +211,10 @@
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { debounce } from "lodash-es";
 import { useI18n } from "vue-i18n";
-import { usePermissions } from "@vc-shell/framework";
+import { readableSize, usePermissions } from "@vc-shell/framework";
 import { VcBreadcrumbs, VcButton, VcFileUpload, VcHint, VcIcon, VcPopup, VcPagination, VcSelect } from "@vc-shell/framework/ui";
-import { getAssetStoredUrl } from "../utilities/assetUrl";
+import { getAssetPublicUrl, getAssetStoredUrl, getPreviewUrl } from "../utilities/assetUrl";
+import { getEntryIcon, isImageEntry } from "../utilities/assetEntry";
 import { matchesAcceptedTypes } from "../utilities/assetAccept";
 import type { AssetEntry, AssetLibraryViewMode } from "../types";
 import { useAssetsLibrary } from "../composables/useAssetsLibrary";
@@ -241,12 +242,18 @@ export interface ExposedAssetsLibraryContent {
   reload: () => Promise<void>;
 }
 
-const props = defineProps<{
+interface Props {
   pickable?: boolean;
   /** The types the picker lists, selects and uploads; folders always list. */
   accept?: string[];
-}>();
-const emit = defineEmits<{ pick: [url: string] }>();
+}
+
+interface Emits {
+  (event: "pick", url: string): void;
+}
+
+const props = defineProps<Props>();
+const emit = defineEmits<Emits>();
 const acceptedTypes = computed(() => props.accept ?? []);
 const acceptAttribute = computed(() => acceptedTypes.value.join(","));
 
@@ -286,17 +293,12 @@ const {
   reload,
   clearSelection,
   onEntryClick,
-  isImage,
-  getEntryIcon,
   getReferencesCount,
   areReferencesAvailable,
   getReferenceDetails,
   getDeleteReferences,
   findAssetByName,
-  formatFileSize,
   formatDate,
-  getAssetPublicUrl,
-  getPreviewUrl,
   createFolder,
   uploadFiles,
   replaceSelectedAsset,
@@ -362,38 +364,27 @@ const emptyDescription = computed(() => {
 
   return t("ASSET_LIBRARY.EMPTY.DESCRIPTION");
 });
+const entryViewModelContext = computed(() => ({
+  selectedEntryKey: selectedEntryKey.value,
+  draggedFolderUrl: draggedFolderUrl.value,
+  notAvailableText: notAvailableText.value,
+  getEntryDropFolderUrl,
+  isImage: isImageEntry,
+  getEntryIcon,
+  getReferencesCount,
+  areReferencesAvailable,
+  formatFileSize: readableSize,
+  formatDate,
+  getPreviewUrl,
+}));
 const entryViewModels = computed(() =>
-  entries.value.map((entry) =>
-    createAssetLibraryEntryViewModel(entry, {
-      selectedEntryKey: selectedEntryKey.value,
-      draggedFolderUrl: draggedFolderUrl.value,
-      notAvailableText: notAvailableText.value,
-      getEntryDropFolderUrl,
-      isImage,
-      getEntryIcon,
-      getReferencesCount,
-      areReferencesAvailable,
-      formatFileSize,
-      formatDate,
-      getPreviewUrl,
-    }),
-  ),
+  entries.value.map((entry) => createAssetLibraryEntryViewModel(entry, entryViewModelContext.value)),
 );
 const selectedAssetView = computed(() => {
   const asset = selectedAsset.value;
   return asset
     ? createAssetLibraryDetailsViewModel(asset, {
-        selectedEntryKey: selectedEntryKey.value,
-        draggedFolderUrl: draggedFolderUrl.value,
-        notAvailableText: notAvailableText.value,
-        getEntryDropFolderUrl,
-        isImage,
-        getEntryIcon,
-        getReferencesCount,
-        areReferencesAvailable,
-        formatFileSize,
-        formatDate,
-        getPreviewUrl,
+        ...entryViewModelContext.value,
         dimensions: selectedAssetDimensions.value,
         getReferenceDetails,
       })
@@ -663,24 +654,13 @@ defineExpose<ExposedAssetsLibraryContent>({
   &__upload-popup-file {
     @apply tw-flex tw-w-full tw-flex-1;
   }
-}
 
-.assets-library__pick {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 12px 16px;
-  border-top: 1px solid var(--neutrals-200);
-  background: var(--additional-50);
-}
+  &__pick {
+    @apply tw-flex tw-items-center tw-justify-end tw-gap-3 tw-border-t tw-border-solid tw-border-t-[color:var(--neutrals-200)] tw-bg-[color:var(--additional-50)] tw-px-4 tw-py-3;
+  }
 
-.assets-library__pick-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  color: var(--neutrals-600);
+  &__pick-name {
+    @apply tw-min-w-0 tw-flex-1 tw-truncate tw-text-[color:var(--neutrals-600)];
+  }
 }
 </style>

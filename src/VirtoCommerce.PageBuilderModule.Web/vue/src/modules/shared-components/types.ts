@@ -12,8 +12,6 @@ export interface SharedComponent {
   name: string;
   usageCount: number;
   usagePages: SharedComponentUsagePage[];
-  createdBy?: string;
-  createdDate?: Date | string;
   modifiedBy?: string;
   modifiedDate?: Date | string;
 }

@@ -71,9 +71,9 @@
         "title": "¿Eliminar el archivo de borrador antiguo?",
         "message": "\"{{path}}\" quedó de antes de que esta tienda pasara al repositorio de contenido. La página en sí no se modifica."
       },
-      "delete-legacy-draft-unsaved": {
-        "title": "¿Eliminar el archivo de borrador antiguo?",
-        "message": "\"{{path}}\" todavía contiene cambios que no están en el repositorio de contenido. Si lo elimina, se perderán. La página publicada no se modifica."
+      "legacy-draft-changed": {
+        "title": "Se ha conservado el archivo de borrador",
+        "message": "Este borrador contiene cambios que la página publicada no tiene, por lo que eliminarlo los perdería."
       },
       "legacy-draft-kept": {
         "title": "Se ha conservado el archivo de borrador",

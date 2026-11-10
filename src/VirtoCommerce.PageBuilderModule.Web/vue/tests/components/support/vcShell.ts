@@ -29,8 +29,7 @@ export const useLoading = (...flags: { readonly value: boolean }[]) => computed(
 export const popup = { confirm: true, showConfirmation: vi.fn(async (_message: string) => popup.confirm) };
 export const usePopup = () => ({ showConfirmation: popup.showConfirmation });
 
-export const TEST_TOKEN = "test-token";
-export const apiClient: { authToken: string; getGroup: (id: string) => Promise<unknown> } = { authToken: TEST_TOKEN, getGroup: vi.fn() };
+export const apiClient: { getGroup: (id: string) => Promise<unknown> } = { getGroup: vi.fn() };
 export const useApiClient = (_client: unknown) => ({ getApiClient: async () => apiClient });
 
 export const permissions = { has: (_permission: string | string[]) => true };

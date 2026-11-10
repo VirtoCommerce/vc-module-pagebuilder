@@ -3,22 +3,12 @@
     class="pd-rules"
     :aria-label="$t('PAGE_BUILDER.DESIGNER.RULES.TITLE')"
   >
-    <header class="pd-rules__head">
-      <VcIcon
-        icon="lucide-split"
-        size="s"
-        class="pd-rules__muted"
-      />
-      <h3 class="pd-rules__title">{{ $t("PAGE_BUILDER.DESIGNER.RULES.TITLE") }}</h3>
-      <VcButton
-        variant="ghost"
-        size="icon-sm"
-        icon="lucide-x"
-        :aria-label="$t('PAGE_BUILDER.DESIGNER.DESELECT')"
-        :title="$t('PAGE_BUILDER.DESIGNER.DESELECT')"
-        @click="emit('close')"
-      />
-    </header>
+    <PanelHeader
+      icon="lucide-split"
+      :title="$t('PAGE_BUILDER.DESIGNER.RULES.TITLE')"
+      :close-label="$t('PAGE_BUILDER.DESIGNER.DESELECT')"
+      @close="emit('close')"
+    />
 
     <div class="pd-rules__body">
       <RuleForm
@@ -59,22 +49,10 @@
                 <button
                   type="button"
                   class="pd-rules__text"
-                  :disabled="readOnly"
+                  :disabled="editingLocked"
                   @click="edit(index)"
                 >
-                  <template
-                    v-for="(part, i) in describe(list[index])"
-                    :key="i"
-                  >
-                    <strong v-if="part.strong">{{ part.text }}</strong>
-                    <span
-                      v-else-if="part.unknown"
-                      class="pd-rules__badge"
-                      :title="$t('PAGE_BUILDER.DESIGNER.RULES.UNKNOWN_CONDITION', { name: part.unknown })"
-                      >{{ $t("PAGE_BUILDER.DESIGNER.RULES.UNKNOWN") }}</span
-                    >
-                    <template v-else>{{ part.text }}</template>
-                  </template>
+                  <RuleDescription :parts="describe(list[index])" />
                 </button>
               </li>
             </ul>
@@ -85,7 +63,7 @@
               {{ $t("PAGE_BUILDER.DESIGNER.RULES.APPLIES_NONE") }}
             </p>
             <VcButton
-              v-if="!readOnly"
+              v-if="!editingLocked"
               size="sm"
               variant="secondary"
               icon="lucide-plus"
@@ -98,7 +76,7 @@
         </section>
 
         <section
-          v-if="isAlternate && !readOnly && suggestions.length"
+          v-if="isAlternate && !editingLocked && suggestions.length"
           class="pd-rules__section"
         >
           <h4 class="pd-rules__heading">{{ $t("PAGE_BUILDER.DESIGNER.RULES.USE_FOR") }}</h4>
@@ -125,7 +103,7 @@
           <h4 class="pd-rules__heading">
             <span>{{ $t(ALL[type]) }}</span>
             <button
-              v-if="!readOnly"
+              v-if="!editingLocked"
               type="button"
               class="pd-rules__link"
               @click="openJson"
@@ -188,7 +166,7 @@
               }"
             >
               <span
-                v-if="!readOnly"
+                v-if="!editingLocked"
                 class="pd-rules__handle"
                 :title="$t('PAGE_BUILDER.DESIGNER.DRAG')"
               >
@@ -201,22 +179,10 @@
                 type="button"
                 class="pd-rules__text"
                 :title="$t('PAGE_BUILDER.DESIGNER.RULES.EDIT')"
-                :disabled="readOnly"
+                :disabled="editingLocked"
                 @click="edit(index)"
               >
-                <template
-                  v-for="(part, i) in describe(rule)"
-                  :key="i"
-                >
-                  <strong v-if="part.strong">{{ part.text }}</strong>
-                  <span
-                    v-else-if="part.unknown"
-                    class="pd-rules__badge"
-                    :title="$t('PAGE_BUILDER.DESIGNER.RULES.UNKNOWN_CONDITION', { name: part.unknown })"
-                    >{{ $t("PAGE_BUILDER.DESIGNER.RULES.UNKNOWN") }}</span
-                  >
-                  <template v-else>{{ part.text }}</template>
-                </template>
+                <RuleDescription :parts="describe(rule)" />
                 <span class="pd-rules__arrow">→</span>
                 <strong>{{ templateName(rule.template?.trim() ?? "") }}</strong>
                 <span
@@ -229,12 +195,12 @@
               <VcSwitch
                 class="pd-rules__switch"
                 :model-value="!rule.disabled"
-                :disabled="readOnly"
+                :disabled="editingLocked"
                 :aria-label="$t('PAGE_BUILDER.DESIGNER.RULES.ON')"
                 @update:model-value="setDisabled(index, !$event)"
               />
               <VcButton
-                v-if="!readOnly"
+                v-if="!editingLocked"
                 variant="ghost"
                 size="icon-sm"
                 icon="lucide-trash-2"
@@ -336,11 +302,13 @@ import { notification, usePopup } from "@vc-shell/framework";
 import { VcButton, VcIcon, VcPopup, VcSwitch, VcTextarea } from "@vc-shell/framework/ui";
 import { productFacts, searchCategories, type CatalogContext, type NamedEntity, type ProductFacts } from "../api";
 import { rulesPath } from "../history";
-import { BUILT_IN_CONDITIONS, CATEGORY_CONDITION, categoryIds, conditionsFor, optionLabel } from "../ruleConditions";
+import { BUILT_IN_CONDITIONS, CATEGORY_CONDITION, PROPERTY_CONDITION, categoryIds, conditionsFor, optionLabel } from "../ruleConditions";
 import { formatRules, hasOwnRules, moveItem, newRuleId, parseRules, rulesFor, rulesOf, withRules, type RuleError, type TemplateRule } from "../rules";
 import { alternateName, pageTypeOf, type PageType } from "../templates";
 import type { ConditionDescriptor, RulesPick } from "../previewMessages";
 import type { TemplateRulesState } from "../templateRules";
+import PanelHeader from "./PanelHeader.vue";
+import RuleDescription, { type RulePart } from "./RuleDescription.vue";
 import RuleForm from "./RuleForm.vue";
 
 const props = defineProps<{
@@ -371,7 +339,7 @@ const rulesFile = computed(() => rulesPath(props.theme));
 const list = computed(() => rulesOf(props.rules.rules.value, props.type));
 const ownList = computed(() => hasOwnRules(props.rules.rules.value, props.type));
 // Rules not read yet are not the file's: an edit of them would be neither saved nor previewed.
-const readOnly = computed(() => !props.conditions || props.readonly || !props.rules.loaded.value);
+const editingLocked = computed(() => !props.conditions || props.readonly || !props.rules.loaded.value);
 const offered = computed(() => new Map(conditionsFor(props.conditions ?? [], props.type).map((x) => [x.name, x])));
 const setList = (next: TemplateRule[]) => (props.rules.rules.value = withRules(props.rules.rules.value, props.type, next));
 const retryLoad = () => props.rules.reload().catch(() => undefined);
@@ -394,7 +362,6 @@ watch(
   { immediate: true },
 );
 
-type Part = { text: string; strong?: boolean; unknown?: string };
 const SUBJECTS: Record<PageType, string> = { product: "SUBJECT_PRODUCT", category: "SUBJECT_CATEGORY", page: "SUBJECT_PAGE" };
 const ALWAYS: Record<PageType, string> = { product: "ALWAYS_PRODUCT", category: "ALWAYS_CATEGORY", page: "ALWAYS_PAGE" };
 
@@ -410,13 +377,13 @@ function valueText(name: string, value: unknown, descriptor?: ConditionDescripto
   return String(value);
 }
 
-function withValue(key: string, value: string): Part[] {
+function withValue(key: string, value: string): RulePart[] {
   const [before, after = ""] = t(`PAGE_BUILDER.DESIGNER.RULES.${key}`, { value: "\u0001" }).split("\u0001");
   return [{ text: before }, { text: value, strong: true }, { text: after }];
 }
 
-function describe(rule: TemplateRule): Part[] {
-  const conditions = Object.entries(rule.when ?? {}).map(([name, value]): Part[] => {
+function describe(rule: TemplateRule): RulePart[] {
+  const conditions = Object.entries(rule.when ?? {}).map(([name, value]): RulePart[] => {
     const descriptor = offered.value.get(name);
     if (!descriptor && props.conditions) return [{ text: `${name}: ` }, { text: JSON.stringify(value), strong: true }, { text: "", unknown: name }];
     const text = valueText(name, value, descriptor);
@@ -487,7 +454,7 @@ const allSuggestions = computed<{ label: string; when: Record<string, unknown> }
   const previewed = props.previewed;
   if (!previewed) return [];
   const label = (key: string, params: Record<string, string>) => t(`PAGE_BUILDER.DESIGNER.RULES.${key}`, params);
-  if (props.type === "category") return [{ label: label("USE_FOR_THIS_CATEGORY", { name: previewed.name }), when: { inCategory: [previewed.id] } }];
+  if (props.type === "category") return [{ label: label("USE_FOR_THIS_CATEGORY", { name: previewed.name }), when: { [CATEGORY_CONDITION]: [previewed.id] } }];
   if (props.type === "page") {
     const folder = previewed.id.replace(/\/[^/]*$/, "");
     return [
@@ -499,11 +466,11 @@ const allSuggestions = computed<{ label: string; when: Record<string, unknown> }
   if (!product) return [];
   const properties = new Map(product.properties.map((x) => [`${x.name}=${String(x.value)}`, x]));
   return [
-    ...product.categories.map((x) => ({ label: label("USE_FOR_CATEGORY", { name: x.name }), when: { inCategory: [x.id] } })),
+    ...product.categories.map((x) => ({ label: label("USE_FOR_CATEGORY", { name: x.name }), when: { [CATEGORY_CONDITION]: [x.id] } })),
     ...(product.productType ? [{ label: label("USE_FOR_TYPE", { value: product.productType }), when: { productType: product.productType } }] : []),
     ...[...properties.values()]
       .slice(0, 8)
-      .map((x) => ({ label: label("USE_FOR_PROPERTY", { name: x.label || x.name, value: String(x.value) }), when: { property: { name: x.name, equals: x.value } } })),
+      .map((x) => ({ label: label("USE_FOR_PROPERTY", { name: x.label || x.name, value: String(x.value) }), when: { [PROPERTY_CONDITION]: { name: x.name, equals: x.value } } })),
   ];
 });
 
@@ -545,26 +512,6 @@ function applyJson() {
   height: 100%;
   min-height: 0;
   font-size: 13px;
-
-  &__head {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 12px 12px 16px;
-    border-bottom: 1px solid var(--neutrals-200);
-  }
-
-  &__title {
-    flex: 1;
-    margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--neutrals-900);
-  }
-
-  &__muted {
-    color: var(--neutrals-500);
-  }
 
   &__body {
     flex: 1;
@@ -688,7 +635,7 @@ function applyJson() {
       cursor: default;
     }
 
-    strong {
+    :deep(strong) {
       font-weight: 600;
     }
   }
@@ -698,7 +645,7 @@ function applyJson() {
     color: var(--neutrals-500);
   }
 
-  &__badge {
+  &__text :deep(.pd-rules__badge) {
     display: inline-block;
     margin-left: 4px;
     padding: 0 6px;

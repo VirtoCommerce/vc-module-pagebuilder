@@ -12,26 +12,7 @@
           {{ message }}
         </p>
 
-        <div
-          v-for="group in referenceGroups"
-          :key="group.title"
-          class="asset-delete__group"
-        >
-          <p class="asset-delete__group-title">
-            {{ group.title }}
-          </p>
-          <ul
-            class="asset-delete__names"
-            :aria-label="group.title"
-          >
-            <li
-              v-for="name in group.names"
-              :key="name"
-            >
-              {{ name }}
-            </li>
-          </ul>
-        </div>
+        <AssetReferenceGroups :references="confirmation.references" />
       </div>
     </template>
 
@@ -59,7 +40,7 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { VcButton, VcPopup } from "@vc-shell/framework/ui";
 import type { AssetDeleteConfirmation } from "../composables/useAssetLibraryActions";
-import { getReferencePageNames, getReferenceSharedComponentNames } from "../utilities/assetReferences";
+import AssetReferenceGroups from "./AssetReferenceGroups.vue";
 
 interface Props {
   confirmation: AssetDeleteConfirmation;
@@ -85,14 +66,6 @@ const message = computed(() => {
   const key = count === 1 ? "ASSET_LIBRARY.CONFIRM.DELETE_USED_ONE" : "ASSET_LIBRARY.CONFIRM.DELETE_USED_MANY";
   return t(key, { name: entry.name, count });
 });
-const referenceGroups = computed(() => {
-  const { referencePages, referenceSharedComponents } = props.confirmation.references;
-
-  return [
-    { title: t("ASSET_LIBRARY.DETAILS.PAGES"), names: getReferencePageNames(referencePages) },
-    { title: t("ASSET_LIBRARY.DETAILS.SHARED_COMPONENTS"), names: getReferenceSharedComponentNames(referenceSharedComponents) },
-  ].filter((group) => group.names.length);
-});
 </script>
 
 <style lang="scss" scoped>
@@ -105,19 +78,6 @@ const referenceGroups = computed(() => {
 
   &__message {
     margin: 0;
-  }
-
-  &__group-title {
-    margin: 0 0 0.25rem;
-    font-weight: 600;
-  }
-
-  &__names {
-    max-height: 12rem;
-    margin: 0;
-    padding-inline-start: 1.25rem;
-    overflow-y: auto;
-    list-style: disc;
   }
 }
 </style>

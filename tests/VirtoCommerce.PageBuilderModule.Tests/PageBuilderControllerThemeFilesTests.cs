@@ -385,7 +385,8 @@ public class PageBuilderControllerThemeFilesTests
             contentPermissionService: TestServices.Permissions(authorization ?? new FakeAuthorizationService(true)),
             filePageDraftService: filePageDrafts,
             designerSaveValidator: RequestValidators.DesignerSave,
-            designerDiscardValidator: RequestValidators.DesignerDiscard);
+            designerDiscardValidator: RequestValidators.DesignerDiscard,
+            themeStorageFactory: _themeStorageFactory);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "alice")], "test")) },

@@ -85,7 +85,7 @@
           :component="selectedComponent"
           :can-update="canUpdate"
           :can-delete="canDelete"
-          :can-open-designer="canOpenDesigner"
+          :can-open-usage-page="canOpenUsagePageDesigner"
           :can-edit-content="canEditContent"
           :loading="loading"
           :details-loading="detailsLoading"
@@ -115,7 +115,7 @@
 import { computed, onMounted, ref } from "vue";
 import { breakpointsTailwind, computedAsync, useBreakpoints } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
-import { focusFallbackTarget, focusIfLoose, useBlade, usePermissions, type IBladeToolbar } from "@vc-shell/framework";
+import { focusFallbackTarget, focusIfLoose, usePermissions, type IBladeToolbar } from "@vc-shell/framework";
 import { VcBlade, VcButton, VcHint, VcIcon } from "@vc-shell/framework/ui";
 import SharedComponentDetails from "./SharedComponentDetails.vue";
 import SharedComponentsTable from "./SharedComponentsTable.vue";
@@ -123,10 +123,8 @@ import RenameSharedComponentPopup from "./RenameSharedComponentPopup.vue";
 import { useSharedComponentActions, useSharedComponents } from "../composables";
 import type { SharedComponent, SharedComponentUsagePage } from "../types";
 import { canOpenPageDesigner } from "../../../utilities/pageDesigner";
-import { usePageDesigner, useSharedComponentDesigner } from "../../page-builder/composables/usePageDesigner";
-import useUrlParams from "../../page-builder/composables/useStoreParams";
+import { usePageDesigner, useSharedComponentDesigner, useUrlParams } from "../../page-builder/composables";
 
-const { exposeToChildren } = useBlade();
 const openPageDesigner = usePageDesigner();
 const openSharedComponentDesigner = useSharedComponentDesigner();
 const { isNewPageBuilder } = useUrlParams();
@@ -346,6 +344,4 @@ onMounted(async () => {
     notifyError(error);
   }
 });
-
-exposeToChildren({ reload: reloadContent });
 </script>

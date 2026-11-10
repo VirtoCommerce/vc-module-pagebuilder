@@ -3,7 +3,6 @@
     :model-value="true"
     :title="$t('SHARED_COMPONENTS.RENAME.TITLE')"
     is-mobile-fullscreen
-    @update:model-value="handleModelValueUpdate"
     @close="$emit('close')"
   >
     <template #content>
@@ -76,11 +75,5 @@ function submit() {
   }
 
   emit("rename", value);
-}
-
-function handleModelValueUpdate(value: boolean) {
-  if (!value) {
-    emit("close");
-  }
 }
 </script>

@@ -5,14 +5,13 @@ import { usePageDesigner } from "../../src/modules/page-builder/composables/useP
 import { fakePlatform, status, type FakePlatform } from "./support/fakePlatform";
 import { notification } from "./support/vcShell";
 
-const shell = vi.hoisted(() => ({ openBlade: vi.fn(), bladeRegistered: false }));
+const shell = vi.hoisted(() => ({ openBlade: vi.fn() }));
 
 vi.mock("@vc-shell/framework", async (importOriginal) => {
   const original = await importOriginal<typeof import("./support/vcShell")>();
   return {
     ...original,
     useBlade: () => ({ ...original.useBlade(), openBlade: shell.openBlade }),
-    getBladeConfig: (name: string) => (shell.bladeRegistered && name === "PageBuilderDesigner" ? { name } : undefined),
   };
 });
 
@@ -41,7 +40,6 @@ describe("opening the page designer", () => {
     platform = fakePlatform().install();
     windowOpen = vi.spyOn(window, "open").mockImplementation(() => null);
     shell.openBlade.mockClear();
-    shell.bladeRegistered = false;
   });
   afterEach(() => windowOpen.mockRestore());
 
@@ -60,7 +58,6 @@ describe("opening the page designer", () => {
 
   it("opens the designer blade for a store on the New Page Builder, with the caller's open and close callbacks", async () => {
     platform.on("GET", `/api/stores/${STORE}`, { languages: ["en-US"], settings: [{ name: SWITCH, value: true }] });
-    shell.bladeRegistered = true;
     const onOpen = vi.fn();
     const onClose = vi.fn();
 

@@ -233,28 +233,14 @@
         "CANCEL": "Cancelar"
       }
     },
-    "LIFECYCLE": {
-      "DRAFT": "Rascunho",
-      "PENDING": "Em revisão",
-      "ACTIVE": "Publicado",
-      "ARCHIVED": "Arquivado"
-    },
     "SITE_TAB": {
       "TITLE": "Páginas",
       "SHOW": "Mostrar",
-      "FILTER": {
-        "ALL": "Todas as páginas",
-        "DRAFT": "Rascunhos",
-        "PENDING": "Em revisão",
-        "ACTIVE": "Publicado",
-        "ARCHIVED": "Arquivado"
-      },
       "NEW_PAGE": "Nova página",
       "EMPTY": "Ainda não há páginas aqui.",
       "DETAILS": "Detalhes da página"
     },
     "DESIGNER": {
-      "TITLE": "Designer: {name}",
       "SECTIONS": "Seções",
       "GROUPS": {
         "HEADER": "Cabeçalho",
@@ -368,7 +354,6 @@
       "NOTHING_PUBLISHED": "Nada foi publicado. Reabra a página para ver a outra versão.",
       "HISTORY": {
         "TITLE": "Histórico de versões",
-        "OTHERS": "{count} versão(ões) não publicada(s) de outras pessoas",
         "EMPTY": "Ainda não há versões: salve a página para criar a primeira.",
         "FAILED": "As versões não puderam ser carregadas.",
         "PUBLISHED": "Publicado",
@@ -644,7 +629,6 @@
       "WIDGET": "Histórico",
       "ON": "Ativado",
       "OFF": "Desativado",
-      "STATUS": "Status",
       "REPOSITORY": "Repositório",
       "BRANCH": "Branch",
       "LAST_CHANGE": "Última alteração publicada",
@@ -675,13 +659,10 @@
       "OPEN_GITHUB": "Conexão com o GitHub"
     },
     "GITHUB": {
-      "TITLE": "GitHub",
       "INTRO": "Conecte a plataforma a uma organização do GitHub uma única vez. Cada site passa a manter as versões de suas páginas em um repositório privado próprio.",
       "CONNECTED_HINT": "Cada site mantém as versões de suas páginas em um repositório privado próprio em {organization}. Ative o histórico de um site no painel Histórico dele.",
-      "STATUS": "Status",
       "CONNECTED": "Conectado",
       "FAILING": "Não está funcionando",
-      "ORGANIZATION": "Organização",
       "APP": "GitHub App",
       "FROM_CONFIGURATION": "Da configuração da plataforma",
       "NEW_SITES": "Novos sites",

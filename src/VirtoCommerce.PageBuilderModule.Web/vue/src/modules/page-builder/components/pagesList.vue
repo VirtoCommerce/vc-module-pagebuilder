@@ -129,7 +129,6 @@ import { useI18n } from "vue-i18n";
 import { debounce } from "lodash-es";
 import { useBlade, usePopup, useDataTableSort, IActionBuilderResult, notification } from "@vc-shell/framework";
 import {
-  GroupedPageBuilderPage,
   MultilanguagePageLanguage,
   PageBuilderPageListItem,
 } from "../../../api_client/virtocommerce.pagebuildermodule";
@@ -243,11 +242,9 @@ const computedGlobalFilters = computed(() => [
   },
 ]);
 
-export type PagesListClickItem = PageBuilderPageListItem | GroupedPageBuilderPage;
-
-function onItemClick(event: { data: PagesListClickItem }) {
+function onItemClick(event: { data: PageBuilderPageListItem }) {
   const item = event.data;
-  const isMultilanguage = "type" in item && item.type === PageTypes.Multilanguage;
+  const isMultilanguage = item.type === PageTypes.Multilanguage;
   openBlade({
     name: isMultilanguage ? "MultilanguagePageDetails" : "PageBuilderPageDetails",
     param: item.id,
@@ -430,7 +427,6 @@ export interface ExposedPagesList {
   selectedItems: Readonly<Ref<readonly string[]>>;
   reload: () => Promise<void>;
   removeSelectedPages: () => Promise<void>;
-  onItemClick: (event: { data: PagesListClickItem }) => void;
   openAddBlade: () => Promise<void>;
   openLoadFlow: () => void;
 }
@@ -439,7 +435,6 @@ defineExpose<ExposedPagesList>({
   selectedItems: readonly(selectedItems) as unknown as Readonly<Ref<readonly string[]>>,
   reload,
   removeSelectedPages,
-  onItemClick,
   openAddBlade,
   openLoadFlow,
 });

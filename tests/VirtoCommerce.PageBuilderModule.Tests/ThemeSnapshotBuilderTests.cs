@@ -199,7 +199,6 @@ public class ThemeSnapshotBuilderTests
 
         var set = _builder.Build(source, catalog, "abc12345", [], "en-US", 1, Published);
 
-        Assert.Equal(["Help", "main-menu"], set.Menus);
         Assert.Equal(["Help", "main-menu"], JObject.Parse(set.Files["en-US"])["menus"]!.Values<string>());
     }
 
@@ -279,7 +278,7 @@ public class ThemeSnapshotBuilderTests
 
         var set = _builder.Build(Source(header: header), CatalogWithBlockAsSection, "abc12345", [], "en-US", 1, Published);
 
-        Assert.Equal(["main-menu"], set.Menus);
+        Assert.Equal(["main-menu"], JObject.Parse(set.Files["en-US"])["menus"]!.Values<string>());
     }
 
     private JObject Snapshot(ThemeSource source) =>

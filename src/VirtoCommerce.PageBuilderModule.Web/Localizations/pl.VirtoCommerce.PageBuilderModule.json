@@ -71,9 +71,9 @@
         "title": "Usunąć stary plik szkicu?",
         "message": "\"{{path}}\" pozostał z czasów, zanim ten sklep przeszedł na repozytorium treści. Sama strona nie zostanie zmieniona."
       },
-      "delete-legacy-draft-unsaved": {
-        "title": "Usunąć stary plik szkicu?",
-        "message": "\"{{path}}\" nadal zawiera zmiany, których nie ma w repozytorium treści. Usunięcie go spowoduje ich utratę. Opublikowana strona nie zostanie zmieniona."
+      "legacy-draft-changed": {
+        "title": "Plik szkicu został zachowany",
+        "message": "Ten szkic zawiera zmiany, których nie ma opublikowana strona, więc jego usunięcie spowodowałoby ich utratę."
       },
       "legacy-draft-kept": {
         "title": "Plik szkicu został zachowany",

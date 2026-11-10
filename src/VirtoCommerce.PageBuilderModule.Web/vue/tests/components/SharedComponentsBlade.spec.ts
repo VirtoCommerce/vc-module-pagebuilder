@@ -20,7 +20,6 @@ vi.mock("@vc-shell/framework", async (importOriginal) => {
   const shell = await importOriginal<typeof import("./support/vcShell")>();
   return {
     ...shell,
-    useBlade: () => ({ ...shell.useBlade(), exposeToChildren: vi.fn() }),
     focusIfLoose: vi.fn(),
     focusFallbackTarget: () => null,
   };

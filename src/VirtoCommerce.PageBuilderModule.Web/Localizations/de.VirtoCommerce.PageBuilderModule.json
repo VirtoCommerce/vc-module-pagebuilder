@@ -71,9 +71,9 @@
         "title": "Alte Entwurfsdatei löschen?",
         "message": "\"{{path}}\" stammt noch aus der Zeit, bevor dieses Geschäft auf das Content-Repository umgestellt wurde. Die Seite selbst bleibt unverändert."
       },
-      "delete-legacy-draft-unsaved": {
-        "title": "Alte Entwurfsdatei löschen?",
-        "message": "\"{{path}}\" enthält noch Änderungen, die nicht im Content-Repository sind. Beim Löschen gehen sie verloren. Die veröffentlichte Seite bleibt unverändert."
+      "legacy-draft-changed": {
+        "title": "Die Entwurfsdatei wurde behalten",
+        "message": "Dieser Entwurf enthält Änderungen, die die veröffentlichte Seite nicht hat. Beim Löschen gingen sie verloren."
       },
       "legacy-draft-kept": {
         "title": "Die Entwurfsdatei wurde behalten",

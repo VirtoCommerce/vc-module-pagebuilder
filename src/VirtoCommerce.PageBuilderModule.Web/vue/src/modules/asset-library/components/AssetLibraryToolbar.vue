@@ -40,7 +40,7 @@
     />
 
     <VcHint class="assets-library__counter">
-      {{ $t("ASSET_LIBRARY.COUNTER", { count: totalCount }) }}
+      {{ $t("ASSET_LIBRARY.COUNTER", { count: fileCount }) }}
     </VcHint>
 
     <VcButtonGroup
@@ -76,7 +76,7 @@ import type { AssetLibraryViewMode } from "../types";
 interface Props {
   canCreate: boolean;
   searchValue?: string;
-  totalCount: number;
+  fileCount: number;
 }
 
 interface Emits {

@@ -2,9 +2,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import PageBuilderGit from "../../src/modules/pages/PageBuilderGit.vue";
 import PageBuilderGitHub from "../../src/modules/pages/PageBuilderGitHub.vue";
-import { blade } from "./support/vcShell";
-import { fakePlatform, type FakePlatform } from "./support/fakePlatform";
+import { blade, permissions } from "./support/vcShell";
+import { fakePlatform, status, type FakePlatform } from "./support/fakePlatform";
 
+vi.mock("@vc-shell/framework", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./support/vcShell")>()),
+  useApiClient: (Client: new () => unknown) => ({ getApiClient: async () => new Client() }),
+}));
+
+const SITE = "/api/pagebuilder/git/site";
 const CONNECTION = "/api/pagebuilder/git/connection";
 const APP_SETUP = "/api/pagebuilder/git/app/setup";
 
@@ -32,12 +38,33 @@ beforeEach(() => {
 
 describe("a site's history panel", () => {
   it("says why when its first request fails", async () => {
-    platform.on("GET", "/api/pagebuilder/git/site", refused);
+    platform.on("GET", SITE, refused);
 
     const wrapper = mount(PageBuilderGit);
     await flushPromises();
 
     expect(alertText(wrapper)).toContain("Refused by the platform");
+  });
+
+  it("says access is restricted when a refusal gives no reason", async () => {
+    platform.on("GET", SITE, status(403));
+
+    const wrapper = mount(PageBuilderGit);
+    await flushPromises();
+
+    expect(alertText(wrapper)).toBe("PERMISSION_MESSAGES.ACCESS_RESTRICTED");
+  });
+
+  it("offers turning history on and off only to a user who may update the store", async () => {
+    permissions.has = (permission) => permission !== "store:update";
+    platform.on("GET", SITE, { configured: true, enabled: false, repository: "acme/site-s1" });
+
+    const wrapper = mount(PageBuilderGit);
+    await flushPromises();
+
+    expect(wrapper.findAll("button").map((x) => x.text())).not.toContain("Enable history");
+    const toolbar = wrapper.findComponent({ name: "VcBlade" }).props("toolbarItems") as { id: string; permissions?: string }[];
+    expect(toolbar.filter((x) => x.permissions === "store:update").map((x) => x.id)).toEqual(["on", "off"]);
   });
 });
 
@@ -48,7 +75,7 @@ describe("the GitHub panel", () => {
     return wrapper;
   }
 
-  async function failToCreateApp(wrapper: VueWrapper) {
+  async function submitCreateApp(wrapper: VueWrapper) {
     await organizationField(wrapper).setValue("acme");
     await createButton(wrapper).trigger("click");
     await flushPromises();
@@ -64,7 +91,7 @@ describe("the GitHub panel", () => {
     platform.on("GET", CONNECTION, { configured: false }).on("GET", APP_SETUP, refused);
     const wrapper = await mountPanel();
 
-    await failToCreateApp(wrapper);
+    await submitCreateApp(wrapper);
     await focusWindow();
 
     expect(alertText(wrapper)).toContain("Refused by the platform");
@@ -102,7 +129,7 @@ describe("the GitHub panel", () => {
     it("closes the form when the editor comes back from creating the App", async () => {
       platform.on("GET", APP_SETUP, { url: "https://github.test/new" });
       const wrapper = await mountSettingUp();
-      await failToCreateApp(wrapper);
+      await submitCreateApp(wrapper);
 
       await focusWindow();
 

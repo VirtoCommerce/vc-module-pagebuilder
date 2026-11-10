@@ -163,7 +163,8 @@ public class ThemeWriteLockTests
             contentPermissionService: TestServices.Permissions(new FakeAuthorizationService(true)),
             filePageDraftService: filePageDrafts,
             designerSaveValidator: RequestValidators.DesignerSave,
-            designerDiscardValidator: RequestValidators.DesignerDiscard));
+            designerDiscardValidator: RequestValidators.DesignerDiscard,
+            themeStorageFactory: new ThemeStorageFactory(_live.StoreService, _live, _live, _live)));
     }
 
     private HistoryController HistoryController(RecordingContentHistory history)

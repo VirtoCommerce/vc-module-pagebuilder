@@ -1,7 +1,4 @@
-import { useApiClient } from "@vc-shell/framework";
-import { PageBuilderPageClient, GroupedPageBuilderPage } from "../../../api_client/virtocommerce.pagebuildermodule";
-
-const { getApiClient } = useApiClient(PageBuilderPageClient);
+import { GroupedPageBuilderPage } from "../../../api_client/virtocommerce.pagebuildermodule";
 
 export interface PageExportData {
   name?: string;
@@ -15,19 +12,9 @@ export interface PageExportData {
   content: unknown;
 }
 
-export async function getAuthHeaders(): Promise<Record<string, string>> {
-  const client = await getApiClient();
-  const headers: Record<string, string> = {};
-  if ((client as any).authToken) {
-    headers["authorization"] = `Bearer ${(client as any).authToken}`;
-  }
-  return headers;
-}
-
 export async function downloadPageContent(groupId: string, page: GroupedPageBuilderPage): Promise<void> {
-  const headers = await getAuthHeaders();
   const url = `/api/page-builder-pages/grouped/${encodeURIComponent(groupId)}/content?draft=true`;
-  const response = await fetch(url, { headers });
+  const response = await fetch(url);
 
   if (!response.ok) {
     throw new Error(`Failed to download content: ${response.status}`);

@@ -735,6 +735,21 @@ public class DesignerSaveTests
     }
 
     [Fact]
+    public async Task DiscardDesignerChanges_FilePageNeverPublished_ReturnsBadRequestAndPutsTheThemeDraftsBack()
+    {
+        _live.Files["about.page-draft"] = "draft about";
+        _live.Files[Header] = "live header";
+        _live.Files[$"{Header}-draft"] = HeaderFile;
+
+        var result = await Builder().DiscardDesignerChanges("s1", Discard(new DesignerSavePage { Path = "about.page", Type = "pages" }, Header));
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.Equal("draft about", _live.Files["about.page-draft"]);
+        Assert.Equal(HeaderFile, _live.Files[$"{Header}-draft"]);
+        Assert.Empty(_history.Records);
+    }
+
+    [Fact]
     public async Task SaveDesignerChanges_SecondThemeFileWriteFails_PutsTheFirstBack()
     {
         await SaveCatalogAsync();
@@ -868,7 +883,8 @@ public class DesignerSaveTests
             contentPermissionService: TestServices.Permissions(authorization),
             filePageDraftService: filePageDrafts,
             designerSaveValidator: RequestValidators.DesignerSave,
-            designerDiscardValidator: RequestValidators.DesignerDiscard);
+            designerDiscardValidator: RequestValidators.DesignerDiscard,
+            themeStorageFactory: _themes);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext

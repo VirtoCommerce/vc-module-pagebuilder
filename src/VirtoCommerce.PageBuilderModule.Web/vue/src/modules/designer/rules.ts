@@ -1,4 +1,4 @@
-import { clone, isRecord, isText } from "./json";
+import { clone, isRecord, isText, isTextList } from "./json";
 import type { ConditionDescriptor } from "./previewMessages";
 import { checkCondition, conditionsFor } from "./ruleConditions";
 import { PAGE_TYPES, pageTypeOf, type PageType } from "./templates";
@@ -91,8 +91,7 @@ export function validateRules(value: unknown, descriptors: ConditionDescriptor[]
   if (!isRecord(value)) return [{ path: "", code: "NOT_OBJECT" }];
   const errors: RuleError[] = [];
   if (value.version !== undefined && value.version !== 1 && value.version !== RULES_VERSION) errors.push({ path: "version", code: "VERSION" });
-  if (value.conditions !== undefined && !(Array.isArray(value.conditions) && value.conditions.every((x) => typeof x === "string")))
-    errors.push({ path: "conditions", code: "TEXT_LIST" });
+  if (value.conditions !== undefined && !isTextList(value.conditions)) errors.push({ path: "conditions", code: "TEXT_LIST" });
   for (const type of PAGE_TYPES) {
     const list = value[type];
     const ids = new Set<string>();

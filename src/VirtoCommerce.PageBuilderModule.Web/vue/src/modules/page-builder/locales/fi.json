@@ -233,28 +233,14 @@
         "CANCEL": "Peruuta"
       }
     },
-    "LIFECYCLE": {
-      "DRAFT": "Luonnos",
-      "PENDING": "Tarkistettavana",
-      "ACTIVE": "Julkaistu",
-      "ARCHIVED": "Arkistoitu"
-    },
     "SITE_TAB": {
       "TITLE": "Sivut",
       "SHOW": "Näytä",
-      "FILTER": {
-        "ALL": "Kaikki sivut",
-        "DRAFT": "Luonnokset",
-        "PENDING": "Tarkistettavana",
-        "ACTIVE": "Julkaistu",
-        "ARCHIVED": "Arkistoitu"
-      },
       "NEW_PAGE": "Uusi sivu",
       "EMPTY": "Täällä ei ole vielä sivuja.",
       "DETAILS": "Sivun tiedot"
     },
     "DESIGNER": {
-      "TITLE": "Suunnittelija: {name}",
       "SECTIONS": "Osiot",
       "GROUPS": {
         "HEADER": "Ylätunniste",
@@ -368,7 +354,6 @@
       "NOTHING_PUBLISHED": "Mitään ei julkaistu. Avaa sivu uudelleen nähdäksesi toisen version.",
       "HISTORY": {
         "TITLE": "Versiohistoria",
-        "OTHERS": "Muiden henkilöiden julkaisemattomat versiot: {count}",
         "EMPTY": "Versioita ei ole vielä: tallenna sivu luodaksesi ensimmäisen.",
         "FAILED": "Versioita ei voitu ladata.",
         "PUBLISHED": "Julkaistu",
@@ -644,7 +629,6 @@
       "WIDGET": "Historia",
       "ON": "Käytössä",
       "OFF": "Pois käytöstä",
-      "STATUS": "Tila",
       "REPOSITORY": "Tietovarasto",
       "BRANCH": "Haara",
       "LAST_CHANGE": "Viimeisin julkaistu muutos",
@@ -675,13 +659,10 @@
       "OPEN_GITHUB": "GitHub-yhteys"
     },
     "GITHUB": {
-      "TITLE": "GitHub",
       "INTRO": "Yhdistä alusta kerran GitHub-organisaatioon. Jokainen sivusto säilyttää sen jälkeen sivujensa versiot omassa yksityisessä repositoriossaan siellä.",
       "CONNECTED_HINT": "Jokainen sivusto säilyttää sivujensa versiot omassa yksityisessä repositoriossaan organisaatiossa {organization}. Ota historia käyttöön sivuston Historia-paneelista.",
-      "STATUS": "Tila",
       "CONNECTED": "Yhdistetty",
       "FAILING": "Ei toimi",
-      "ORGANIZATION": "Organisaatio",
       "APP": "GitHub-sovellus",
       "FROM_CONFIGURATION": "Alustan asetuksista",
       "NEW_SITES": "Uudet sivustot",

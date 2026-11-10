@@ -49,3 +49,18 @@ describe("renaming a shared component after the server failed", () => {
     expect(wrapper.emitted("rename")).toEqual([["New"]]);
   });
 });
+
+describe("closing the rename dialog", () => {
+  it("closes once when the dialog reports both that it is hidden and that it closed", () => {
+    const wrapper = mount(RenameSharedComponentPopup, {
+      props: { component: { id: "c1", storeId: "s1", name: "Old", usageCount: 0, usagePages: [] } },
+      global: { stubs: { VcInput } },
+    });
+    const popup = wrapper.findComponent({ name: "VcPopup" });
+
+    popup.vm.$emit("update:modelValue", false);
+    popup.vm.$emit("close");
+
+    expect(wrapper.emitted("close")).toHaveLength(1);
+  });
+});

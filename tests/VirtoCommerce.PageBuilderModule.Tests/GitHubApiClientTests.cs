@@ -71,6 +71,26 @@ public class GitHubApiClientTests
     }
 
     [Fact]
+    public async Task FastForwardBranchAsync_NotAFastForward_ReturnsFalse()
+    {
+        var github = new GitHubScript(("PATCH", $"repos/{Repo}/git/refs/heads/main", (_, _) =>
+            GitHubScript.Json("""{ "message": "Update is not a fast forward" }""", HttpStatusCode.UnprocessableEntity)));
+
+        Assert.False(await new GitHubApiClient(github).FastForwardBranchAsync(Repo, "main", "c1", TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task FastForwardBranchAsync_RefusedForAnotherReason_ThrowsGitContentException()
+    {
+        var github = new GitHubScript(("PATCH", $"repos/{Repo}/git/refs/heads/main", (_, _) =>
+            GitHubScript.Json("""{ "message": "Repository rule violations found" }""", HttpStatusCode.UnprocessableEntity)));
+
+        var error = await Assert.ThrowsAsync<GitContentException>(() => new GitHubApiClient(github).FastForwardBranchAsync(Repo, "main", "c1", TestContext.Current.CancellationToken));
+
+        Assert.Contains("Repository rule violations found", error.Message);
+    }
+
+    [Fact]
     public async Task PostGraphQlAsync_ErrorsInSuccessfulResponse_ThrowsGitContentException()
     {
         var github = new GitHubScript(("POST", "graphql", (request, _) =>

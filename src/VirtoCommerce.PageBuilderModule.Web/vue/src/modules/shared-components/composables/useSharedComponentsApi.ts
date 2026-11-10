@@ -61,8 +61,6 @@ function mapSharedComponent(component: PageBuilderSharedComponent): SharedCompon
     name: component.name ?? "",
     usageCount: component.usageCount ?? usagePages.length,
     usagePages,
-    createdBy: component.createdBy,
-    createdDate: component.createdDate,
     modifiedBy: component.modifiedBy,
     modifiedDate: component.modifiedDate,
   };

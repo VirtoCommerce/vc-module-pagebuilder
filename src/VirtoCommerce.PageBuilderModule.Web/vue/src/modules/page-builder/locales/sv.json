@@ -233,28 +233,14 @@
         "CANCEL": "Avbryt"
       }
     },
-    "LIFECYCLE": {
-      "DRAFT": "Utkast",
-      "PENDING": "Under granskning",
-      "ACTIVE": "Publicerad",
-      "ARCHIVED": "Arkiverad"
-    },
     "SITE_TAB": {
       "TITLE": "Sidor",
       "SHOW": "Visa",
-      "FILTER": {
-        "ALL": "Alla sidor",
-        "DRAFT": "Utkast",
-        "PENDING": "Under granskning",
-        "ACTIVE": "Publicerad",
-        "ARCHIVED": "Arkiverad"
-      },
       "NEW_PAGE": "Ny sida",
       "EMPTY": "Inga sidor här ännu.",
       "DETAILS": "Siddetaljer"
     },
     "DESIGNER": {
-      "TITLE": "Designer: {name}",
       "SECTIONS": "Sektioner",
       "GROUPS": {
         "HEADER": "Sidhuvud",
@@ -368,7 +354,6 @@
       "NOTHING_PUBLISHED": "Inget publicerades. Öppna sidan igen för att se den andra versionen.",
       "HISTORY": {
         "TITLE": "Versionshistorik",
-        "OTHERS": "{count} opublicerade version(er) av andra",
         "EMPTY": "Inga versioner än: spara sidan för att skapa den första.",
         "FAILED": "Versionerna kunde inte läsas in.",
         "PUBLISHED": "Publicerad",
@@ -644,7 +629,6 @@
       "WIDGET": "Historik",
       "ON": "På",
       "OFF": "Av",
-      "STATUS": "Status",
       "REPOSITORY": "Arkiv",
       "BRANCH": "Gren",
       "LAST_CHANGE": "Senast publicerade ändring",
@@ -675,13 +659,10 @@
       "OPEN_GITHUB": "GitHub-anslutning"
     },
     "GITHUB": {
-      "TITLE": "GitHub",
       "INTRO": "Anslut plattformen till en GitHub-organisation en gång. Varje webbplats sparar sedan versionerna av sina sidor i ett eget privat repositorium där.",
       "CONNECTED_HINT": "Varje webbplats sparar versionerna av sina sidor i ett eget privat repositorium i {organization}. Aktivera historik för en webbplats från dess Historik-panel.",
-      "STATUS": "Status",
       "CONNECTED": "Ansluten",
       "FAILING": "Fungerar inte",
-      "ORGANIZATION": "Organisation",
       "APP": "GitHub-app",
       "FROM_CONFIGURATION": "Från plattformens konfiguration",
       "NEW_SITES": "Nya webbplatser",

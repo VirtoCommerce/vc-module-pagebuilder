@@ -16,7 +16,7 @@ public interface IDesignerContentService
     Task<DesignerSaveResult> SaveAsync(DesignerSaveCommand command, ClaimsPrincipal user, CancellationToken cancellationToken = default);
 
     /// <summary>A theme file never published keeps its draft.</summary>
-    /// <exception cref="InvalidDataException">The database page has never been published.</exception>
+    /// <exception cref="InvalidDataException">The page has never been published.</exception>
     Task<ContentSaveResult> DiscardAsync(DesignerDiscardCommand command, ClaimsPrincipal user, CancellationToken cancellationToken = default);
 
     Task<ContentSaveResult> RestoreAsync(ContentRestoreCommand command, ClaimsPrincipal user, CancellationToken cancellationToken = default);

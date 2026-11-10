@@ -2,7 +2,7 @@
   <aside
     ref="detailsElement"
     tabindex="-1"
-    class="tw-flex tw-w-full tw-shrink-0 tw-flex-col tw-border-0 tw-border-t tw-border-solid tw-border-t-[color:var(--neutrals-200)] tw-bg-[color:var(--additional-50)] tw-p-4 lg:tw-w-[420px] lg:tw-border-l lg:tw-border-t-0 lg:tw-border-l-[color:var(--neutrals-200)]"
+    class="tw-flex tw-w-full tw-shrink-0 tw-flex-col tw-border-0 tw-border-t tw-border-solid tw-border-t-[color:var(--neutrals-200)] tw-bg-[color:var(--additional-50)] tw-p-4 lg:tw-w-[420px] lg:tw-border-s lg:tw-border-t-0 lg:tw-border-s-[color:var(--neutrals-200)]"
     :aria-label="$t('SHARED_COMPONENTS.DETAILS.COMPONENT_DETAILS')"
     @click.stop
   >
@@ -68,7 +68,7 @@
           v-for="page in component.usagePages"
           :key="page.id || [page.permalink, page.cultureName, page.status].join('-')"
           type="button"
-          class="tw-flex tw-w-full tw-cursor-pointer tw-items-start tw-gap-2 tw-border-0 tw-border-b tw-border-solid tw-border-b-[color:var(--neutrals-200)] tw-bg-transparent tw-px-1 tw-py-2 tw-text-left tw-text-sm tw-font-normal tw-text-inherit hover:tw-bg-[color:var(--neutrals-50)] focus-visible:tw-ring-2 focus-visible:tw-ring-inset focus-visible:tw-ring-[color:var(--primary-500)] disabled:tw-cursor-default disabled:hover:tw-bg-transparent"
+          class="tw-flex tw-w-full tw-cursor-pointer tw-items-start tw-gap-2 tw-border-0 tw-border-b tw-border-solid tw-border-b-[color:var(--neutrals-200)] tw-bg-transparent tw-px-1 tw-py-2 tw-text-start tw-text-sm tw-font-normal tw-text-inherit hover:tw-bg-[color:var(--neutrals-50)] focus-visible:tw-ring-2 focus-visible:tw-ring-inset focus-visible:tw-ring-[color:var(--primary-500)] disabled:tw-cursor-default disabled:hover:tw-bg-transparent"
           :disabled="!canOpenUsagePage(page)"
           @click="$emit('open-designer', page)"
         >
@@ -158,12 +158,13 @@ import { useI18n } from "vue-i18n";
 import { VcButton, VcHint, VcIcon, VcSkeleton } from "@vc-shell/framework/ui";
 import type { SharedComponent, SharedComponentUsagePage } from "../types";
 import { getUsagePageTitle } from "../utilities";
+import { PageStatuses } from "../../page-builder/composables";
 
 interface Props {
   component: SharedComponent;
   canUpdate: boolean;
   canDelete: boolean;
-  canOpenDesigner: boolean;
+  canOpenUsagePage: (page: SharedComponentUsagePage) => boolean;
   canEditContent: boolean;
   loading: boolean;
   detailsLoading: boolean;
@@ -208,12 +209,8 @@ const formattedModifiedDate = computed(() => {
     : new Intl.DateTimeFormat(locale.value, { dateStyle: "medium", timeStyle: "short" }).format(date);
 });
 
-function canOpenUsagePage(page: SharedComponentUsagePage): boolean {
-  return props.canOpenDesigner && Boolean(page.id?.trim()) && page.status !== "Archived";
-}
-
 function getUsagePageUnavailableReason(page: SharedComponentUsagePage): string | undefined {
-  if (canOpenUsagePage(page)) {
+  if (props.canOpenUsagePage(page)) {
     return undefined;
   }
 
@@ -221,7 +218,7 @@ function getUsagePageUnavailableReason(page: SharedComponentUsagePage): string |
     return t("SHARED_COMPONENTS.DETAILS.OPEN_UNAVAILABLE_IDENTITY");
   }
 
-  if (page.status === "Archived") {
+  if (page.status === PageStatuses.Archived) {
     return t("SHARED_COMPONENTS.DETAILS.OPEN_UNAVAILABLE_ARCHIVED");
   }
 

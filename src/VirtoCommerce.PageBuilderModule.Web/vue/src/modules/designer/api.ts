@@ -19,31 +19,11 @@ import { parseThemeStatus, publishThemeUrl, type ThemeStatus } from "./themePubl
 import { checkBody, checkPaletteUrl, generateBody, generatePaletteUrl, parseCheck, parseGenerated, type GeneratedPalettes, type PaletteCheck } from "./paletteContrast";
 import type { PaletteTokens } from "./previewMessages";
 import type { ThemeLook } from "./themeLook";
-import { getAuthHeaders } from "../page-builder/composables/usePageContentApi";
 
 // The generated client types the content endpoints as void, so these calls are written by hand.
 
-/** The version the site's history records is named after this id. */
-let currentSave: string | undefined;
-
-// A plain-http host has no crypto.randomUUID, but getRandomValues works there too.
-const newSaveId = () =>
-  globalThis.crypto.randomUUID?.() ??
-  Array.from(globalThis.crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, "0")).join("");
-
-export async function asOneSave<T>(action: () => Promise<T>): Promise<T> {
-  if (currentSave) return action();
-  currentSave = newSaveId();
-  try {
-    return await action();
-  } finally {
-    currentSave = undefined;
-  }
-}
-
 async function call(url: string, init: RequestInit = {}) {
-  const save: Record<string, string> = currentSave ? { "X-PageBuilder-Save": currentSave } : {};
-  const res = await fetch(url, { ...init, headers: { ...(await getAuthHeaders()), ...save, ...init.headers } });
+  const res = await fetch(url, init);
   if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => ""));
   return res;
 }
@@ -156,11 +136,33 @@ export async function saveSharedComponentContent(id: string, doc: PageDocument) 
   });
 }
 
+interface Store {
+  defaultLanguage?: string;
+  defaultCurrency?: string;
+  languages?: unknown;
+  settings?: { name?: string; value?: unknown }[];
+  dynamicProperties?: { name?: string; values?: { value?: unknown }[] }[];
+}
+
+const storeReads = new Map<string, Promise<Store>>();
+
+// Only reads under way are shared, so a designer opened later sees the store as it is then.
+function loadStore(storeId: string): Promise<Store> {
+  let read = storeReads.get(storeId);
+  if (!read) {
+    read = call(`/api/stores/${encodeURIComponent(storeId)}`)
+      .then((res) => res.json() as Promise<Store>)
+      .finally(() => storeReads.delete(storeId));
+    storeReads.set(storeId, read);
+  }
+  return read;
+}
+
 export async function loadStorefront(storeId: string) {
   const [store, storefront] = (await Promise.all([
-    call(`/api/stores/${encodeURIComponent(storeId)}`).then((res) => res.json()),
+    loadStore(storeId),
     call(`/api/pagebuilder/designer/storefront?${new URLSearchParams({ storeId })}`).then((res) => res.json()),
-  ])) as [{ defaultLanguage?: string; defaultCurrency?: string; languages?: string[] }, { url?: string; previewPath: string }];
+  ])) as [Store, { url?: string; previewPath: string }];
   return {
     url: storefront.url || undefined,
     previewPath: storefront.previewPath,
@@ -170,7 +172,7 @@ export async function loadStorefront(storeId: string) {
 }
 
 export async function loadPreviewUsers(storeId: string): Promise<PreviewUser[]> {
-  const ids = previewUserIds(await (await call(`/api/stores/${encodeURIComponent(storeId)}`)).json());
+  const ids = previewUserIds(await loadStore(storeId));
   if (!ids.length) return [];
   const found = await call("/api/platform/security/users/search", {
     method: "POST",
@@ -204,9 +206,7 @@ const fileArgs = (page: FilePage, extra: Record<string, string> = {}) =>
   new URLSearchParams({ storeId: page.storeId, path: page.path, type: page.type, ...extra }).toString();
 
 export async function storeTheme(storeId: string): Promise<string> {
-  const store = (await (await call(`/api/stores/${encodeURIComponent(storeId)}`)).json()) as {
-    dynamicProperties?: { name?: string; values?: { value?: unknown }[] }[];
-  };
+  const store = await loadStore(storeId);
   const value = store.dynamicProperties?.find((x) => x.name === "DefaultThemeName")?.values?.[0]?.value;
   return (typeof value === "string" && value) || "default";
 }
@@ -321,7 +321,7 @@ export async function templateKeys(storeId: string, theme: string): Promise<stri
 }
 
 export async function gitFlowOf(storeId: string, theme: string): Promise<{ on: boolean }> {
-  const res = await fetch(`/api/pagebuilder/settings?${new URLSearchParams({ storeId, theme })}`, { headers: await getAuthHeaders() });
+  const res = await fetch(`/api/pagebuilder/settings?${new URLSearchParams({ storeId, theme })}`, );
   if (!res.ok) return { on: false };
   const settings = (await res.json().catch(() => ({}))) as { history?: unknown };
   return { on: !!settings.history };

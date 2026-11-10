@@ -71,7 +71,6 @@ test("JSON.stringify takes no replacer", () => {
 });
 
 test("a helper is not handed what the context has no name for", () => {
-  let called = false;
-  assert.throws(() => evaluate("walk([constructor])", {}, { walk: () => (called = true) }), UnsupportedExpressionError);
-  assert.equal(called, false);
+  unsupported("encodeURIComponent(constructor)");
+  unsupported("encodeURIComponent([constructor])");
 });

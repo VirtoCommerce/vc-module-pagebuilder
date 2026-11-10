@@ -37,10 +37,12 @@ public class GitContentFailureAttributeTests
         Assert.Null(context.Result);
     }
 
-    [Fact]
-    public void PageBuilderController_HasTheAttribute()
+    [Theory]
+    [InlineData(typeof(PageBuilderController))]
+    [InlineData(typeof(HistoryController))]
+    public void Controller_CallsGitHub_HasTheAttribute(Type controller)
     {
-        Assert.NotNull(typeof(PageBuilderController).GetCustomAttribute<GitContentFailureAttribute>());
+        Assert.NotNull(controller.GetCustomAttribute<GitContentFailureAttribute>());
     }
 
     private static ExceptionContext Context(Exception exception) =>

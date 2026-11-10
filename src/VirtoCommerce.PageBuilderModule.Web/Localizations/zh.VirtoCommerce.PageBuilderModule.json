@@ -71,9 +71,9 @@
         "title": "删除旧草稿文件？",
         "message": "“{{path}}”是此店铺迁移到内容仓库之前遗留的文件。页面本身不受影响。"
       },
-      "delete-legacy-draft-unsaved": {
-        "title": "删除旧草稿文件？",
-        "message": "“{{path}}”中仍有不在内容仓库中的更改。删除后这些更改将丢失。已发布的页面不受影响。"
+      "legacy-draft-changed": {
+        "title": "已保留草稿文件",
+        "message": "此草稿包含已发布页面中没有的更改，删除它会丢失这些更改。"
       },
       "legacy-draft-kept": {
         "title": "已保留草稿文件",

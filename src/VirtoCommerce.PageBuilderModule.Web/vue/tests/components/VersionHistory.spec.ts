@@ -7,7 +7,7 @@ import { compileStyle, parse } from "vue/compiler-sfc";
 import VersionHistory from "../../src/modules/designer/components/VersionHistory.vue";
 import type { HistoryVersion } from "../../src/modules/designer/history";
 
-const version = (id: string): HistoryVersion => ({ id, label: id, message: "Saved", date: "2026-11-09T10:00:00Z", items: [`page:${id}`] }) as HistoryVersion;
+const version = (id: string): HistoryVersion => ({ id, label: id, description: "Saved", date: "2026-11-09T10:00:00Z", items: [`page:${id}`] });
 
 async function mountPanel(restoreRefused?: (version: HistoryVersion) => string | undefined) {
   const wrapper = mount(VersionHistory, {

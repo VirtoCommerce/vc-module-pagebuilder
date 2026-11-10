@@ -246,8 +246,8 @@ interface ThemeSnapshot {
   theme: string;
   /** the language of the texts */
   cultureName: string;
-  /** the hash of the section schema catalog the publication was validated against */
-  catalogHash: string;
+  /** the hash of the section schema catalog the publication was validated against; null for the first publication, which names no catalog */
+  catalogHash: string | null;
   rules: TemplateRules;
   /** every template of the theme, by key */
   templates: Record<string, PageDocument>;

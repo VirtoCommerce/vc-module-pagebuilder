@@ -74,13 +74,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
-import { debounce } from "lodash-es";
+import { computed, ref } from "vue";
 import { VcButton, VcIcon, VcInput } from "@vc-shell/framework/ui";
 import type { Designer } from "../useDesigner";
 import type { SectionGroup } from "../types";
 import { iconOf } from "../schema";
-import { searchSharedComponents, type SharedComponent } from "../api";
+import type { SharedComponent } from "../api";
+import { useSharedComponentSearch } from "../useSharedComponentSearch";
 
 const props = defineProps<{ designer: Designer; group?: SectionGroup }>();
 const emit = defineEmits<{ preview: [type: string | null]; close: [] }>();
@@ -92,18 +92,10 @@ const shown = computed(() => {
   return types.filter((x) => !keyword || (x.schema.name ?? x.type).toLowerCase().includes(keyword));
 });
 
-const shared = ref<SharedComponent[]>([]);
-let searches = 0;
-const loadShared = debounce(async () => {
-  const request = ++searches;
-  const found =
-    props.designer.storeId.value && props.designer.canPlaceShared.value
-      ? await searchSharedComponents(props.designer.storeId.value, search.value).catch(() => [])
-      : [];
-  // An earlier search that answers last must not replace a later one's results.
-  if (request === searches) shared.value = found;
-}, 250);
-watch(search, loadShared, { immediate: true });
+const { components: shared } = useSharedComponentSearch(
+  () => (props.designer.canPlaceShared.value && !props.group ? props.designer.storeId.value : undefined),
+  search,
+);
 
 function addShared(component: SharedComponent) {
   props.designer.insertShared(component);

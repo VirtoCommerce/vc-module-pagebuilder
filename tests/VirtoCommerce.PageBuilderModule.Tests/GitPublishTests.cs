@@ -14,6 +14,7 @@ using VirtoCommerce.ContentModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
+using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using Xunit;
 
@@ -415,7 +416,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 contentPermissionService: TestServices.Permissions(new FakeAuthorizationService(true)),
                 filePageDraftService: filePageDrafts,
             designerSaveValidator: RequestValidators.DesignerSave,
-            designerDiscardValidator: RequestValidators.DesignerDiscard);
+            designerDiscardValidator: RequestValidators.DesignerDiscard,
+            themeStorageFactory: new ThemeStorageFactory(live.StoreService, live, live, live));
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, Login)], "test");
             controller.ControllerContext = new ControllerContext

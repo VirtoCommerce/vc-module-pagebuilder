@@ -71,9 +71,9 @@
         "title": "Supprimer l'ancien fichier de brouillon ?",
         "message": "\"{{path}}\" date d'avant le passage de cette boutique au dépôt de contenu. La page elle-même n'est pas modifiée."
       },
-      "delete-legacy-draft-unsaved": {
-        "title": "Supprimer l'ancien fichier de brouillon ?",
-        "message": "\"{{path}}\" contient encore des modifications absentes du dépôt de contenu. Si vous le supprimez, elles seront perdues. La page publiée n'est pas modifiée."
+      "legacy-draft-changed": {
+        "title": "Le fichier de brouillon a été conservé",
+        "message": "Ce brouillon contient des modifications absentes de la page publiée : le supprimer les ferait perdre."
       },
       "legacy-draft-kept": {
         "title": "Le fichier de brouillon a été conservé",

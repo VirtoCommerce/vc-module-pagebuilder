@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Mvc;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
-using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Web.Extensions;
 using VirtoCommerce.Platform.Core.Common;
 
@@ -29,6 +28,7 @@ public class ThemeController(
 {
     [HttpPost("theme/publish")]
     [Authorize(ModuleConstants.Security.Permissions.Publish)]
+    [ProducesResponseType(typeof(ThemePublicationPointer), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ThemePublicationPointer>> Publish([FromQuery] string storeId, [FromQuery] string catalogHash, CancellationToken cancellationToken = default)
@@ -51,6 +51,7 @@ public class ThemeController(
     }
 
     [HttpGet("theme/status")]
+    [ProducesResponseType(typeof(ThemeStatus), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ThemeStatus>> GetStatus([FromQuery] string storeId, CancellationToken cancellationToken = default)
@@ -65,6 +66,7 @@ public class ThemeController(
 
     [HttpPut("catalog")]
     [Authorize(ModuleConstants.Security.Permissions.Update)]
+    [ProducesResponseType(typeof(SchemaCatalogPointer), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<SchemaCatalogPointer>> SaveCatalog([FromQuery] string storeId, CancellationToken cancellationToken = default)
@@ -91,6 +93,8 @@ public class ThemeController(
 
     [HttpGet("catalog")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> GetCatalog([FromQuery] string storeId, [FromQuery] string hash, CancellationToken cancellationToken = default)
     {
@@ -105,6 +109,7 @@ public class ThemeController(
 
     [HttpPost("theme/palette")]
     [Authorize(ModuleConstants.Security.Permissions.Theme)]
+    [ProducesResponseType(typeof(ThemePaletteGenerationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ThemePaletteGenerationResult>> GeneratePalette([FromQuery] string storeId, [FromBody] ThemePaletteGenerationRequest request, CancellationToken cancellationToken = default)
@@ -119,6 +124,7 @@ public class ThemeController(
 
     [HttpPost("theme/palette/check")]
     [Authorize(ModuleConstants.Security.Permissions.Theme)]
+    [ProducesResponseType(typeof(ThemePaletteCheckResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ThemePaletteCheckResult>> CheckPalette([FromQuery] string storeId, [FromBody] ThemePaletteCheckRequest request, CancellationToken cancellationToken = default)
@@ -131,18 +137,11 @@ public class ThemeController(
         return Ok(themePaletteService.CheckPalette(request));
     }
 
-    // access first, so a 400 does not reveal which stores exist
-    private async Task<ActionResult> CheckRequestAsync(string storeId, CancellationToken cancellationToken, string catalogHash = null)
+    private Task<ActionResult> CheckRequestAsync(string storeId, CancellationToken cancellationToken, string catalogHash = null)
     {
         var request = new PageBuilderStoreRequest { StoreId = storeId, CatalogHash = catalogHash };
 
-        return await CheckStoreAccessAsync(request) ?? await storeRequestValidator.ValidateRequestAsync(request, ModelState, cancellationToken);
-    }
-
-    private async Task<ActionResult> CheckStoreAccessAsync(PageBuilderStoreRequest request)
-    {
-        var authorizationResult = await authorizationService.AuthorizeAsync(User, request, new PageBuilderAuthorizationRequirement());
-        return authorizationResult.Succeeded ? null : Forbid();
+        return authorizationService.CheckStoreRequestAsync(User, storeRequestValidator, request, ModelState, cancellationToken);
     }
 
     private async Task<ActionResult> ValidateBodyAsync<T>(IValidator<T> validator, T request, CancellationToken cancellationToken)

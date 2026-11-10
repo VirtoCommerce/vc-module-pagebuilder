@@ -1,4 +1,4 @@
-import { getBladeConfig, notification, useBlade } from "@vc-shell/framework";
+import { notification, useBlade } from "@vc-shell/framework";
 import { useI18n } from "vue-i18n";
 import { canOpenPageDesigner, openPageDesigner, type PageDesignerContext } from "../../../../utilities/pageDesigner";
 import useUrlParams from "../useStoreParams";
@@ -16,10 +16,6 @@ export function usePageDesigner() {
       return;
     }
     if (!newPageBuilder) {
-      openPageDesigner(context, true);
-      return;
-    }
-    if (!getBladeConfig("PageBuilderDesigner")) {
       openPageDesigner(context);
       return;
     }

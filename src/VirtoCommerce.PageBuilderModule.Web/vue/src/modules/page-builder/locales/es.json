@@ -233,28 +233,14 @@
         "CANCEL": "Cancelar"
       }
     },
-    "LIFECYCLE": {
-      "DRAFT": "Borrador",
-      "PENDING": "En revisión",
-      "ACTIVE": "Publicado",
-      "ARCHIVED": "Archivado"
-    },
     "SITE_TAB": {
       "TITLE": "Páginas",
       "SHOW": "Mostrar",
-      "FILTER": {
-        "ALL": "Todas las páginas",
-        "DRAFT": "Borradores",
-        "PENDING": "En revisión",
-        "ACTIVE": "Publicado",
-        "ARCHIVED": "Archivado"
-      },
       "NEW_PAGE": "Nueva página",
       "EMPTY": "Aún no hay páginas aquí.",
       "DETAILS": "Detalles de la página"
     },
     "DESIGNER": {
-      "TITLE": "Diseñador: {name}",
       "SECTIONS": "Secciones",
       "GROUPS": {
         "HEADER": "Encabezado",
@@ -368,7 +354,6 @@
       "NOTHING_PUBLISHED": "No se publicó nada. Vuelva a abrir la página para ver la otra versión.",
       "HISTORY": {
         "TITLE": "Historial de versiones",
-        "OTHERS": "{count} versión(es) sin publicar de otras personas",
         "EMPTY": "Aún no hay versiones: guarde la página para crear la primera.",
         "FAILED": "No se pudieron cargar las versiones.",
         "PUBLISHED": "Publicado",
@@ -644,7 +629,6 @@
       "WIDGET": "Historial",
       "ON": "Activado",
       "OFF": "Desactivado",
-      "STATUS": "Estado",
       "REPOSITORY": "Repositorio",
       "BRANCH": "Rama",
       "LAST_CHANGE": "Último cambio publicado",
@@ -675,13 +659,10 @@
       "OPEN_GITHUB": "Conexión con GitHub"
     },
     "GITHUB": {
-      "TITLE": "GitHub",
       "INTRO": "Conecte la plataforma a una organización de GitHub una sola vez. Cada sitio guarda entonces las versiones de sus páginas en su propio repositorio privado allí.",
       "CONNECTED_HINT": "Cada sitio guarda las versiones de sus páginas en su propio repositorio privado en {organization}. Active el historial de un sitio desde su panel Historial.",
-      "STATUS": "Estado",
       "CONNECTED": "Conectado",
       "FAILING": "No funciona",
-      "ORGANIZATION": "Organización",
       "APP": "GitHub App",
       "FROM_CONFIGURATION": "De la configuración de la plataforma",
       "NEW_SITES": "Sitios nuevos",

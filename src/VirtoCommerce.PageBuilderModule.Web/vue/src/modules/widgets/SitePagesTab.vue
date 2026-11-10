@@ -49,7 +49,7 @@
                 :class="`site-pages__dot--${pageLifecycle(page.page).toLowerCase()}`"
                 aria-hidden="true"
               />
-              {{ $t(`PAGE_BUILDER.LIFECYCLE.${pageLifecycle(page.page).toUpperCase()}`) }}
+              {{ $t(`PAGE_BUILDER.MENU.${pageLifecycle(page.page).toUpperCase()}_TITLE`) }}
             </template>
             <LanguagePills
               v-else
@@ -136,11 +136,11 @@ const { items, pagination, searchQuery, loadPages, loading, storeContextStatus }
 
 const filter = ref<string>(ALL);
 const filterOptions = computed(() => [
-  { value: ALL, label: t("PAGE_BUILDER.SITE_TAB.FILTER.ALL") },
-  { value: PageLifecycleFilters.Draft, label: t("PAGE_BUILDER.SITE_TAB.FILTER.DRAFT") },
-  { value: PageLifecycleFilters.Pending, label: t("PAGE_BUILDER.SITE_TAB.FILTER.PENDING") },
-  { value: PageLifecycleFilters.Active, label: t("PAGE_BUILDER.SITE_TAB.FILTER.ACTIVE") },
-  { value: PageLifecycleFilters.Archived, label: t("PAGE_BUILDER.SITE_TAB.FILTER.ARCHIVED") },
+  { value: ALL, label: t("PAGE_BUILDER.MENU.TITLE") },
+  { value: PageLifecycleFilters.Draft, label: t("PAGE_BUILDER.MENU.DRAFT_TITLE") },
+  { value: PageLifecycleFilters.Pending, label: t("PAGE_BUILDER.MENU.PENDING_TITLE") },
+  { value: PageLifecycleFilters.Active, label: t("PAGE_BUILDER.MENU.ACTIVE_TITLE") },
+  { value: PageLifecycleFilters.Archived, label: t("PAGE_BUILDER.MENU.ARCHIVED_TITLE") },
 ]);
 const isStoreContextInvalid = computed(() => ["notFound", "error"].includes(storeContextStatus.value));
 const openPageId = ref<string>();

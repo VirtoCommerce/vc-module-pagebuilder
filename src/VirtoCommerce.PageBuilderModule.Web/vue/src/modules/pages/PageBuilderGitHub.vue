@@ -172,34 +172,31 @@
 import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useEventListener } from "@vueuse/core";
-import { type IBladeToolbar } from "@vc-shell/framework";
+import { useApiClient, type IBladeToolbar } from "@vc-shell/framework";
 import { VcBanner, VcBlade, VcButton, VcInput, VcStatus } from "@vc-shell/framework/ui";
+import { GitContentSetupClient, type GitContentConnectionStatus } from "../../api_client/virtocommerce.pagebuildermodule";
 import GitCard from "../page-builder/components/GitCard.vue";
-import { getAuthHeaders } from "../page-builder/composables/usePageContentApi";
-import { gitHubAppSetupUrl, gitHubConnectionUrl, type GitHubConnection } from "../widgets/siteGit";
+import { gitErrorMessage } from "../widgets/siteGit";
 
 defineBlade({
   name: "PageBuilderGitHub",
   url: "/page-builder-github",
-  permissions: "store:read",
+  permissions: "builder:read",
 });
 
 const { t } = useI18n({ useScope: "global" });
+const { getApiClient } = useApiClient(GitContentSetupClient);
 
-const connection = ref<GitHubConnection>();
+const connection = ref<GitContentConnectionStatus>();
 const busy = ref(false);
 const actionError = ref<string>();
 const settingUp = ref(false);
 const organization = ref("");
 let appCreationOpen = false;
 
-async function request<T>(url: string): Promise<T> {
-  const response = await fetch(url, { headers: await getAuthHeaders() });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error((body as { error?: string }).error ?? `${response.status} ${response.statusText}`);
-  return body as T;
-}
+const errorMessage = (error: unknown) => gitErrorMessage(error, t("PERMISSION_MESSAGES.ACCESS_RESTRICTED"));
 
+// Reading the connection asks GitHub live, so it is also the connection test.
 const refresh = () => {
   actionError.value = undefined;
   return loadConnection();
@@ -208,9 +205,9 @@ const refresh = () => {
 async function loadConnection() {
   busy.value = true;
   try {
-    connection.value = await request<GitHubConnection>(gitHubConnectionUrl);
+    connection.value = await (await getApiClient()).getConnection();
   } catch (error) {
-    actionError.value = error instanceof Error ? error.message : String(error);
+    actionError.value = errorMessage(error);
   } finally {
     busy.value = false;
   }
@@ -226,13 +223,13 @@ async function createApp() {
   actionError.value = undefined;
   try {
     const { pathname, search, hash } = window.location;
-    const { url } = await request<{ url: string }>(gitHubAppSetupUrl(organization.value, pathname + search + hash));
-    if (tab) tab.location.href = url;
+    const { url } = await (await getApiClient()).startAppSetup(organization.value.trim(), pathname + search + hash);
+    if (tab) tab.location.href = url!;
     else window.open(url, "_blank", "noopener");
     appCreationOpen = true;
   } catch (error) {
     tab?.close();
-    actionError.value = error instanceof Error ? error.message : String(error);
+    actionError.value = errorMessage(error);
   } finally {
     busy.value = false;
   }

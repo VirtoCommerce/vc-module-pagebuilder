@@ -4,7 +4,6 @@
     :model-value="true"
     :title="$t('ASSET_LIBRARY.CREATE_FOLDER.TITLE')"
     is-mobile-fullscreen
-    @update:model-value="handleModelValueUpdate"
     @close="$emit('close')"
   >
     <template #content>
@@ -45,7 +44,7 @@
 <script lang="ts" setup>
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { VcButton, VcForm, VcHint, VcInput, VcPopup } from "@vc-shell/framework/ui";
+import { VcButton, VcForm, VcInput, VcPopup } from "@vc-shell/framework/ui";
 
 interface Props {
   submitting?: boolean;
@@ -113,12 +112,6 @@ function submit() {
   }
 
   emit("create", value);
-}
-
-function handleModelValueUpdate(value: boolean) {
-  if (!value) {
-    emit("close");
-  }
 }
 </script>
 

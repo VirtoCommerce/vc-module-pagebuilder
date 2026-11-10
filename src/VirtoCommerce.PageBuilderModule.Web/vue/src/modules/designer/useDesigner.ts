@@ -2,7 +2,7 @@ import { computed, reactive, ref, shallowRef, watch } from "vue";
 import { useManualRefHistory } from "@vueuse/core";
 import { debounce } from "lodash-es";
 import type { Field, Item, ItemSchema, PageDocument, Schemas, SectionGroup, Selection } from "./types";
-import { copyItem, fieldsOf, itemTitle, newId, newItem, withTextEdit } from "./schema";
+import { blockSchemaOf, copyItem, fieldsOf, itemTitle, newId, newItem, withTextEdit } from "./schema";
 import { fromDocument, isComponentRef, resolveRefs } from "./document";
 import type { ClipboardItem } from "./clipboard";
 import * as api from "./api";
@@ -20,6 +20,7 @@ import {
   templateKeyOf,
 } from "./templates";
 import { resolveTranslations, type Translating } from "./translatable";
+import { moveItem } from "./rules";
 import type { Capability, Handshake } from "./previewMessages";
 import { hasThemeDraft, isNewThemeDraft, templateStatus, type ThemeStatus } from "./themePublication";
 import { CatalogPendingError, type DesignerDiscardPage, type DesignerSaveFile, type DesignerSavePage } from "./designerSave";
@@ -100,7 +101,7 @@ export function useDesigner() {
     const limit = sectionSchema(type)?.limit;
     return typeof limit === "number" && doc.value.content.filter((x) => x.type === type).length >= limit;
   };
-  const blockSchema = (type?: string): ItemSchema | undefined => (type ? (schemas.value.blocks[type] ?? schemas.value.sections[type]) : undefined);
+  const blockSchema = (type?: string): ItemSchema | undefined => (type ? blockSchemaOf(schemas.value, type) : undefined);
 
   const templateKey = computed(() => (file.value?.type === "themes" ? templateKeyOf(file.value.path) : undefined));
   const pageType = computed(() => (templateKey.value ? pageTypeOf(templateKey.value) : undefined));
@@ -115,11 +116,14 @@ export function useDesigner() {
     return translates(section) && edited && defaultLanguage ? { language: edited, defaultLanguage, languages: languages.value.all } : undefined;
   }
 
+  function inEditedLanguage<T>(value: T): T {
+    const defaultLanguage = languages.value.default ?? "";
+    return resolveTranslations(value, language.value ?? defaultLanguage, defaultLanguage);
+  }
+
   /** A page's sections and shared components keep one text, so a dictionary becomes the edited language's text. */
   function settled(item: Item, section: Item = item): Item {
-    if (translates(section)) return item;
-    const defaultLanguage = languages.value.default ?? "";
-    return resolveTranslations(item, language.value ?? defaultLanguage, defaultLanguage);
+    return translates(section) ? item : inEditedLanguage(item);
   }
 
   const mainSection = computed(() => {
@@ -134,22 +138,25 @@ export function useDesigner() {
   const template = computed(() => templateEntry(schemas.value, pageType.value));
   const extraPageFields = ref<Field[]>([]);
 
+  const addableSections = (fits: (type: string, schema: ItemSchema) => boolean) =>
+    Object.entries(schemas.value.sections)
+      .filter(([type, schema]) => !schema.hidden && !isAtLimit(type) && fits(type, schema))
+      .map(([type, schema]) => ({ type, schema }))
+      .sort((a, b) => (a.schema.name ?? a.type).localeCompare(b.schema.name ?? b.type));
+
   const sectionTypes = computed(() => {
     const { key, entry } = template.value;
     const pageContent = pageType.value === "page" && !doc.value.content.some((x) => x.type === PAGE_CONTENT);
-    return Object.entries(schemas.value.sections)
-      .filter(([type, schema]) => !schema.static && !schema.hidden && !schema.groups?.length && !isAtLimit(type))
-      .filter(([type]) => type !== PAGE_CONTENT || pageContent)
-      .filter(([type, schema]) => (entry.sections ? entry.sections.includes(type) : !schema.targetTemplates?.length || schema.targetTemplates.includes(key)))
-      .map(([type, schema]) => ({ type, schema }))
-      .sort((a, b) => (a.schema.name ?? a.type).localeCompare(b.schema.name ?? b.type));
+    return addableSections(
+      (type, schema) =>
+        !schema.static &&
+        !schema.groups?.length &&
+        (type !== PAGE_CONTENT || pageContent) &&
+        (entry.sections ? entry.sections.includes(type) : !schema.targetTemplates?.length || schema.targetTemplates.includes(key)),
+    );
   });
 
-  const groupSectionTypes = (group: SectionGroup) =>
-    Object.entries(schemas.value.sections)
-      .filter(([type, schema]) => !schema.hidden && !!schema.groups?.includes(group) && !isAtLimit(type))
-      .map(([type, schema]) => ({ type, schema }))
-      .sort((a, b) => (a.schema.name ?? a.type).localeCompare(b.schema.name ?? b.type));
+  const groupSectionTypes = (group: SectionGroup) => addableSections((_, schema) => !!schema.groups?.includes(group));
 
   const pageEnd = () => {
     const footer = doc.value.content.findIndex((x) => groupOf(x) === "footer");
@@ -252,18 +259,11 @@ export function useDesigner() {
   }
 
   function moveSection(from: number, to: number) {
-    const content = [...doc.value.content];
-    content.splice(to, 0, ...content.splice(from, 1));
-    setContent(content);
+    setContent(moveItem(doc.value.content, from, to));
   }
 
-  function moveBlock(sectionId: string, from: number, to: number) {
-    updateSection(sectionId, (x) => {
-      const blocks = [...(x.blocks ?? [])];
-      blocks.splice(to, 0, ...blocks.splice(from, 1));
-      return { ...x, blocks };
-    });
-  }
+  const placementId = () => newId("componentRef") + newId("");
+  const newPlacement = (componentRef: string): Item => ({ id: placementId(), type: "componentRef", componentRef });
 
   function duplicate(sel: Selection) {
     if (sel.kind === "section") {
@@ -271,7 +271,7 @@ export function useDesigner() {
       if (index < 0) return;
       const original = doc.value.content[index];
       if ((isComponentRef(original) && !canPlaceShared.value) || isAtLimit(original.type)) return;
-      const copy = isComponentRef(original) ? { ...original, id: newId("componentRef") + newId("") } : copyItem(original);
+      const copy = isComponentRef(original) ? { ...original, id: placementId() } : copyItem(original);
       const content = [...doc.value.content];
       content.splice(index + 1, 0, copy);
       setContent(content);
@@ -313,7 +313,7 @@ export function useDesigner() {
     if (copied.type === "section") {
       if (isComponentRef(copied.content) && !canPlaceShared.value) return "PAGE_BUILDER.DESIGNER.SHARED_ON_PAGES_ONLY";
       if (isAtLimit(copied.content.type)) return "PAGE_BUILDER.DESIGNER.CLIPBOARD.LIMIT";
-      const copy: Item = isComponentRef(copied.content) ? { ...copied.content, id: newId("componentRef") + newId("") } : copyItem(copied.content);
+      const copy: Item = isComponentRef(copied.content) ? { ...copied.content, id: placementId() } : copyItem(copied.content);
       let target: Item | undefined;
       if (sel?.kind === "block") target = findSection(sel.sectionId);
       else if (sel?.kind === "section") target = findSection(sel.id);
@@ -374,10 +374,9 @@ export function useDesigner() {
     if (!sections.length || indexes.some((i, n) => i < 0 || (n > 0 && i !== indexes[n - 1] + 1))) return "PAGE_BUILDER.DESIGNER.SELECT_MODE.NOT_ADJACENT";
     if (sections.some(isComponentRef)) return "PAGE_BUILDER.DESIGNER.SELECT_MODE.HAS_SHARED";
     // A shared component keeps no texts per language.
-    const defaultLanguage = languages.value.default ?? "";
-    const content = resolveTranslations(sections, language.value ?? defaultLanguage, defaultLanguage);
+    const content = inEditedLanguage(sections);
     const component = await api.createSharedComponent(storeId.value!, name, { settings: { type: "settings" } as Item, content });
-    const placement: Item = { id: newId("componentRef") + newId(""), type: "componentRef", componentRef: component.id };
+    const placement = newPlacement(component.id);
     const rest = doc.value.content.filter((x) => !checked.value.includes(x.id));
     rest.splice(indexes[0], 0, placement);
     setContent(rest);
@@ -414,7 +413,7 @@ export function useDesigner() {
 
   async function insertShared(component: api.SharedComponent, index = pageEnd()) {
     if (!canPlaceShared.value) return;
-    const placement: Item = { id: newId("componentRef") + newId(""), type: "componentRef", componentRef: component.id };
+    const placement = newPlacement(component.id);
     const content = [...doc.value.content];
     content.splice(index, 0, placement);
     setContent(content);
@@ -658,13 +657,10 @@ export function useDesigner() {
     }
   }
 
-  /** In git, `rebase` publishes over someone else's version. */
-  async function publish(live: boolean, rebase = false) {
-    if (busy.value || themeFileOpen.value) return;
+  async function whilePublishing<T>(action: () => Promise<T>): Promise<T> {
     busy.value = "publishing";
     try {
-      if (groupId.value) await api.setPublished(groupId.value, live);
-      else if (file.value) await api.setFilePublished(file.value, live, rebase);
+      return await action();
     } finally {
       // The actions stay off until the state after the publish is read.
       await refreshStatus();
@@ -672,26 +668,23 @@ export function useDesigner() {
     }
   }
 
+  /** In git, `rebase` publishes over someone else's version. */
+  async function publish(live: boolean, rebase = false) {
+    if (busy.value || themeFileOpen.value) return;
+    await whilePublishing(async () => {
+      if (groupId.value) await api.setPublished(groupId.value, live);
+      else if (file.value) await api.setFilePublished(file.value, live, rebase);
+    });
+  }
+
   async function publishTheme(): Promise<number | undefined> {
     if (busy.value || !storeId.value) return undefined;
-    busy.value = "publishing";
-    try {
-      return await api.publishTheme(storeId.value, handshake.value?.hash);
-    } finally {
-      await refreshStatus();
-      busy.value = undefined;
-    }
+    return whilePublishing(() => api.publishTheme(storeId.value!, handshake.value?.hash));
   }
 
   async function promote() {
     if (busy.value || !file.value) return;
-    busy.value = "publishing";
-    try {
-      await api.promoteFilePage(file.value);
-    } finally {
-      await refreshStatus();
-      busy.value = undefined;
-    }
+    await whilePublishing(() => api.promoteFilePage(file.value!));
   }
 
   async function restore(sha: string) {
@@ -737,7 +730,6 @@ export function useDesigner() {
     handshake,
     can,
     selection,
-    groupsLoaded,
     groupsShown,
     groupsEditable,
     isLocked,
@@ -757,7 +749,6 @@ export function useDesigner() {
     canPublish,
     canUnpublish,
     canPromote,
-    template,
     templateKey,
     pageType,
     canPlaceShared,
@@ -793,7 +784,6 @@ export function useDesigner() {
     addSection,
     addBlock,
     moveSection,
-    moveBlock,
     duplicate,
     remove,
     toggleHidden,

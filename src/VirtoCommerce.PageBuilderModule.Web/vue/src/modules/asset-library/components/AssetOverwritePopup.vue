@@ -4,7 +4,6 @@
     :model-value="true"
     :title="$t('ASSET_LIBRARY.OVERWRITE.TITLE')"
     modal-width="tw-max-w-xl"
-    @update:model-value="handleModelValueUpdate"
     @close="$emit('cancel')"
   >
     <template #content>
@@ -13,18 +12,10 @@
           {{ consequenceMessage }}
         </p>
 
-        <ul
-          v-if="pageNames.length"
-          class="asset-overwrite__pages"
-          :aria-label="$t('ASSET_LIBRARY.OVERWRITE.AFFECTED_PAGES')"
-        >
-          <li
-            v-for="pageName in pageNames"
-            :key="pageName"
-          >
-            {{ pageName }}
-          </li>
-        </ul>
+        <AssetReferenceGroups
+          v-if="conflict.source === 'stored' && conflict.usageKnown"
+          :references="conflict.references"
+        />
 
         <VcForm class="asset-overwrite__form">
           <VcInput
@@ -71,7 +62,8 @@ import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { VcButton, VcForm, VcInput, VcPopup } from "@vc-shell/framework/ui";
 import type { AssetUploadConflict } from "../composables/useAssetLibraryActions";
-import { getAssetOverwriteMessageKey } from "../utilities/assetUpload";
+import { getAssetOverwriteMessageKey, hasPathSeparator } from "../utilities/assetUpload";
+import AssetReferenceGroups from "./AssetReferenceGroups.vue";
 
 interface Props {
   conflict: AssetUploadConflict;
@@ -102,17 +94,6 @@ watch(
   },
 );
 
-const pageNames = computed(() =>
-  props.conflict.source === "batch" || !props.conflict.usageKnown
-    ? []
-    : [
-        ...new Set(
-          props.conflict.references.referencePages
-            .map((page) => page.name || page.permalink || page.id)
-            .filter((name): name is string => !!name),
-        ),
-      ],
-);
 const consequenceMessage = computed(() => {
   const count = props.conflict.references.referencesCount;
   const key = getAssetOverwriteMessageKey(props.conflict);
@@ -125,7 +106,7 @@ const localFileNameError = computed(() => {
     return t("ASSET_LIBRARY.OVERWRITE.VALIDATION.REQUIRED");
   }
 
-  if (/[\\/]/.test(value)) {
+  if (hasPathSeparator(value)) {
     return t("ASSET_LIBRARY.OVERWRITE.VALIDATION.INVALID");
   }
 
@@ -145,12 +126,6 @@ function uploadAs() {
 
 function clearServerError() {
   emit("clear-error");
-}
-
-function handleModelValueUpdate(value: boolean) {
-  if (!value) {
-    emit("cancel");
-  }
 }
 </script>
 
@@ -174,14 +149,6 @@ function handleModelValueUpdate(value: boolean) {
   &__message {
     margin: 0;
     font-weight: 600;
-  }
-
-  &__pages {
-    max-height: 12rem;
-    margin: 0;
-    padding-left: 1.25rem;
-    overflow-y: auto;
-    list-style: disc;
   }
 
   &__form {

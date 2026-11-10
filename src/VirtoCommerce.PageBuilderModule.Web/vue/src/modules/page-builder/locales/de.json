@@ -233,28 +233,14 @@
         "CANCEL": "Abbrechen"
       }
     },
-    "LIFECYCLE": {
-      "DRAFT": "Entwurf",
-      "PENDING": "In Prüfung",
-      "ACTIVE": "Veröffentlicht",
-      "ARCHIVED": "Archiviert"
-    },
     "SITE_TAB": {
       "TITLE": "Seiten",
       "SHOW": "Anzeigen",
-      "FILTER": {
-        "ALL": "Alle Seiten",
-        "DRAFT": "Entwürfe",
-        "PENDING": "In Prüfung",
-        "ACTIVE": "Veröffentlicht",
-        "ARCHIVED": "Archiviert"
-      },
       "NEW_PAGE": "Neue Seite",
       "EMPTY": "Hier gibt es noch keine Seiten.",
       "DETAILS": "Seitendetails"
     },
     "DESIGNER": {
-      "TITLE": "Designer: {name}",
       "SECTIONS": "Abschnitte",
       "GROUPS": {
         "HEADER": "Kopfzeile",
@@ -368,7 +354,6 @@
       "NOTHING_PUBLISHED": "Es wurde nichts veröffentlicht. Öffnen Sie die Seite erneut, um die andere Version zu sehen.",
       "HISTORY": {
         "TITLE": "Versionsverlauf",
-        "OTHERS": "{count} unveröffentlichte Version(en) von anderen Personen",
         "EMPTY": "Noch keine Versionen: Speichern Sie die Seite, um die erste zu erstellen.",
         "FAILED": "Die Versionen konnten nicht geladen werden.",
         "PUBLISHED": "Veröffentlicht",
@@ -644,7 +629,6 @@
       "WIDGET": "Verlauf",
       "ON": "An",
       "OFF": "Aus",
-      "STATUS": "Status",
       "REPOSITORY": "Repository",
       "BRANCH": "Branch",
       "LAST_CHANGE": "Letzte veröffentlichte Änderung",
@@ -675,13 +659,10 @@
       "OPEN_GITHUB": "GitHub-Verbindung"
     },
     "GITHUB": {
-      "TITLE": "GitHub",
       "INTRO": "Verbinden Sie die Plattform einmalig mit einer GitHub-Organisation. Jede Website bewahrt dann die Versionen ihrer Seiten in einem eigenen privaten Repository dort auf.",
       "CONNECTED_HINT": "Jede Website bewahrt die Versionen ihrer Seiten in einem eigenen privaten Repository in {organization} auf. Aktivieren Sie den Verlauf einer Website in ihrem Verlauf-Bereich.",
-      "STATUS": "Status",
       "CONNECTED": "Verbunden",
       "FAILING": "Funktioniert nicht",
-      "ORGANIZATION": "Organisation",
       "APP": "GitHub App",
       "FROM_CONFIGURATION": "Aus der Konfiguration der Plattform",
       "NEW_SITES": "Neue Websites",

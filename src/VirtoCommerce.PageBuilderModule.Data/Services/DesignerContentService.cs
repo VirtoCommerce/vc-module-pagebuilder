@@ -22,6 +22,8 @@ public class DesignerContentService(
     IFilePageDraftService filePageDraftService,
     IContentHistory contentHistory) : IDesignerContentService
 {
+    private const string NeverPublishedError = "This page has never been published, so there is no published version to go back to.";
+
     public virtual async Task ValidateThemeFilesAsync(string storeId, IDictionary<string, JToken> files, bool draft, string catalogHash,
         CancellationToken cancellationToken = default)
     {
@@ -157,9 +159,10 @@ public class DesignerContentService(
             return await DiscardPageDraftsAsync(command.Group, cancellationToken);
         }
 
-        if (command.FilePage != null)
+        if (command.FilePage != null &&
+            await filePageDraftService.DiscardDraftAsync(command.StoreId, command.FilePage.ContentType, command.FilePage.Path, user, cancellationToken) == DraftDiscardStatus.OnlyCopy)
         {
-            await filePageDraftService.DiscardDraftAsync(command.StoreId, command.FilePage.ContentType, command.FilePage.Path, user, cancellationToken);
+            throw new InvalidDataException(NeverPublishedError);
         }
 
         return null;
@@ -168,7 +171,7 @@ public class DesignerContentService(
     protected virtual async Task<string> DiscardPageDraftsAsync(GroupedPageBuilderPage group, CancellationToken cancellationToken)
     {
         var publishedPage = PageBuilderPageSelection.Order(group.Pages).FirstOrDefault(x => x.Status == Published)
-            ?? throw new InvalidDataException("This page has never been published, so there is no published version to go back to.");
+            ?? throw new InvalidDataException(NeverPublishedError);
 
         var draftIds = group.Pages.Where(x => x.Status == Draft).Select(x => x.Id).ToList();
         if (draftIds.Count == 0)

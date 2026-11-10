@@ -9,7 +9,6 @@ import { themePublishButton } from "../../src/modules/designer/themePublication"
 import type { Handshake } from "../../src/modules/designer/previewMessages";
 import type { Item, Schemas } from "../../src/modules/designer/types";
 import { fakePlatform, status, themeETag, themeFileAnswer, type FakePlatform, type Request } from "./support/fakePlatform";
-import { TEST_TOKEN } from "./support/vcShell";
 
 const STORE = "B2B-store";
 const LOCKED = "PAGE_BUILDER.DESIGNER.MAIN_SECTION.LOCKED";
@@ -98,7 +97,7 @@ const section = (id: string) => designer.doc.value.content.find((x) => x.id === 
 const saves = () => platform.to("/api/pagebuilder/designer/save", "POST");
 
 describe("useDesigner: opening", () => {
-  it("opens a database page at its version, with the theme's header, as the platform user", async () => {
+  it("opens a database page at its version, with the theme's header", async () => {
     await openDatabasePage();
 
     expect(designer.loadError.value).toBeUndefined();
@@ -113,7 +112,6 @@ describe("useDesigner: opening", () => {
     expect(designer.themeStatus.value).toEqual({ publication: 3, drafts: [], newDrafts: [] });
     const read = platform.to("/api/page-builder-pages/grouped/g1/content")[0];
     expect(read.query).toEqual({ includeVersion: "true" });
-    expect(read.headers.authorization).toBe(`Bearer ${TEST_TOKEN}`);
   });
 
   it("opens a file page from its draft, with the store's flow and the page's state", async () => {

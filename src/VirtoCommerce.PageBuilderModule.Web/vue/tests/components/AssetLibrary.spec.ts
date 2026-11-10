@@ -3,6 +3,7 @@ import { computed, defineComponent, ref } from "vue";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import AssetDeletePopup from "../../src/modules/asset-library/components/AssetDeletePopup.vue";
 import AssetLibraryGrid from "../../src/modules/asset-library/components/AssetLibraryGrid.vue";
+import AssetOverwritePopup from "../../src/modules/asset-library/components/AssetOverwritePopup.vue";
 import AssetsLibraryContent from "../../src/modules/asset-library/components/AssetsLibraryContent.vue";
 import { useAssetLibraryActions, type AssetUploadConflictDecision } from "../../src/modules/asset-library/composables/useAssetLibraryActions";
 import { useAssetReferences } from "../../src/modules/asset-library/composables/useAssetReferences";
@@ -219,6 +220,29 @@ describe("uploading assets", () => {
       expect(uploaded()).toEqual([["a.png", "doc.pdf"]]);
       expect(notification.warning).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("a name conflict with a stored asset", () => {
+  it("counts and lists each page and shared component that uses the asset it replaces", () => {
+    const references = createAssetReferenceDetails([
+      {
+        assetUrl: BLOB.relativeUrl,
+        pages: [{ id: "home", name: "Home" }, { id: "about", name: "About" }],
+        sharedComponents: [{ id: "header", name: "Header" }],
+      },
+    ]);
+    const wrapper = mount(AssetOverwritePopup, {
+      props: {
+        conflict: { file: new File(["x"], BLOB.name), existingEntry: BLOB, references: { ...references, usageKnown: true }, source: "stored", usageKnown: true },
+      },
+    });
+
+    expect(wrapper.text()).toContain("a.txt is used in 3 Page Builder items.");
+    expect(wrapper.findAll("ul").map((list) => [list.attributes("aria-label"), list.findAll("li").map((item) => item.text())])).toEqual([
+      ["Pages", ["Home", "About"]],
+      ["Shared components", ["Header"]],
+    ]);
   });
 });
 

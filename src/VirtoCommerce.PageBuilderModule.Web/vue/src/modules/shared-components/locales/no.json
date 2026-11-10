@@ -60,7 +60,7 @@
       "DELETED": "Den delte komponenten ble slettet",
       "DELETE_BLOCKED_ONE": "Denne komponenten brukes på 1 side og kan ikke slettes.",
       "DELETE_BLOCKED_MANY": "Denne komponenten brukes på {count} sider og kan ikke slettes.",
-      "DELETE_CONFLICT": "Komponenten er nå i bruk og kan ikke slettes. Oppdater listen for å se hvor den brukes.",
+      "DELETE_CONFLICT": "Komponenten er nå i bruk og kan ikke slettes.",
       "DELETE_MISSING": "Komponenten finnes ikke lenger. Noen andre kan ha slettet den.",
       "ERROR_GENERIC": "Handlingen for den delte komponenten mislyktes"
     }

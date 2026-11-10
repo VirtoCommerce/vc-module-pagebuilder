@@ -32,6 +32,7 @@ public class GitLivePageService(
     {
         ArgumentNullException.ThrowIfNull(location);
 
+        var type = contentType.ToLowerInvariant();
         var baseBranch = await GetBaseBranchAsync(cancellationToken);
         // skip the read cache: GitHub may have merged since
         gitContentRepository.InvalidateRead(location.Repository, location.RepoPath, baseBranch);
@@ -39,18 +40,18 @@ public class GitLivePageService(
 
         if (published != null)
         {
-            await WriteLivePageAsync(storeId, contentType, path, published, cancellationToken);
+            await WriteLivePageAsync(storeId, type, path, published, cancellationToken);
         }
         else if (removeWhenGone)
         {
-            await RemoveLivePageAsync(storeId, contentType, path, cancellationToken);
+            await RemoveLivePageAsync(storeId, type, path, cancellationToken);
         }
     }
 
     public virtual async Task<bool> IsLivePageBehindAsync(string storeId, string contentType, string path, GitPageFileLocation location, string publishedContent,
         CancellationToken cancellationToken = default)
     {
-        var live = await GetStorageProvider(storeId, contentType).ReadTextAsync(GetLivePath(path));
+        var live = await GetStorageProvider(storeId, contentType.ToLowerInvariant()).ReadTextAsync(GetLivePath(path));
 
         return publishedContent != null
             ? !PageJson.AreSameDocuments(live, publishedContent)
@@ -75,8 +76,7 @@ public class GitLivePageService(
 
     protected virtual async Task WriteLivePageAsync(string storeId, string contentType, string path, string content, CancellationToken cancellationToken)
     {
-        var type = contentType.ToLowerInvariant();
-        var storageProvider = GetStorageProvider(storeId, type);
+        var storageProvider = GetStorageProvider(storeId, contentType);
 
         // parsed before the live file is opened, which would empty it
         JToken page;
@@ -95,15 +95,15 @@ public class GitLivePageService(
             await writer.WriteAsync(JsonConvert.SerializeObject(page, PageSerializerSettings));
         }
 
-        await eventPublisher.Publish(new PageBuilderContentChangedEvent(type, [CreateChangedEntry(path, contentType, EntryState.Modified)]), cancellationToken);
-        await PublishLiveFileChangedAsync(storeId, type, new GenericChangedEntry<ContentFile>(CreateLiveFile(path), null, EntryState.Modified), cancellationToken);
+        await eventPublisher.Publish(new PageBuilderContentChangedEvent(contentType, [CreateChangedEntry(path, contentType, EntryState.Modified)]), cancellationToken);
+        await PublishLiveFileChangedAsync(storeId, contentType, new GenericChangedEntry<ContentFile>(CreateLiveFile(path), null, EntryState.Modified), cancellationToken);
     }
 
     protected virtual async Task RemoveLivePageAsync(string storeId, string contentType, string path, CancellationToken cancellationToken)
     {
         await GetStorageProvider(storeId, contentType).RemoveAsync([GetLivePath(path)]);
         await eventPublisher.Publish(new PageBuilderContentChangedEvent(contentType, [CreateChangedEntry(path, contentType, EntryState.Deleted)]), cancellationToken);
-        await PublishLiveFileChangedAsync(storeId, contentType.ToLowerInvariant(), new GenericChangedEntry<ContentFile>(null, CreateLiveFile(path), EntryState.Deleted), cancellationToken);
+        await PublishLiveFileChangedAsync(storeId, contentType, new GenericChangedEntry<ContentFile>(null, CreateLiveFile(path), EntryState.Deleted), cancellationToken);
     }
 
     /// <summary>The live file was written past the Content module, whose full-text index follows this event.</summary>

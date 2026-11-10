@@ -1,5 +1,6 @@
 import type { Item, PageDocument, Schemas, TemplateEntry } from "./types";
 import { toDocument } from "./document";
+import { clone } from "./json";
 import { humanize, newId } from "./schema";
 
 export type PageType = "product" | "category" | "page";
@@ -71,7 +72,7 @@ export function startingTemplate(type: PageType, base?: PageDocument, entry?: Te
   const builtIn = entry?.default && typeof entry.default === "object" && Array.isArray((entry.default as PageDocument).content) ? toDocument(entry.default) : undefined;
   const doc = base ?? builtIn ?? { settings: {} as Item, content: [] };
   // The storefront reads a template's `content`, so the legacy array form cannot be used here.
-  const { version: _version, ...copy } = JSON.parse(JSON.stringify(doc)) as PageDocument;
+  const { version: _version, ...copy } = clone(doc);
   const main = MAIN_SECTIONS[type];
   const content = mainOf(copy.content, type).length ? copy.content : [...copy.content, mainItem?.(main) ?? { id: newId(main), type: main }];
   return type === "page" ? { ...copy, settings: { layout: "full", ...copy.settings }, content } : { ...copy, content };

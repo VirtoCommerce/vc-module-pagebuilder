@@ -13,6 +13,7 @@ using VirtoCommerce.ContentModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
+using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.Platform.Core.Common;
 using Xunit;
@@ -114,6 +115,22 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Null(entry.NewEntry);
             Assert.Equal(Page, entry.OldEntry.RelativeUrl);
             Assert.Equal(EntryState.Deleted, entry.EntryState);
+        }
+
+        [Fact]
+        public async Task Unpublish_WhenMergedWithTheTypeInAnotherCase_NamesItInLowerCase()
+        {
+            var repository = Repository();
+            var publisher = Publisher(GitPublishState.Merged);
+            publisher.OnMerge = () => repository.Files.Remove((RepoPath, "master"));
+            var live = new FakeBlobStorage();
+            live.Files[Page] = Published;
+
+            await Controller(repository, publisher, live: live).GitUnpublish("s1", Page, "Pages");
+
+            var changed = Assert.Single(live.Events.OfType<PageBuilderContentChangedEvent>());
+            Assert.Equal(("pages", "pages"), (changed.ContentType, Assert.Single(changed.ChangedEntries).NewEntry.Type));
+            Assert.Equal("pages", Assert.Single(live.Events.OfType<ContentFileChangedEvent>()).ContentType);
         }
 
         [Fact]
@@ -260,7 +277,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 contentPermissionService: TestServices.Permissions(new FakeAuthorizationService(true)),
                 filePageDraftService: filePageDrafts,
             designerSaveValidator: RequestValidators.DesignerSave,
-            designerDiscardValidator: RequestValidators.DesignerDiscard);
+            designerDiscardValidator: RequestValidators.DesignerDiscard,
+            themeStorageFactory: new ThemeStorageFactory(live?.StoreService, live, live, live));
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, Login)], "test");
             controller.ControllerContext = new ControllerContext

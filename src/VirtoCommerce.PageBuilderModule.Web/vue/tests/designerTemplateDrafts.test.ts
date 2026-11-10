@@ -5,7 +5,7 @@ import type { ThemeStatus } from "../src/modules/designer/themePublication";
 import type { Item, PageDocument } from "../src/modules/designer/types";
 
 const doc = (...types: string[]): PageDocument => ({ settings: { type: "settings" } as Item, content: types.map((type, i) => ({ id: `${type}-${i}`, type })) });
-const status = (drafts: string[], publication?: number): ThemeStatus => ({ publication, drafts });
+const status = (drafts: string[], publication?: number): ThemeStatus => ({ publication, drafts, newDrafts: [] });
 
 function source(files: Record<string, PageDocument | undefined>) {
   const requests: string[] = [];

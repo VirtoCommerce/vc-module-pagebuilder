@@ -56,7 +56,7 @@ const BUILT_IN_FUNCTIONS: ExpressionFunctions = {
 };
 
 export function evaluate(expression: string, context: unknown): unknown {
-  return evaluateNode(parse(expression), context, BUILT_IN_FUNCTIONS);
+  return evaluateNode(parse(expression), context);
 }
 
 function tokenize(source: string): Token[] {
@@ -230,12 +230,12 @@ function parse(source: string): Node {
 // An optional link that meets null or undefined ends the whole chain it belongs to, as `?.` does in JavaScript.
 const SHORT_CIRCUIT = Symbol("short-circuit");
 
-function evaluateNode(node: Node, context: unknown, functions: ExpressionFunctions): unknown {
-  const value = evaluateLink(node, context, functions);
+function evaluateNode(node: Node, context: unknown): unknown {
+  const value = evaluateLink(node, context);
   return value === SHORT_CIRCUIT ? undefined : value;
 }
 
-function evaluateLink(node: Node, context: unknown, functions: ExpressionFunctions): unknown {
+function evaluateLink(node: Node, context: unknown): unknown {
   switch (node.kind) {
     case "literal":
       return node.value;
@@ -244,24 +244,24 @@ function evaluateLink(node: Node, context: unknown, functions: ExpressionFunctio
     case "identifier":
       throw new UnsupportedExpressionError(`"${node.name}" is not available`);
     case "array":
-      return node.elements.map((element) => evaluateNode(element, context, functions));
+      return node.elements.map((element) => evaluateNode(element, context));
     case "member": {
-      const object = evaluateLink(node.object, context, functions);
+      const object = evaluateLink(node.object, context);
       if (object === SHORT_CIRCUIT) return SHORT_CIRCUIT;
       if (object === null || object === undefined) {
         if (node.optional) return SHORT_CIRCUIT;
         throw new TypeError("Cannot read a property of null or undefined");
       }
-      return readProperty(object, evaluateNode(node.property, context, functions));
+      return readProperty(object, evaluateNode(node.property, context));
     }
     case "call":
-      return evaluateCall(node, context, functions);
+      return evaluateCall(node, context);
     case "unary":
-      return evaluateUnary(node.operator, evaluateNode(node.argument, context, functions));
+      return evaluateUnary(node.operator, evaluateNode(node.argument, context));
     case "binary":
-      return evaluateBinary(node, context, functions);
+      return evaluateBinary(node, context);
     case "conditional":
-      return evaluateNode(node.test, context, functions) ? evaluateNode(node.consequent, context, functions) : evaluateNode(node.alternate, context, functions);
+      return evaluateNode(node.test, context) ? evaluateNode(node.consequent, context) : evaluateNode(node.alternate, context);
   }
 }
 
@@ -286,23 +286,23 @@ function evaluateUnary(operator: string, value: unknown): unknown {
 
 const NOT_CALLABLE = "Only the expression helpers and plain string and array methods can be called";
 
-function evaluateCall(node: Extract<Node, { kind: "call" }>, context: unknown, functions: ExpressionFunctions): unknown {
-  const args = () => node.args.map((arg) => evaluateNode(arg, context, functions));
+function evaluateCall(node: Extract<Node, { kind: "call" }>, context: unknown): unknown {
+  const args = () => node.args.map((arg) => evaluateNode(arg, context));
   const callee = node.callee;
 
-  if (callee.kind === "identifier" && hasOwn(functions, callee.name)) return functions[callee.name](...args());
-  if (callee.kind === "member" && !callee.computed) return evaluateMethodCall(callee, args, context, functions);
+  if (callee.kind === "identifier" && hasOwn(BUILT_IN_FUNCTIONS, callee.name)) return BUILT_IN_FUNCTIONS[callee.name](...args());
+  if (callee.kind === "member" && !callee.computed) return evaluateMethodCall(callee, args, context);
 
   throw new UnsupportedExpressionError(NOT_CALLABLE);
 }
 
-function evaluateMethodCall(callee: Extract<Node, { kind: "member" }>, args: () => unknown[], context: unknown, functions: ExpressionFunctions): unknown {
+function evaluateMethodCall(callee: Extract<Node, { kind: "member" }>, args: () => unknown[], context: unknown): unknown {
   const name = String((callee.property as { value: unknown }).value);
   const helper = callee.object.kind === "identifier" ? `${callee.object.name}.${name}` : null;
 
-  if (helper && hasOwn(functions, helper)) return functions[helper](...args());
+  if (helper && hasOwn(BUILT_IN_FUNCTIONS, helper)) return BUILT_IN_FUNCTIONS[helper](...args());
 
-  const target = evaluateLink(callee.object, context, functions);
+  const target = evaluateLink(callee.object, context);
   if (target === SHORT_CIRCUIT) return SHORT_CIRCUIT;
   if (target === null || target === undefined) {
     if (callee.optional) return SHORT_CIRCUIT;
@@ -321,19 +321,19 @@ function isPlainMethod(target: unknown, name: string): boolean {
   return (typeof target === "string" && STRING_METHODS.has(name)) || (Array.isArray(target) && ARRAY_METHODS.has(name));
 }
 
-function evaluateBinary(node: Extract<Node, { kind: "binary" }>, context: unknown, functions: ExpressionFunctions): unknown {
-  const left = evaluateNode(node.left, context, functions) as any;
+function evaluateBinary(node: Extract<Node, { kind: "binary" }>, context: unknown): unknown {
+  const left = evaluateNode(node.left, context) as any;
 
   switch (node.operator) {
     case "&&":
-      return left && evaluateNode(node.right, context, functions);
+      return left && evaluateNode(node.right, context);
     case "||":
-      return left || evaluateNode(node.right, context, functions);
+      return left || evaluateNode(node.right, context);
     case "??":
-      return left ?? evaluateNode(node.right, context, functions);
+      return left ?? evaluateNode(node.right, context);
   }
 
-  const right = evaluateNode(node.right, context, functions) as any;
+  const right = evaluateNode(node.right, context) as any;
 
   switch (node.operator) {
     case "+":

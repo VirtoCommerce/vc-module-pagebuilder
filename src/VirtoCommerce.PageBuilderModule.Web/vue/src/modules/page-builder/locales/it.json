@@ -233,28 +233,14 @@
         "CANCEL": "Annulla"
       }
     },
-    "LIFECYCLE": {
-      "DRAFT": "Bozza",
-      "PENDING": "In revisione",
-      "ACTIVE": "Pubblicato",
-      "ARCHIVED": "Archiviato"
-    },
     "SITE_TAB": {
       "TITLE": "Pagine",
       "SHOW": "Mostra",
-      "FILTER": {
-        "ALL": "Tutte le pagine",
-        "DRAFT": "Bozze",
-        "PENDING": "In revisione",
-        "ACTIVE": "Pubblicate",
-        "ARCHIVED": "Archiviate"
-      },
       "NEW_PAGE": "Nuova pagina",
       "EMPTY": "Ancora nessuna pagina qui.",
       "DETAILS": "Dettagli della pagina"
     },
     "DESIGNER": {
-      "TITLE": "Designer: {name}",
       "SECTIONS": "Sezioni",
       "GROUPS": {
         "HEADER": "Intestazione",
@@ -368,7 +354,6 @@
       "NOTHING_PUBLISHED": "Non è stato pubblicato nulla. Riapri la pagina per vedere l’altra versione.",
       "HISTORY": {
         "TITLE": "Cronologia versioni",
-        "OTHERS": "Versioni non pubblicate di altre persone: {count}",
         "EMPTY": "Nessuna versione: salva la pagina per creare la prima.",
         "FAILED": "Impossibile caricare le versioni.",
         "PUBLISHED": "Pubblicata",
@@ -644,7 +629,6 @@
       "WIDGET": "Cronologia",
       "ON": "Attivo",
       "OFF": "Disattivo",
-      "STATUS": "Stato",
       "REPOSITORY": "Repository",
       "BRANCH": "Branch",
       "LAST_CHANGE": "Ultima modifica pubblicata",
@@ -675,13 +659,10 @@
       "OPEN_GITHUB": "Connessione GitHub"
     },
     "GITHUB": {
-      "TITLE": "GitHub",
       "INTRO": "Collega la piattaforma a un'organizzazione GitHub una sola volta. Ogni sito conserva poi le versioni delle sue pagine in un proprio repository privato.",
       "CONNECTED_HINT": "Ogni sito conserva le versioni delle sue pagine in un proprio repository privato in {organization}. Attiva la cronologia di un sito dal suo pannello Cronologia.",
-      "STATUS": "Stato",
       "CONNECTED": "Collegato",
       "FAILING": "Non funziona",
-      "ORGANIZATION": "Organizzazione",
       "APP": "GitHub App",
       "FROM_CONFIGURATION": "Dalla configurazione della piattaforma",
       "NEW_SITES": "Nuovi siti",

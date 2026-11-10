@@ -13,6 +13,7 @@ using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
+using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.Platform.Core.Security;
@@ -383,7 +384,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 contentPermissionService: TestServices.Permissions(new FakeAuthorizationService(true)),
                 filePageDraftService: filePageDrafts,
             designerSaveValidator: RequestValidators.DesignerSave,
-            designerDiscardValidator: RequestValidators.DesignerDiscard);
+            designerDiscardValidator: RequestValidators.DesignerDiscard,
+            themeStorageFactory: new ThemeStorageFactory(new FakeStoreService(store ?? new Store { Id = "vccom" }), null, null, null));
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, Login)], "test");
             controller.ControllerContext = new ControllerContext

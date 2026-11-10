@@ -60,7 +60,7 @@
       "DELETED": "Shared component deleted successfully",
       "DELETE_BLOCKED_ONE": "This component is used on 1 page and cannot be deleted.",
       "DELETE_BLOCKED_MANY": "This component is used on {count} pages and cannot be deleted.",
-      "DELETE_CONFLICT": "The component is now in use and cannot be deleted. Refresh the list to see its usages.",
+      "DELETE_CONFLICT": "The component is now in use and cannot be deleted.",
       "DELETE_MISSING": "The component no longer exists. Someone else may have deleted it.",
       "ERROR_GENERIC": "Shared component operation failed"
     }

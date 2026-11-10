@@ -10,7 +10,7 @@ import {
   getReferenceSharedComponentNames,
   getReferencePageNames,
 } from "../src/modules/asset-library/utilities/assetReferences";
-import { getPreviewUrl, toPublicAssetUrl } from "../src/modules/asset-library/utilities/assetUrl";
+import { getAssetStoredUrl, getPreviewUrl, toPublicAssetUrl } from "../src/modules/asset-library/utilities/assetUrl";
 import { createAssetLibraryEntryViewModel } from "../src/modules/asset-library/utilities/viewModels";
 import { createLatestRequestTracker } from "../src/utilities/latestRequest";
 
@@ -251,6 +251,17 @@ test("toPublicAssetUrl keeps external non-assets and data URLs unchanged", () =>
     "https://cdn.example.com/media/hero.png",
   );
   assert.equal(toPublicAssetUrl("data:image/png;base64,abc", origin), "data:image/png;base64,abc");
+});
+
+test("getAssetStoredUrl prefixes store paths and keeps custom public asset mount paths, as the preview does", () => {
+  assert.equal(
+    getAssetStoredUrl({ type: "blob", name: "hero.png", relativeUrl: "/stores/B2B-store/Page%20Builder/hero.png" }),
+    "/assets/stores/B2B-store/Page%20Builder/hero.png",
+  );
+  assert.equal(
+    getAssetStoredUrl({ type: "blob", name: "hero.png", url: "/custom-public/assets/stores/B2B-store/Page%20Builder/hero.png" }),
+    "/custom-public/assets/stores/B2B-store/Page%20Builder/hero.png",
+  );
 });
 
 test("getPreviewUrl prefers public entry URL over storage relative URL", () => {

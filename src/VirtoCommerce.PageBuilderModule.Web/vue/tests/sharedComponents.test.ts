@@ -8,7 +8,7 @@ import {
 } from "../src/modules/shared-components/utilities/sharedComponentDeletionError";
 import { createSharedComponentDetailsLoader } from "../src/modules/shared-components/utilities/sharedComponentDetailsRequest";
 import { getDistinctUsagePages, getUsagePageTitle } from "../src/modules/shared-components/utilities/sharedComponent";
-import { buildClassicDesignerUrl, buildPageDesignerUrl, canOpenPageDesigner } from "../src/utilities/pageDesigner";
+import { buildClassicDesignerUrl, canOpenPageDesigner } from "../src/utilities/pageDesigner";
 
 interface Deferred<T> {
   promise: Promise<T>;
@@ -37,22 +37,6 @@ function createComponent(id: string, usageCount = 0): SharedComponent {
   };
 }
 
-test("page designer URL opens the page in the Page Builder app", () => {
-  const url = buildPageDesignerUrl(
-    {
-      groupId: "home page",
-      storeId: "B2B/store",
-      cultureName: "en-US",
-    },
-    "https://platform.example.com/",
-  );
-
-  assert.equal(
-    url,
-    "https://platform.example.com/apps/page-builder-shell/?storeId=B2B%2Fstore&designGroup=home+page",
-  );
-});
-
 test("classic designer URL opens the page in the Angular designer, in its language", () => {
   const url = buildClassicDesignerUrl(
     { groupId: " home page ", storeId: "B2B/store", cultureName: "en-US" },
@@ -71,27 +55,15 @@ test("classic designer URL opens the page in the Angular designer, in its langua
 });
 
 test("page designer URL requires page identity", () => {
-  assert.equal(
-    buildPageDesignerUrl({ groupId: "page-1", storeId: "store-1" }, "https://platform.example.com"),
-    "https://platform.example.com/apps/page-builder-shell/?storeId=store-1&designGroup=page-1",
-  );
-  assert.throws(() => buildPageDesignerUrl({ storeId: "store-1" }, "https://platform.example.com"), /Can't open page/);
+  assert.throws(() => buildClassicDesignerUrl({ storeId: "store-1" }, "https://platform.example.com"), /Can't open page/);
   assert.equal(canOpenPageDesigner({ groupId: "  ", storeId: "store-1" }), false);
   assert.equal(canOpenPageDesigner({ groupId: "page-1", storeId: "  " }), false);
-});
-
-test("page designer URL trims page and store identifiers", () => {
-  assert.equal(
-    buildPageDesignerUrl({ groupId: " page-1 ", storeId: " store-1 " }, "https://platform.example.com"),
-    "https://platform.example.com/apps/page-builder-shell/?storeId=store-1&designGroup=page-1",
-  );
 });
 
 test("page designer is unavailable for archived pages", () => {
   const context = { groupId: "page-1", storeId: "store-1", status: "Archived" };
 
   assert.equal(canOpenPageDesigner(context), false);
-  assert.throws(() => buildPageDesignerUrl(context, "https://platform.example.com"), /Can't open page/);
 });
 
 test("delete error adapter normalizes the generated client's 409 response body", () => {
@@ -100,7 +72,6 @@ test("delete error adapter normalizes the generated client's 409 response body",
 
   assert.ok(normalized instanceof SharedComponentDeleteConflictError);
   assert.equal(normalized.status, 409);
-  assert.strictEqual(normalized.component, conflictBody);
 });
 
 test("delete error adapter preserves unrelated errors", () => {

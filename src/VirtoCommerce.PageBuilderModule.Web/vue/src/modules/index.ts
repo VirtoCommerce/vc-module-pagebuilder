@@ -1,9 +1,8 @@
 import locales from "./locales";
 import { defineAppModule, registerExternalWidget } from "@vc-shell/framework";
 import { markRaw } from "vue";
-import StorePageBuilderWidget from "./widgets/StorePageBuilderWidget.vue";
 import SitePagesTab from "./widgets/SitePagesTab.vue";
-import { SiteAssetsWidget, SiteGitWidget, SiteSharedComponentsWidget, SitesGitHubWidget } from "./widgets/siteWidgets";
+import { SiteAssetsWidget, SiteGitWidget, SiteSharedComponentsWidget, SitesGitHubWidget, StorePageBuilderWidget } from "./widgets/siteWidgets";
 import PageBuilderPages from "./pages/PageBuilderPages.vue";
 import PageBuilderAssets from "./pages/PageBuilderAssets.vue";
 import PageBuilderSharedComponents from "./pages/PageBuilderSharedComponents.vue";
@@ -20,7 +19,7 @@ definePermalinkRule();
 registerExternalWidget({
   id: "PageBuilderStore",
   title: "Page Builder",
-  component: markRaw(StorePageBuilderWidget),
+  component: StorePageBuilderWidget,
   targetBlades: ["StoreDetails"],
   isVisible: (blade) => !!blade?.param,
 });

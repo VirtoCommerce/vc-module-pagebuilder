@@ -52,7 +52,6 @@ public class ThemeSnapshotBuilder : ThemeContentReader, IThemeSnapshotBuilder
         var snapshot = CreateSnapshot(source, catalog, catalogHash, publication, publishedDate);
 
         var result = AbstractTypeFactory<ThemeSnapshotSet>.TryCreateInstance();
-        result.Menus = snapshot.Menus;
         result.Files = GetSnapshotLanguages(languages, defaultLanguage).ToDictionary(
             x => x,
             x => JsonConvert.SerializeObject(TranslateSnapshot(snapshot, x, defaultLanguage), SerializerSettings),

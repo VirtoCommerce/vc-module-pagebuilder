@@ -60,7 +60,7 @@
       "DELETED": "Den delade komponenten har tagits bort",
       "DELETE_BLOCKED_ONE": "Den här komponenten används på 1 sida och kan inte tas bort.",
       "DELETE_BLOCKED_MANY": "Den här komponenten används på {count} sidor och kan inte tas bort.",
-      "DELETE_CONFLICT": "Komponenten används nu och kan inte tas bort. Uppdatera listan för att se var den används.",
+      "DELETE_CONFLICT": "Komponenten används nu och kan inte tas bort.",
       "DELETE_MISSING": "Komponenten finns inte längre. Någon annan kan ha tagit bort den.",
       "ERROR_GENERIC": "Åtgärden för den delade komponenten misslyckades"
     }

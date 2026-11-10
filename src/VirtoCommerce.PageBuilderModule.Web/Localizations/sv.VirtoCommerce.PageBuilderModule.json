@@ -76,9 +76,9 @@
         "title": "Ta bort den gamla utkastfilen?",
         "message": "\"{{path}}\" finns kvar från tiden innan den här butiken gick över till innehållsförvaret. Själva sidan påverkas inte."
       },
-      "delete-legacy-draft-unsaved": {
-        "title": "Ta bort den gamla utkastfilen?",
-        "message": "\"{{path}}\" innehåller fortfarande ändringar som inte finns i innehållsförvaret. Om du tar bort den går de förlorade. Den publicerade sidan påverkas inte."
+      "legacy-draft-changed": {
+        "title": "Utkastfilen behölls",
+        "message": "Det här utkastet innehåller ändringar som den publicerade sidan inte har, så de skulle gå förlorade om du tar bort det."
       },
       "legacy-draft-kept": {
         "title": "Utkastfilen behölls",

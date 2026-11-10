@@ -76,9 +76,9 @@
         "title": "Poistetaanko vanha luonnostiedosto?",
         "message": "\"{{path}}\" on jäänyt ajalta ennen kuin tämä kauppa siirtyi sisältövarastoon. Itse sivuun ei kosketa."
       },
-      "delete-legacy-draft-unsaved": {
-        "title": "Poistetaanko vanha luonnostiedosto?",
-        "message": "\"{{path}}\" sisältää vielä muutoksia, joita ei ole sisältövarastossa. Poistaminen hävittää ne. Julkaistuun sivuun ei kosketa."
+      "legacy-draft-changed": {
+        "title": "Luonnostiedosto säilytettiin",
+        "message": "Tässä luonnoksessa on muutoksia, joita julkaistulla sivulla ei ole, joten sen poistaminen hävittäisi ne."
       },
       "legacy-draft-kept": {
         "title": "Luonnostiedosto säilytettiin",

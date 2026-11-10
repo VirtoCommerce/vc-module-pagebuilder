@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
+using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.PageBuilderModule.Web.Models;
@@ -405,7 +406,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 contentPermissionService: TestServices.Permissions(authorizationService ?? new ScopedAuthorizationService(storeAccess, granted)),
                 filePageDraftService: filePageDrafts,
             designerSaveValidator: RequestValidators.DesignerSave,
-            designerDiscardValidator: RequestValidators.DesignerDiscard);
+            designerDiscardValidator: RequestValidators.DesignerDiscard,
+            themeStorageFactory: new ThemeStorageFactory(new FakeStoreService(new Store { Id = Store }), null, null, null));
 
             controller.ControllerContext = new ControllerContext
             {

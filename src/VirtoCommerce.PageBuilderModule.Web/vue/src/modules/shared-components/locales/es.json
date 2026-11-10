@@ -60,7 +60,7 @@
       "DELETED": "El componente compartido se eliminó correctamente",
       "DELETE_BLOCKED_ONE": "Este componente se usa en 1 página y no se puede eliminar.",
       "DELETE_BLOCKED_MANY": "Este componente se usa en {count} páginas y no se puede eliminar.",
-      "DELETE_CONFLICT": "El componente ahora está en uso y no se puede eliminar. Actualice la lista para ver dónde se usa.",
+      "DELETE_CONFLICT": "El componente ahora está en uso y no se puede eliminar.",
       "DELETE_MISSING": "El componente ya no existe. Es posible que otra persona lo haya eliminado.",
       "ERROR_GENERIC": "Error en la operación del componente compartido"
     }

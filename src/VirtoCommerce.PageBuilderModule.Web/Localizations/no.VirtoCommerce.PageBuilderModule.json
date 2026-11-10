@@ -76,9 +76,9 @@
         "title": "Slette den gamle utkastfilen?",
         "message": "\"{{path}}\" er igjen fra før denne butikken gikk over til innholdsrepositoriet. Selve siden berøres ikke."
       },
-      "delete-legacy-draft-unsaved": {
-        "title": "Slette den gamle utkastfilen?",
-        "message": "\"{{path}}\" inneholder fortsatt endringer som ikke finnes i innholdsrepositoriet. Hvis du sletter den, går de tapt. Den publiserte siden berøres ikke."
+      "legacy-draft-changed": {
+        "title": "Utkastfilen ble beholdt",
+        "message": "Dette utkastet inneholder endringer som den publiserte siden ikke har, så de ville gått tapt hvis du sletter det."
       },
       "legacy-draft-kept": {
         "title": "Utkastfilen ble beholdt",

@@ -633,7 +633,6 @@ import {
   saveDesigner,
   storeMenus,
   filePageContent,
-  asOneSave,
   hasCatalog,
   uploadCatalog,
   ApiError, type FilePage, type SharedComponent } from "../designer/api";
@@ -1055,14 +1054,13 @@ provide(PickAssetKey, (acceptedTypes) => {
   return new Promise((resolve) => (resolvePick = resolve));
 });
 
-const save = () =>
-  asOneSave(async () => {
-    try {
-      await saveChanges();
-    } finally {
-      await Promise.all([designer.refreshThemeStatus(), reloadHistory()]);
-    }
-  });
+const save = async () => {
+  try {
+    await saveChanges();
+  } finally {
+    await Promise.all([designer.refreshThemeStatus(), reloadHistory()]);
+  }
+};
 
 const reloadHistory = () => versionHistory.value?.reload().catch(() => undefined);
 
@@ -1434,7 +1432,7 @@ async function discardDrafts(choice: { page: boolean; theme: ThemePart[] }) {
   const drafts = choice.page || choice.theme.length > 0;
   let failed = false;
   try {
-    if (drafts) await asOneSave(() => designer.discardDrafts(choice));
+    if (drafts) await designer.discardDrafts(choice);
     if (choice.page) notifyPagesChanged();
   } catch {
     failed = true;

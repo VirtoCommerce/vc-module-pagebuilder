@@ -8,6 +8,7 @@ using Newtonsoft.Json.Linq;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.ContentModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.StoreModule.Core.Model;
@@ -128,7 +129,8 @@ public class BlobPublishTests
             contentPermissionService: TestServices.Permissions(new FakeAuthorizationService(allowed)),
             filePageDraftService: filePageDrafts,
             designerSaveValidator: RequestValidators.DesignerSave,
-            designerDiscardValidator: RequestValidators.DesignerDiscard);
+            designerDiscardValidator: RequestValidators.DesignerDiscard,
+            themeStorageFactory: new ThemeStorageFactory(new FakeStoreService(new Store { Id = "vccom" }), null, null, publishing));
 
         controller.ControllerContext = new ControllerContext
         {

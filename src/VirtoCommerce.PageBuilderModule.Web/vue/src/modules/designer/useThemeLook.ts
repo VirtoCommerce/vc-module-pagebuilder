@@ -1,7 +1,7 @@
 import { computed, ref } from "vue";
 import * as api from "./api";
-import type { DesignerSaveFile } from "./designerSave";
-import { THEME_FILES, type ThemePart } from "./history";
+import type { PendingThemeFile } from "./designerSave";
+import { THEME_FILES } from "./history";
 import { clone, isRecord } from "./json";
 import type { ColorScheme } from "./previewMessages";
 import { LOOK_FILES, brandFile, lookDraft, lookFiles, readBrand, readColors, settingsDataPath, type BrandField, type ThemeLook } from "./themeLook";
@@ -83,7 +83,7 @@ export function useThemeLook() {
     lastEdited = undefined;
   }
 
-  function pending(): { part: ThemePart; file: DesignerSaveFile; saved: (eTag?: string) => void }[] {
+  function pending(): PendingThemeFile[] {
     if (!at || !loaded.value) return [];
     const sent = clone(look.value);
     return lookFiles(at.theme, sent, saved.value).map(({ part, file }) => ({

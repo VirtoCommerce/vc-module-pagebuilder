@@ -338,9 +338,9 @@ import { fill, isVisible, pick, schemaRequest, valuesOf } from "../schema";
 import { isTranslations, translationOf, withTranslation, type Translating } from "../translatable";
 import { SEARCH_DEBOUNCE_MS, requestResult, runSearch, searchDisplayValue, type SearchField, type SearchValue } from "../search";
 import { assetTypes } from "../assetTypes";
+import { moveItem } from "../rules";
 import ImageField from "./ImageField.vue";
 import ImageListField from "./ImageListField.vue";
-import { getAuthHeaders } from "../../page-builder/composables/usePageContentApi";
 
 const props = defineProps<{
   fields: Field[];
@@ -480,9 +480,7 @@ function removeRow(field: Field, index: number) {
   openRow.value = undefined;
 }
 function moveRow(field: Field, index: number, by: number) {
-  const rows = [...listOf(field)];
-  rows.splice(index + by, 0, ...rows.splice(index, 1));
-  set(field, rows);
+  set(field, moveItem(listOf(field), index, index + by));
   openRow.value = undefined;
 }
 
@@ -498,8 +496,7 @@ async function schemaFetch(request: RemoteRequest, context: Record<string, unkno
   if (!target) return undefined;
   return fetch(target.url, {
     method: (request.method ?? "get").toUpperCase(),
-    // Only the platform's API gets the user's token; the theme's requests elsewhere go without it.
-    headers: { ...(target.platform ? await getAuthHeaders() : {}), ...(body ? { "Content-Type": "application/json" } : {}) },
+    headers: body ? { "Content-Type": "application/json" } : {},
     body: body ? JSON.stringify(body) : undefined,
   });
 }

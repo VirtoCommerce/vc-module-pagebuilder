@@ -1,7 +1,7 @@
 export class SharedComponentDeleteConflictError extends Error {
   readonly status = 409;
 
-  constructor(readonly component: unknown) {
+  constructor() {
     super("The shared component is currently in use and cannot be deleted.");
     this.name = "SharedComponentDeleteConflictError";
   }
@@ -9,7 +9,7 @@ export class SharedComponentDeleteConflictError extends Error {
 
 export function normalizeSharedComponentDeleteError(error: unknown, componentId: string): unknown {
   if (isSharedComponentConflictResponse(error, componentId)) {
-    return new SharedComponentDeleteConflictError(error);
+    return new SharedComponentDeleteConflictError();
   }
 
   return error;

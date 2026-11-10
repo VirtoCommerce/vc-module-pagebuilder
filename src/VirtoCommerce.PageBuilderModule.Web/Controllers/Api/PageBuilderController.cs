@@ -25,7 +25,7 @@ using VirtoCommerce.PageBuilderModule.Core.History;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
-using VirtoCommerce.PageBuilderModule.Data.Authorization;
+using VirtoCommerce.PageBuilderModule.Data.Extensions;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.PageBuilderModule.Web.Extensions;
 using VirtoCommerce.PageBuilderModule.Web.Models;
@@ -33,7 +33,6 @@ using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.DistributedLock;
 using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.Platform.Core.Settings;
-using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
 using StorePermissions = VirtoCommerce.StoreModule.Core.ModuleConstants.Security.Permissions;
 
@@ -67,7 +66,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             IContentPermissionService contentPermissionService,
             IFilePageDraftService filePageDraftService,
             IValidator<DesignerSaveRequest> designerSaveValidator,
-            IValidator<DesignerDiscardRequest> designerDiscardValidator
+            IValidator<DesignerDiscardRequest> designerDiscardValidator,
+            IThemeStorageFactory themeStorageFactory
             )
         : Controller
     {
@@ -80,7 +80,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         // How a client names the two flows in the publish-status answer.
         private const string GitFlow = "git";
         private const string BlobFlow = "blob";
-        private const string DefaultTheme = ModuleConstants.Theme.DefaultThemeName;
         private const string JsonContentType = "application/json";
         private const string JsonExtension = ".json";
         private const string SchemaKindSections = ModuleConstants.SchemaKinds.Sections;
@@ -684,6 +683,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// <summary>A theme file as the designer edits it: its draft, else what is live, with the version its save sends back</summary>
         [HttpGet]
         [Route("designer/theme-file")]
+        [ProducesResponseType(typeof(ThemeFileContent), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<ThemeFileContent>> GetDesignerThemeFile([FromQuery] string storeId, [FromQuery] string path)
@@ -721,6 +721,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [HttpPost]
         [Authorize(ModuleConstants.Security.Permissions.Update)]
         [Route("designer/save")]
+        [ProducesResponseType(typeof(DesignerSaveResult), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status412PreconditionFailed)]
@@ -809,6 +810,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [HttpPost]
         [Authorize(ModuleConstants.Security.Permissions.Update)]
         [Route("designer/discard")]
+        [ProducesResponseType(typeof(ContentSaveResult), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<ContentSaveResult>> DiscardDesignerChanges([FromQuery] string storeId, [FromBody] DesignerDiscardRequest value)
@@ -1695,10 +1697,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             {
                 var repoPath = GitLocation(repository, contentType, path).RepoPath;
                 var inGit = await gitContentRepository.ReadFileAsync(repository, repoPath, await GetBaseBranchAsync(), HttpContext.RequestAborted);
-                var published = inGit ?? await ReadPublishedBlobAsync(storageProvider, path);
+                var published = inGit ?? await storageProvider.ReadTextAsync(WithoutDraftSuffix(path));
 
-                if (published != null && await storageProvider.GetBlobInfoAsync(path) != null &&
-                    !IsSamePageDocument(await ReadBlobTextAsync(storageProvider, path), published))
+                if (published != null && await storageProvider.ReadTextAsync(path) is { } inBlob && !IsSamePageDocument(inBlob, published))
                 {
                     skipped.Add(new { path, reason = LegacyDraftHasChanges });
                 }
@@ -1890,11 +1891,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             var repoPath = GitLocation(repository, contentType, draft.RelativeUrl).RepoPath;
             var inGit = await gitContentRepository.ReadFileAsync(repository, repoPath, await GetBaseBranchAsync(), HttpContext.RequestAborted);
-            var inBlob = await ReadBlobTextAsync(storageProvider, draft.RelativeUrl);
+            var inBlob = await storageProvider.ReadTextAsync(draft.RelativeUrl);
             // The published blob matters as much as the repository here. A store that opted in keeps
             // every page it had, and one never saved from the designer since is in blob storage only:
             // for it, "foo.page" is the live page and this draft is an edit on top of it.
-            var published = await ReadPublishedBlobAsync(storageProvider, draft.RelativeUrl);
+            var published = await storageProvider.ReadTextAsync(WithoutDraftSuffix(draft.RelativeUrl));
 
             return new LegacyDraftInfo
             {
@@ -1941,27 +1942,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             {
                 return false;
             }
-        }
-
-        /// <summary>
-        /// The published page next to this draft, or <c>null</c> when there is none. Read rather than
-        /// merely probed, because it is what the draft is compared against.
-        /// </summary>
-        private static async Task<string> ReadPublishedBlobAsync(IBlobContentStorageProvider storageProvider, string draftPath)
-        {
-            var published = WithoutDraftSuffix(draftPath);
-
-            return await storageProvider.GetBlobInfoAsync(published) == null
-                ? null
-                : await ReadBlobTextAsync(storageProvider, published);
-        }
-
-        private static async Task<string> ReadBlobTextAsync(IBlobContentStorageProvider storageProvider, string relativeUrl)
-        {
-            await using var stream = await storageProvider.OpenReadAsync(relativeUrl);
-            using var reader = new StreamReader(stream);
-
-            return await reader.ReadToEndAsync();
         }
 
         /// <summary>
@@ -2016,14 +1996,10 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// Store access first, so a user bound to another store cannot tell from a 400 which stores exist.
         /// The permission itself is on the action's [Authorize] attributes.
         /// </summary>
-        private async Task<ActionResult> CheckRequestAsync(PageBuilderContentRequest request) =>
-            await CheckStoreAccessAsync(request) ?? await ValidateAsync(request);
+        private Task<ActionResult> CheckRequestAsync(PageBuilderContentRequest request) =>
+            authorizationService.CheckStoreRequestAsync(User, requestValidator, request, ModelState, HttpContext.RequestAborted);
 
-        private async Task<ActionResult> CheckStoreAccessAsync(PageBuilderContentRequest request)
-        {
-            var storeAccess = await authorizationService.AuthorizeAsync(User, request, new PageBuilderAuthorizationRequirement());
-            return storeAccess.Succeeded ? null : Forbid();
-        }
+        private Task<ActionResult> CheckStoreAccessAsync(PageBuilderContentRequest request) => authorizationService.CheckStoreAccessAsync(User, request);
 
         private async Task<ActionResult> ValidateAsync(PageBuilderContentRequest request)
         {
@@ -2457,15 +2433,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return retVal;
         }
 
-        private async Task<string> GetCurrentThemeName(string storeId, string themeName)
-        {
-            if (!string.IsNullOrEmpty(themeName))
-            {
-                return themeName;
-            }
-            var store = await storeService.GetNoCloneAsync(storeId, StoreResponseGroup.DynamicProperties.ToString());
-            return store?.DynamicProperties.FirstOrDefault(x => x.Name == ModuleConstants.Theme.ThemeNamePropertyName)?.Values?.FirstOrDefault()?.Value?.ToString() ?? DefaultTheme;
-        }
+        private async Task<string> GetCurrentThemeName(string storeId, string themeName) =>
+            string.IsNullOrEmpty(themeName) ? await themeStorageFactory.GetThemeNameAsync(storeId) : themeName;
 
         public class SaveFilesModel
         {

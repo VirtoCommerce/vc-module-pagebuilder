@@ -233,28 +233,14 @@
         "CANCEL": "取消"
       }
     },
-    "LIFECYCLE": {
-      "DRAFT": "草稿",
-      "PENDING": "待审核",
-      "ACTIVE": "已发布",
-      "ARCHIVED": "已归档"
-    },
     "SITE_TAB": {
       "TITLE": "页面",
       "SHOW": "显示",
-      "FILTER": {
-        "ALL": "所有页面",
-        "DRAFT": "草稿",
-        "PENDING": "待审核",
-        "ACTIVE": "已发布",
-        "ARCHIVED": "已归档"
-      },
       "NEW_PAGE": "新建页面",
       "EMPTY": "这里还没有页面。",
       "DETAILS": "页面详情"
     },
     "DESIGNER": {
-      "TITLE": "设计器：{name}",
       "SECTIONS": "区块",
       "GROUPS": {
         "HEADER": "页眉",
@@ -368,7 +354,6 @@
       "NOTHING_PUBLISHED": "未发布任何内容。请重新打开页面以查看另一个版本。",
       "HISTORY": {
         "TITLE": "版本历史",
-        "OTHERS": "其他人的 {count} 个未发布版本",
         "EMPTY": "暂无版本：保存页面即可创建第一个版本。",
         "FAILED": "无法加载版本。",
         "PUBLISHED": "已发布",
@@ -644,7 +629,6 @@
       "WIDGET": "历史",
       "ON": "已开启",
       "OFF": "已关闭",
-      "STATUS": "状态",
       "REPOSITORY": "仓库",
       "BRANCH": "分支",
       "LAST_CHANGE": "最近发布的更改",
@@ -675,13 +659,10 @@
       "OPEN_GITHUB": "GitHub 连接"
     },
     "GITHUB": {
-      "TITLE": "GitHub",
       "INTRO": "只需将平台连接到 GitHub 组织一次。之后每个站点都会将其页面的版本保存在该组织中自己的私有仓库里。",
       "CONNECTED_HINT": "每个站点都会将其页面的版本保存在 {organization} 中自己的私有仓库里。请在站点的“历史”面板中为其启用历史。",
-      "STATUS": "状态",
       "CONNECTED": "已连接",
       "FAILING": "无法工作",
-      "ORGANIZATION": "组织",
       "APP": "GitHub 应用",
       "FROM_CONFIGURATION": "来自平台配置",
       "NEW_SITES": "新站点",

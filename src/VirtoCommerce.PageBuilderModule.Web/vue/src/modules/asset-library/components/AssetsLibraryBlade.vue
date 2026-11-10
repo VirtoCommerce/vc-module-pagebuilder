@@ -11,11 +11,10 @@
 <script lang="ts" setup>
 import { computed, useTemplateRef } from "vue";
 import { useI18n } from "vue-i18n";
-import { IBladeToolbar, useBlade } from "@vc-shell/framework";
+import { IBladeToolbar } from "@vc-shell/framework";
 import { VcBlade } from "@vc-shell/framework/ui";
 import AssetsLibraryContent, { type ExposedAssetsLibraryContent } from "./AssetsLibraryContent.vue";
 
-const { exposeToChildren } = useBlade();
 const { t } = useI18n({ useScope: "global" });
 const assetsLibraryRef = useTemplateRef<ExposedAssetsLibraryContent>("assetsLibraryRef");
 const bladeTitle = computed(() => t("ASSET_LIBRARY.TITLE"));
@@ -32,6 +31,4 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
 async function reload() {
   await assetsLibraryRef.value?.reload();
 }
-
-exposeToChildren({ reload });
 </script>

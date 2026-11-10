@@ -13,7 +13,6 @@ using Newtonsoft.Json;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
-using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Web.Extensions;
 using VirtoCommerce.Platform.Core;
 using VirtoCommerce.Platform.Core.Common;
@@ -244,7 +243,7 @@ public class GitContentSetupController(
             var searchResult = await storeSearchService.SearchAsync(criteria);
             foreach (var store in searchResult.Results)
             {
-                if (stores.Count < MaxSites && await CheckStoreAccessAsync(store) == null)
+                if (stores.Count < MaxSites && await authorizationService.CheckStoreAccessAsync(User, store) == null)
                 {
                     stores.Add(store);
                 }
@@ -260,20 +259,12 @@ public class GitContentSetupController(
         return stores;
     }
 
-    // access first, so a 400 does not reveal which stores exist
     private async Task<ActionResult> CheckRequestAsync(string storeId, CancellationToken cancellationToken, string permission = null)
     {
         var request = new PageBuilderStoreRequest { StoreId = storeId };
 
-        return (permission == null ? null : await CheckStoreAccessAsync(request, permission))
-               ?? await CheckStoreAccessAsync(request)
-               ?? await storeRequestValidator.ValidateRequestAsync(request, ModelState, cancellationToken);
-    }
-
-    private async Task<ActionResult> CheckStoreAccessAsync(object resource, string permission = ModuleConstants.Security.Permissions.Read)
-    {
-        var authorizationResult = await authorizationService.AuthorizeAsync(User, resource, new PageBuilderAuthorizationRequirement(permission));
-        return authorizationResult.Succeeded ? null : Forbid();
+        return (permission == null ? null : await authorizationService.CheckStoreAccessAsync(User, request, permission))
+               ?? await authorizationService.CheckStoreRequestAsync(User, storeRequestValidator, request, ModelState, cancellationToken);
     }
 
     private static ContentResult CreateSetupErrorResult(string message) => new()

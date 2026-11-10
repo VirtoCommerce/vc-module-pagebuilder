@@ -233,28 +233,14 @@
         "CANCEL": "キャンセル"
       }
     },
-    "LIFECYCLE": {
-      "DRAFT": "下書き",
-      "PENDING": "レビュー中",
-      "ACTIVE": "公開済み",
-      "ARCHIVED": "アーカイブ済み"
-    },
     "SITE_TAB": {
       "TITLE": "ページ",
       "SHOW": "表示",
-      "FILTER": {
-        "ALL": "すべてのページ",
-        "DRAFT": "下書き",
-        "PENDING": "レビュー中",
-        "ACTIVE": "公開済み",
-        "ARCHIVED": "アーカイブ済み"
-      },
       "NEW_PAGE": "新規ページ",
       "EMPTY": "ここにはまだページがありません。",
       "DETAILS": "ページの詳細"
     },
     "DESIGNER": {
-      "TITLE": "デザイナー: {name}",
       "SECTIONS": "セクション",
       "GROUPS": {
         "HEADER": "ヘッダー",
@@ -368,7 +354,6 @@
       "NOTHING_PUBLISHED": "何も公開されませんでした。別のバージョンを確認するには、ページを開き直してください。",
       "HISTORY": {
         "TITLE": "バージョン履歴",
-        "OTHERS": "他のユーザーによる未公開バージョン: {count} 件",
         "EMPTY": "バージョンはまだありません。ページを保存して最初のバージョンを作成します。",
         "FAILED": "バージョンを読み込めませんでした。",
         "PUBLISHED": "公開済み",
@@ -644,7 +629,6 @@
       "WIDGET": "履歴",
       "ON": "オン",
       "OFF": "オフ",
-      "STATUS": "状態",
       "REPOSITORY": "リポジトリ",
       "BRANCH": "ブランチ",
       "LAST_CHANGE": "最後に公開した変更",
@@ -675,13 +659,10 @@
       "OPEN_GITHUB": "GitHub 接続"
     },
     "GITHUB": {
-      "TITLE": "GitHub",
       "INTRO": "プラットフォームを GitHub 組織に一度だけ接続します。その後、各サイトはページのバージョンをその組織内の専用の非公開リポジトリに保存します。",
       "CONNECTED_HINT": "各サイトはページのバージョンを {organization} 内の専用の非公開リポジトリに保存します。サイトの履歴パネルから履歴を有効にしてください。",
-      "STATUS": "状態",
       "CONNECTED": "接続済み",
       "FAILING": "動作していません",
-      "ORGANIZATION": "組織",
       "APP": "GitHub アプリ",
       "FROM_CONFIGURATION": "プラットフォームの構成から",
       "NEW_SITES": "新しいサイト",

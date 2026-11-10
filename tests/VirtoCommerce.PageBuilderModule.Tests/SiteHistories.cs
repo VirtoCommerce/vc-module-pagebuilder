@@ -14,7 +14,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests;
 internal static class SiteHistories
 {
     // All histories share one server's keys, so a cursor one history wrote can be read by the next.
-    private static readonly IDataProtectionProvider Keys = new EphemeralDataProtectionProvider();
+    public static readonly IDataProtectionProvider Keys = new EphemeralDataProtectionProvider();
 
     public static IOptions<GitContentOptions> Options() => Microsoft.Extensions.Options.Options.Create(new GitContentOptions
     {

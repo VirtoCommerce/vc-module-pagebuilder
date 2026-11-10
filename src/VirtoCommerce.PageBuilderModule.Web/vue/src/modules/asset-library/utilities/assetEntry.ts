@@ -21,15 +21,7 @@ export function getEntryIcon(entry: AssetEntry): string {
   return entry.type === "folder" ? "lucide-folder" : "lucide-file";
 }
 
-export function getReferencesCount(entry: AssetEntry): number {
-  return entry.type === "blob" ? entry.referencesCount ?? 0 : 0;
-}
-
 export function getFolderUrl(entry: AssetEntry, currentFolderUrl: string): string {
-  if (entry.type === "folder") {
-    return entry.relativeUrl || entry.url || currentFolderUrl;
-  }
-
   const relativeUrl = entry.relativeUrl || "";
   const suffix = `/${entry.name}`;
 

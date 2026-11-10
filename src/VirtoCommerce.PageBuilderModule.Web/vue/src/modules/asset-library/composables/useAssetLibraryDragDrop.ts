@@ -30,7 +30,7 @@ export function useAssetLibraryDragDrop(
   }
 
   function handleSurfaceDragLeave(event: DragEvent) {
-    if (isLeavingCurrentTarget(event)) {
+    if (isStillInsideCurrentTarget(event)) {
       return;
     }
 
@@ -57,7 +57,7 @@ export function useAssetLibraryDragDrop(
   }
 
   function handleFolderDragLeave(entry: AssetEntry, event: DragEvent) {
-    if (isLeavingCurrentTarget(event)) {
+    if (isStillInsideCurrentTarget(event)) {
       return;
     }
 
@@ -84,7 +84,7 @@ export function useAssetLibraryDragDrop(
     return Array.from(event.dataTransfer?.types ?? []).includes("Files");
   }
 
-  function isLeavingCurrentTarget(event: DragEvent): boolean {
+  function isStillInsideCurrentTarget(event: DragEvent): boolean {
     const currentTarget = event.currentTarget as HTMLElement | null;
     const nextTarget = event.relatedTarget;
 

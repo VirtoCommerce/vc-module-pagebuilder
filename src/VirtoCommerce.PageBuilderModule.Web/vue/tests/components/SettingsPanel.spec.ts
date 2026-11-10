@@ -60,6 +60,6 @@ describe("SettingsPanel", () => {
   });
 
   it("titles a section by the default language's text, whichever language is edited", () => {
-    expect(mountPanel().find(".pd-settings__title").text()).toBe("Sale");
+    expect(mountPanel().find(".pd-panel-head__title").text()).toBe("Sale");
   });
 });

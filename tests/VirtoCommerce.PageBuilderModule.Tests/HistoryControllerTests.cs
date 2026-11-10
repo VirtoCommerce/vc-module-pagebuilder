@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using VirtoCommerce.PageBuilderModule.Core;
+using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.History;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.Services;
@@ -126,14 +127,12 @@ public class HistoryControllerTests
     }
 
     [Fact]
-    public async Task GetHistory_GitHubFails_ReturnsBadGateway()
+    public async Task GetHistory_GitHubFails_ThrowsGitContentException()
     {
         var github = new GitHubScript(("POST", "graphql", (_, _) => GitHubScript.Status(HttpStatusCode.BadGateway)));
         var history = SiteHistories.Create(github, new ThemeStorageFactory(_live.StoreService, _live, _live, _live), _pages);
 
-        var result = await Controller(history: history).GetHistory("s1", ["page:g1"], cancellationToken: Ct);
-
-        Assert.Equal(StatusCodes.Status502BadGateway, Assert.IsType<ObjectResult>(result.Result).StatusCode);
+        await Assert.ThrowsAsync<GitContentException>(() => Controller(history: history).GetHistory("s1", ["page:g1"], cancellationToken: Ct));
     }
 
     [Fact]

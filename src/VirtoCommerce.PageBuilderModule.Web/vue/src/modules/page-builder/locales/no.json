@@ -233,28 +233,14 @@
         "CANCEL": "Avbryt"
       }
     },
-    "LIFECYCLE": {
-      "DRAFT": "Utkast",
-      "PENDING": "Under gjennomgang",
-      "ACTIVE": "Publisert",
-      "ARCHIVED": "Arkivert"
-    },
     "SITE_TAB": {
       "TITLE": "Sider",
       "SHOW": "Vis",
-      "FILTER": {
-        "ALL": "Alle sider",
-        "DRAFT": "Utkast",
-        "PENDING": "Under gjennomgang",
-        "ACTIVE": "Publiserte",
-        "ARCHIVED": "Arkiverte"
-      },
       "NEW_PAGE": "Ny side",
       "EMPTY": "Ingen sider her ennå.",
       "DETAILS": "Sidedetaljer"
     },
     "DESIGNER": {
-      "TITLE": "Designer: {name}",
       "SECTIONS": "Seksjoner",
       "GROUPS": {
         "HEADER": "Topptekst",
@@ -368,7 +354,6 @@
       "NOTHING_PUBLISHED": "Ingenting ble publisert. Åpne siden på nytt for å se den andre versjonen.",
       "HISTORY": {
         "TITLE": "Versjonshistorikk",
-        "OTHERS": "Upubliserte versjoner fra andre: {count}",
         "EMPTY": "Ingen versjoner ennå: lagre siden for å lage den første.",
         "FAILED": "Versjonene kunne ikke lastes inn.",
         "PUBLISHED": "Publisert",
@@ -644,7 +629,6 @@
       "WIDGET": "Historikk",
       "ON": "På",
       "OFF": "Av",
-      "STATUS": "Status",
       "REPOSITORY": "Repositorium",
       "BRANCH": "Gren",
       "LAST_CHANGE": "Siste publiserte endring",
@@ -675,13 +659,10 @@
       "OPEN_GITHUB": "GitHub-tilkobling"
     },
     "GITHUB": {
-      "TITLE": "GitHub",
       "INTRO": "Koble plattformen til en GitHub-organisasjon én gang. Hvert nettsted tar deretter vare på versjonene av sidene sine i sitt eget private repositorium der.",
       "CONNECTED_HINT": "Hvert nettsted tar vare på versjonene av sidene sine i sitt eget private repositorium i {organization}. Slå på historikk for et nettsted fra Historikk-panelet.",
-      "STATUS": "Status",
       "CONNECTED": "Tilkoblet",
       "FAILING": "Virker ikke",
-      "ORGANIZATION": "Organisasjon",
       "APP": "GitHub-app",
       "FROM_CONFIGURATION": "Fra plattformens konfigurasjon",
       "NEW_SITES": "Nye nettsteder",

@@ -1,6 +1,6 @@
 import { computed, ref } from "vue";
 import * as api from "./api";
-import type { DesignerSaveFile } from "./designerSave";
+import type { PendingThemeFile } from "./designerSave";
 import { rulesPath } from "./history";
 import { formatRules, readRules, unreadableRules, type TemplateRules } from "./rules";
 
@@ -32,7 +32,7 @@ export function useTemplateRules() {
     loaded.value = true;
   }
 
-  function pending(): { part: "rules"; file: DesignerSaveFile; saved: (eTag?: string) => void } | undefined {
+  function pending(): PendingThemeFile | undefined {
     if (!at || !dirty.value) return undefined;
     const sent = formatRules(rules.value);
     return {

@@ -89,7 +89,6 @@
     },
     "CONFIRM": {
       "DELETE_SINGLE": "Excluir {name}?",
-      "DELETE_SELECTED": "Excluir {count} ativo(s) selecionado(s)?",
       "DELETE_USED_ONE": "Excluir {name}? Ele é usado em 1 item do Page Builder.",
       "DELETE_USED_MANY": "Excluir {name}? Ele é usado em {count} itens do Page Builder.",
       "TITLE": "Confirmar exclusão",
@@ -99,11 +98,10 @@
     "OVERWRITE": {
       "TITLE": "Conflito de nome de arquivo",
       "MESSAGE_UNUSED": "{name} não é usado em nenhuma página do Page Builder. A substituição atualizará o arquivo existente.",
-      "MESSAGE_USED_ONE": "{name} é usado em 1 página do Page Builder. A substituição alterará o recurso nessa página.",
-      "MESSAGE_USED_MANY": "{name} é usado em {count} páginas do Page Builder. A substituição alterará o recurso em todas elas.",
+      "MESSAGE_USED_ONE": "{name} é usado em 1 item do Page Builder. A substituição alterará o recurso nesse item.",
+      "MESSAGE_USED_MANY": "{name} é usado em {count} itens do Page Builder. A substituição alterará o recurso em todos eles.",
       "MESSAGE_BATCH_DUPLICATE": "Outro arquivo neste carregamento já se chama {name}. Se mantiver o mesmo nome, apenas o último arquivo será carregado.",
       "MESSAGE_USAGE_UNKNOWN": "Não foi possível determinar se {name} é usado em páginas do Page Builder. Substituí-lo pode alterar as páginas que usam este recurso.",
-      "AFFECTED_PAGES": "Páginas do Page Builder afetadas",
       "UPLOAD_AS_LABEL": "Carregar como",
       "UPLOAD_AS": "Carregar como",
       "REPLACE": "Substituir",

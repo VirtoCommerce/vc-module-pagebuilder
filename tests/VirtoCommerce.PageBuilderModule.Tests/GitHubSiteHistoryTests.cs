@@ -370,11 +370,18 @@ public class GitHubSiteHistoryTests
     [Theory]
     [InlineData("bm90IGEgY3Vyc29y")]
     [InlineData("!!")]
-    // These are well-formed positions the history did not write: a null one and one before the start.
-    [InlineData("eyJ4IjpudWxsfQ")]
-    [InlineData("eyJkYXRhYmFzZS1wYWdlcy9nMS5qc29uIjp7InMiOi0yMDB9fQ")]
     public async Task ListAsync_CursorItDidNotWrite_ThrowsArgumentException(string cursor)
     {
+        await Assert.ThrowsAsync<ArgumentException>(() => History(new GitHubScript()).ListAsync("s1", [Page], cursor, 20, Ct));
+    }
+
+    [Theory]
+    [InlineData("not a cursor")]
+    [InlineData("""{ "p": [] }""")]
+    public async Task ListAsync_ProtectedTextThatIsNoCursor_ThrowsArgumentException(string text)
+    {
+        var cursor = SiteHistories.Keys.CreateProtector("VirtoCommerce.PageBuilderModule.ContentHistoryCursor", "s1").Protect(text);
+
         await Assert.ThrowsAsync<ArgumentException>(() => History(new GitHubScript()).ListAsync("s1", [Page], cursor, 20, Ct));
     }
 

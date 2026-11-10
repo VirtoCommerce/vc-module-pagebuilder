@@ -91,7 +91,6 @@
       "DELETE_SINGLE": "هل تريد حذف {name}؟",
       "DELETE_USED_ONE": "هل تريد حذف {name}؟ إنه مستخدم في عنصر واحد في Page Builder.",
       "DELETE_USED_MANY": "هل تريد حذف {name}؟ إنه مستخدم في عناصر Page Builder ({count}).",
-      "DELETE_SELECTED": "هل تريد حذف الأصول المحددة ({count})؟",
       "TITLE": "تأكيد الحذف",
       "DELETE": "حذف",
       "CANCEL": "إلغاء"
@@ -99,11 +98,10 @@
     "OVERWRITE": {
       "TITLE": "تعارض في اسم الملف",
       "MESSAGE_UNUSED": "{name} غير مستخدم في أي صفحات في Page Builder. سيؤدي استبداله إلى تحديث الملف الموجود.",
-      "MESSAGE_USED_ONE": "{name} مستخدم في صفحة واحدة في Page Builder. سيؤدي استبداله إلى تغيير الأصل في تلك الصفحة.",
-      "MESSAGE_USED_MANY": "{name} مستخدم في صفحات Page Builder ({count}). سيؤدي استبداله إلى تغيير الأصل فيها جميعًا.",
+      "MESSAGE_USED_ONE": "{name} مستخدم في عنصر واحد في Page Builder. سيؤدي استبداله إلى تغيير الأصل فيه.",
+      "MESSAGE_USED_MANY": "{name} مستخدم في عناصر Page Builder ({count}). سيؤدي استبداله إلى تغيير الأصل فيها جميعًا.",
       "MESSAGE_BATCH_DUPLICATE": "يوجد ملف آخر في عملية الرفع هذه باسم {name}. إذا أبقيت الاسم نفسه فسيُرفع الملف الأخير فقط.",
       "MESSAGE_USAGE_UNKNOWN": "تعذّر تحديد ما إذا كان {name} مستخدمًا في صفحات Page Builder. قد يؤدي استبداله إلى تغيير الصفحات التي تستخدم هذا الأصل.",
-      "AFFECTED_PAGES": "صفحات Page Builder المتأثرة",
       "UPLOAD_AS_LABEL": "الرفع باسم",
       "UPLOAD_AS": "الرفع باسم",
       "REPLACE": "استبدال",

@@ -1,7 +1,7 @@
 export interface ThemeStatus {
   publication?: number;
   drafts: string[];
-  newDrafts?: string[];
+  newDrafts: string[];
 }
 
 const paths = (value: unknown) => (Array.isArray(value) ? value.filter((x): x is string => typeof x === "string") : []);
@@ -20,7 +20,7 @@ export const hasThemeDraft = (status: ThemeStatus | undefined, theme: string, pa
 
 /** Such a draft is the file's only copy, so a Discard keeps it. */
 export const isNewThemeDraft = (status: ThemeStatus | undefined, theme: string, path: string) =>
-  !!status?.newDrafts?.some((x) => `${theme}/${x}` === path);
+  !!status?.newDrafts.some((x) => `${theme}/${x}` === path);
 
 export function templateStatus(status: ThemeStatus | undefined, theme: string, path: string): { published: boolean; hasChanges: boolean } {
   if (!status) return { published: true, hasChanges: false };

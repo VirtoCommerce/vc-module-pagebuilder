@@ -36,8 +36,10 @@ export function newId(type: string): string {
   return type.replace(/[^a-zA-Z0-9]/g, "") + suffix;
 }
 
+export const blockSchemaOf = (schemas: Schemas, type: string): ItemSchema | undefined => schemas.blocks[type] ?? schemas.sections[type];
+
 export function newItem(type: string, kind: "section" | "block", schemas: Schemas): Item {
-  const schema = (kind === "section" ? schemas.sections : schemas.blocks)[type];
+  const schema = kind === "section" ? schemas.sections[type] : blockSchemaOf(schemas, type);
   const item: Item = { ...valuesOf(fieldsOf(schema, kind, schemas)), ...clone(schema?.default ?? {}), type, id: newId(type) };
   if (schema?.blocks) item.blocks = Array.isArray(item.blocks) ? item.blocks.map(copyItem) : [];
   return item;
@@ -149,7 +151,7 @@ function isAllowedOnPlatform(target: URL, request: SchemaRequest): boolean {
   return method === "POST" && target.pathname === "/graphql" && !target.search && isGraphqlRead(request.body);
 }
 
-/** `platform` means the designer's own origin, the only place the user's token may go. */
+/** `platform` means the designer's own origin, where the request carries the user's session. */
 export function schemaRequest(request: SchemaRequest, location: Pick<Location, "href" | "origin">): { url: string; platform: boolean } | undefined {
   try {
     const target = new URL(request.url, location.href);

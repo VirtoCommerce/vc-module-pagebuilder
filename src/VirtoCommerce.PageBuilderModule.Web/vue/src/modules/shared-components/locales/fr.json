@@ -60,7 +60,7 @@
       "DELETED": "Le composant partagé a été supprimé",
       "DELETE_BLOCKED_ONE": "Ce composant est utilisé sur 1 page et ne peut pas être supprimé.",
       "DELETE_BLOCKED_MANY": "Ce composant est utilisé sur {count} pages et ne peut pas être supprimé.",
-      "DELETE_CONFLICT": "Le composant est maintenant utilisé et ne peut pas être supprimé. Actualisez la liste pour voir ses utilisations.",
+      "DELETE_CONFLICT": "Le composant est maintenant utilisé et ne peut pas être supprimé.",
       "DELETE_MISSING": "Le composant n’existe plus. Quelqu’un d’autre l’a peut-être supprimé.",
       "ERROR_GENERIC": "Échec de l’opération sur le composant partagé"
     }

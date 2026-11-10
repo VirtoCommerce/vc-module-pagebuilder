@@ -10,11 +10,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using VirtoCommerce.PageBuilderModule.Core;
-using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.History;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
-using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Web.Extensions;
 using VirtoCommerce.Platform.Core.Common;
 
@@ -23,6 +21,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 [Route("api/pagebuilder/history")]
 [Authorize]
 [RepositoryOwnershipConflict]
+[GitContentFailure]
 public class HistoryController(
     IContentHistory contentHistory,
     IGroupedPageService groupedPageService,
@@ -38,7 +37,7 @@ public class HistoryController(
     public async Task<ActionResult<ContentHistoryStatusResult>> GetStatus([FromQuery] string storeId, CancellationToken cancellationToken = default)
     {
         var request = new PageBuilderStoreRequest { StoreId = storeId };
-        if ((await CheckStoreAccessAsync(request) ?? await storeRequestValidator.ValidateRequestAsync(request, ModelState, cancellationToken)) is { } refused)
+        if (await authorizationService.CheckStoreRequestAsync(User, storeRequestValidator, request, ModelState, cancellationToken) is { } refused)
         {
             return refused;
         }
@@ -66,10 +65,6 @@ public class HistoryController(
         {
             return BadRequest(new { error = ex.Message });
         }
-        catch (GitContentException ex)
-        {
-            return StatusCode(StatusCodes.Status502BadGateway, new { error = ex.Message });
-        }
     }
 
     [HttpGet("{versionId}")]
@@ -82,15 +77,8 @@ public class HistoryController(
             return refused;
         }
 
-        try
-        {
-            var content = await contentHistory.ReadAsync(storeId, ParseItems(request).Single(), versionId, cancellationToken);
-            return content == null ? NotFound() : Content(content, MediaTypeNames.Application.Json);
-        }
-        catch (GitContentException ex)
-        {
-            return StatusCode(StatusCodes.Status502BadGateway, new { error = ex.Message });
-        }
+        var content = await contentHistory.ReadAsync(storeId, ParseItems(request).Single(), versionId, cancellationToken);
+        return content == null ? NotFound() : Content(content, MediaTypeNames.Application.Json);
     }
 
     /// <summary>Restore the items as of the version as their drafts, in one save</summary>
@@ -100,7 +88,7 @@ public class HistoryController(
         [FromQuery(Name = "item")] string[] items, CancellationToken cancellationToken = default)
     {
         var request = new ContentHistoryRestoreRequest { StoreId = storeId, Items = items ?? [], VersionId = versionId };
-        if ((await CheckStoreAccessAsync(request) ?? await restoreRequestValidator.ValidateRequestAsync(request, ModelState, cancellationToken)) is { } refused)
+        if (await authorizationService.CheckStoreRequestAsync(User, restoreRequestValidator, request, ModelState, cancellationToken) is { } refused)
         {
             return refused;
         }
@@ -120,22 +108,15 @@ public class HistoryController(
         }
 
         var contents = new Dictionary<HistoryItem, string>();
-        try
+        foreach (var historyItem in historyItems)
         {
-            foreach (var historyItem in historyItems)
+            var content = await contentHistory.ReadAsync(storeId, historyItem, versionId, cancellationToken);
+            if (content == null)
             {
-                var content = await contentHistory.ReadAsync(storeId, historyItem, versionId, cancellationToken);
-                if (content == null)
-                {
-                    return NotFound();
-                }
-
-                contents[historyItem] = content;
+                return NotFound();
             }
-        }
-        catch (GitContentException ex)
-        {
-            return StatusCode(StatusCodes.Status502BadGateway, new { error = ex.Message });
+
+            contents[historyItem] = content;
         }
 
         if (pageItem != null &&
@@ -168,18 +149,10 @@ public class HistoryController(
         }
     }
 
-    // store access first, so a 400 does not reveal which stores exist
     private async Task<ActionResult> CheckRequestAsync(ContentHistoryRequest request, CancellationToken cancellationToken)
     {
-        return await CheckStoreAccessAsync(request)
-               ?? await requestValidator.ValidateRequestAsync(request, ModelState, cancellationToken)
+        return await authorizationService.CheckStoreRequestAsync(User, requestValidator, request, ModelState, cancellationToken)
                ?? await CheckPagesAccessAsync(request.StoreId, ParseItems(request));
-    }
-
-    private async Task<ActionResult> CheckStoreAccessAsync(PageBuilderStoreRequest request)
-    {
-        var authorizationResult = await authorizationService.AuthorizeAsync(User, request, new PageBuilderAuthorizationRequirement());
-        return authorizationResult.Succeeded ? null : Forbid();
     }
 
     private async Task<ActionResult> CheckPagesAccessAsync(string storeId, IEnumerable<HistoryItem> items)

@@ -3,13 +3,13 @@
     class="pd-settings"
     :aria-label="title"
   >
-    <header class="pd-settings__head">
-      <VcIcon
-        :icon="icon"
-        size="s"
-        class="pd-settings__icon"
-      />
-      <span class="pd-settings__title">{{ title }}</span>
+    <PanelHeader
+      class="pd-settings__head"
+      :icon="icon"
+      :title="title"
+      :close-label="$t('PAGE_BUILDER.DESIGNER.DESELECT')"
+      @close="emit('close')"
+    >
       <VcDropdown
         v-if="sel.kind !== 'page'"
         v-model="menuOpen"
@@ -42,15 +42,7 @@
           </span>
         </template>
       </VcDropdown>
-      <VcButton
-        variant="ghost"
-        size="icon-sm"
-        icon="lucide-x"
-        :aria-label="$t('PAGE_BUILDER.DESIGNER.DESELECT')"
-        :title="$t('PAGE_BUILDER.DESIGNER.DESELECT')"
-        @click="emit('close')"
-      />
-    </header>
+    </PanelHeader>
 
     <div
       v-if="tabs.length > 1"
@@ -143,6 +135,7 @@ import { iconOf, itemTitle } from "../schema";
 import { isComponentRef } from "../document";
 import type { GroupItem } from "../whiteLabeling";
 import Fields from "./Fields.vue";
+import PanelHeader from "./PanelHeader.vue";
 
 const props = defineProps<{ designer: Designer; selection: Selection }>();
 const emit = defineEmits<{ copy: []; paste: []; close: []; "edit-shared": [componentId: string] }>();
@@ -231,32 +224,9 @@ const actions = computed(() => {
   height: 100%;
   font-size: 13px;
 
-  &__head {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 12px 12px 16px;
-    border-bottom: 1px solid var(--neutrals-200);
-  }
-
-  &__icon {
-    color: var(--neutrals-600);
-  }
-
   &__head :deep(.vc-dropdown) {
     flex: none;
     width: auto;
-  }
-
-  &__title {
-    flex: 1;
-    min-width: 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--neutrals-900);
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
   }
 
   &__tabs {

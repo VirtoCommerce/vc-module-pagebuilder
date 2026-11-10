@@ -107,7 +107,7 @@ export const VcSelect = defineComponent({
 export const VcPopup = defineComponent({
   name: "VcPopup",
   props: { title: String, modelValue: Boolean, modalWidth: String },
-  emits: ["close"],
+  emits: ["close", "update:modelValue"],
   setup: (props, { slots, emit }) => () =>
     h("div", { role: "dialog", "aria-label": props.title }, [
       h("h2", props.title),

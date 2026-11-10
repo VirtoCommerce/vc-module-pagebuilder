@@ -40,6 +40,12 @@ test("new items get defaults, an id from the type, and a blocks list when they h
   assert.equal(newItem("text", "block", schemas).text, "Hi");
 });
 
+test("a block with no block schema of its type is made from the section schema, as it is edited", () => {
+  const block = newItem("slider", "block", schemas);
+  assert.equal(block.height, "auto");
+  assert.deepEqual(block.blocks, []);
+});
+
 test("copies get new ids, also for their blocks, and don't share values", () => {
   const item = { id: "slider1234", type: "slider", slides: [{ title: "a" }], blocks: [{ id: "text1234", type: "text" }] };
   const copy = copyItem(item);

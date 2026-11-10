@@ -35,7 +35,7 @@ const PLACEHOLDERS: Record<PageType, string> = {
   page: "PAGE_BUILDER.DESIGNER.TEMPLATES.PICK_PAGE",
 };
 
-let shown: NamedEntity[] = [];
+const shown = new Map<string, NamedEntity>();
 async function find(keyword?: string, ids?: string[]): Promise<NamedEntity[]> {
   if (props.type === "product") return searchProducts(props.catalog, keyword, ids);
   if (props.type === "category") return searchCategories(props.catalog, keyword, ids);
@@ -44,13 +44,13 @@ async function find(keyword?: string, ids?: string[]): Promise<NamedEntity[]> {
 }
 async function options(keyword?: string, _skip?: number, ids?: string[]) {
   const results = await find(keyword, ids).catch(() => []);
-  shown = [...shown, ...results];
+  for (const entity of results) shown.set(entity.id, entity);
   return { results, totalCount: results.length };
 }
 function pick(id: unknown) {
   if (typeof id !== "string" || !id) return;
   emit("update:modelValue", id);
-  const entity = shown.find((x) => x.id === id);
+  const entity = shown.get(id);
   if (entity) emit("picked", entity);
 }
 </script>

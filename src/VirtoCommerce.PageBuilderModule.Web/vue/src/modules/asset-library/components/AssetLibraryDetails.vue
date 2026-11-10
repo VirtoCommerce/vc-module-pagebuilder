@@ -185,7 +185,7 @@ defineEmits<Emits>();
 <style lang="scss" scoped>
 .assets-library {
   &__details {
-    @apply tw-flex tw-w-full tw-shrink-0 tw-flex-col tw-border-t tw-border-solid tw-border-t-[color:var(--neutrals-200)] tw-bg-[color:var(--additional-50)] tw-p-4 lg:tw-w-[420px] lg:tw-border-l lg:tw-border-t-0 lg:tw-border-l-[color:var(--neutrals-200)];
+    @apply tw-flex tw-w-full tw-shrink-0 tw-flex-col tw-border-t tw-border-solid tw-border-t-[color:var(--neutrals-200)] tw-bg-[color:var(--additional-50)] tw-p-4 lg:tw-w-[420px] lg:tw-border-s lg:tw-border-t-0 lg:tw-border-s-[color:var(--neutrals-200)];
   }
 
   &__details-header {

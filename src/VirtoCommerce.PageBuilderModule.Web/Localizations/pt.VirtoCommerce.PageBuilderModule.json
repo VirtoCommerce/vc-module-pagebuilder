@@ -71,9 +71,9 @@
         "title": "Excluir o arquivo de rascunho antigo?",
         "message": "\"{{path}}\" ficou de antes de esta loja passar a usar o repositório de conteúdo. A página em si não é alterada."
       },
-      "delete-legacy-draft-unsaved": {
-        "title": "Excluir o arquivo de rascunho antigo?",
-        "message": "\"{{path}}\" ainda contém alterações que não estão no repositório de conteúdo. Se você excluí-lo, elas serão perdidas. A página publicada não é alterada."
+      "legacy-draft-changed": {
+        "title": "O arquivo de rascunho foi mantido",
+        "message": "Este rascunho contém alterações que a página publicada não tem, por isso excluí-lo faria com que fossem perdidas."
       },
       "legacy-draft-kept": {
         "title": "O arquivo de rascunho foi mantido",

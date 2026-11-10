@@ -35,7 +35,7 @@ export function toPublicAssetUrl(value: string, origin = getWindowOrigin()): str
     return trimmed;
   }
 
-  if (/^(?:[a-z][a-z\d+\-.]*:)?\/\//i.test(trimmed)) {
+  if (isAbsoluteUrl(trimmed)) {
     try {
       return new URL(trimmed, origin).toString();
     } catch {
@@ -49,9 +49,8 @@ export function toPublicAssetUrl(value: string, origin = getWindowOrigin()): str
 
 export function getAssetStoredUrl(entry: AssetEntry): string {
   const value = (entry.url || entry.relativeUrl || "").trim();
-  if (!value || value.startsWith("data:") || /^(?:[a-z][a-z\d+\-.]*:)?\/\//i.test(value)) return value;
-  const path = ensureLeadingSlash(value);
-  return path.toLowerCase().startsWith("/assets/") ? path : `/assets${path}`;
+  if (!value || value.startsWith("data:") || isAbsoluteUrl(value)) return value;
+  return normalizeAssetPath(value);
 }
 
 export function getAssetPublicUrl(entry: AssetEntry): string | undefined {
@@ -62,21 +61,6 @@ export function getAssetPublicUrl(entry: AssetEntry): string | undefined {
   }
 
   return entry.relativeUrl ? toPublicAssetUrl(entry.relativeUrl) : undefined;
-}
-
-export function getAssetPath(entry: AssetEntry): string {
-  const publicUrl = getAssetPublicUrl(entry);
-
-  if (!publicUrl) {
-    return entry.relativeUrl || entry.url || "";
-  }
-
-  try {
-    const parsedUrl = new URL(publicUrl);
-    return `${parsedUrl.pathname}${parsedUrl.search}`;
-  } catch {
-    return publicUrl;
-  }
 }
 
 export function getPreviewUrl(entry: AssetEntry | undefined): string | undefined {
@@ -96,6 +80,10 @@ export function getPreviewUrl(entry: AssetEntry | undefined): string | undefined
 
   const separator = publicUrl.includes("?") ? "&" : "?";
   return `${publicUrl}${separator}t=${encodeURIComponent(entry.modifiedDate)}`;
+}
+
+function isAbsoluteUrl(value: string): boolean {
+  return /^(?:[a-z][a-z\d+\-.]*:)?\/\//i.test(value);
 }
 
 function ensureLeadingSlash(value: string): string {

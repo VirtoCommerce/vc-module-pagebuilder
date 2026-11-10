@@ -233,28 +233,14 @@
         "CANCEL": "Cancel"
       }
     },
-    "LIFECYCLE": {
-      "DRAFT": "Draft",
-      "PENDING": "In review",
-      "ACTIVE": "Published",
-      "ARCHIVED": "Archived"
-    },
     "SITE_TAB": {
       "TITLE": "Pages",
       "SHOW": "Show",
-      "FILTER": {
-        "ALL": "All pages",
-        "DRAFT": "Drafts",
-        "PENDING": "In review",
-        "ACTIVE": "Published",
-        "ARCHIVED": "Archived"
-      },
       "NEW_PAGE": "New page",
       "EMPTY": "No pages here yet.",
       "DETAILS": "Page details"
     },
     "DESIGNER": {
-      "TITLE": "Designer: {name}",
       "SECTIONS": "Sections",
       "GROUPS": {
         "HEADER": "Header",
@@ -368,7 +354,6 @@
       "NOTHING_PUBLISHED": "Nothing was published. Reopen the page to see the other version.",
       "HISTORY": {
         "TITLE": "Version history",
-        "OTHERS": "{count} unpublished version(s) by other people",
         "EMPTY": "No versions yet: save the page to make its first one.",
         "FAILED": "The versions couldn't be loaded.",
         "PUBLISHED": "Published",
@@ -644,7 +629,6 @@
       "WIDGET": "History",
       "ON": "On",
       "OFF": "Off",
-      "STATUS": "Status",
       "REPOSITORY": "Repository",
       "BRANCH": "Branch",
       "LAST_CHANGE": "Last published change",
@@ -675,13 +659,10 @@
       "OPEN_GITHUB": "GitHub connection"
     },
     "GITHUB": {
-      "TITLE": "GitHub",
       "INTRO": "Connect the platform to a GitHub organization once. Every site then keeps the versions of its pages in its own private repository there.",
       "CONNECTED_HINT": "Each site keeps its pages' versions in its own private repository in {organization}. Turn history on for a site from its History panel.",
-      "STATUS": "Status",
       "CONNECTED": "Connected",
       "FAILING": "Not working",
-      "ORGANIZATION": "Organization",
       "APP": "GitHub App",
       "FROM_CONFIGURATION": "From the platform's configuration",
       "NEW_SITES": "New sites",

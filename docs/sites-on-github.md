@@ -6,7 +6,7 @@ panel.
 
 - **Pages in a site's page list** (kept in the platform's database) stay in the database, which the storefront is
   served from. Each save, publish, restore and discard is also committed to the site repository's base branch as
-  `database-pages/{pageId}.json`: one linear history per page. The published version is the newest commit whose file
+  `database-pages/{groupId}.json`: one linear history per page. The published version is the newest commit whose file
   is byte for byte the published content, so nothing else has to record it. Recording is best effort: a GitHub
   outage costs the history an entry, never the editor a save (the platform logs a warning).
 - **File pages** (a site's Files › Pages) move into the repository entirely: a save is a commit on the editor's work
@@ -17,9 +17,9 @@ panel.
   branch as `theme/{path}`, e.g. `theme/default/templates/product.json`, with the bytes the storage holds. Publishing
   moves the saved draft live byte for byte, so the published version is again the newest commit holding the live
   file's content.
-- **One version per Save.** A designer Save writes the page or template, its rules, the header, the footer and the
-  theme settings in one request, as drafts, and the history records them as one commit holding every file it changed
-  (with a `VC-Save: {id}` trailer when the designer sends the id in the `X-PageBuilder-Save` header). A restore and a
+- **One version per Save.** A designer Save writes the page or template, its rules, the header, the footer, the brand
+  and the palettes in one request, as drafts, and the history records them as one commit holding every file it changed
+  (with a `VC-Save: {id}` trailer naming the save). A restore and a
   theme publication are one commit each as well. The Version history panel lists the commits that changed any of the
   files shown, such as "Saved · Template, Header"; restoring one brings back what it changed, as drafts, and Publish
   then puts them live. The [history API](contracts/history-api.md) names a version by an opaque `versionId`.

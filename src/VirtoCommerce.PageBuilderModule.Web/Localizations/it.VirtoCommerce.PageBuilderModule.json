@@ -71,9 +71,9 @@
         "title": "Eliminare il vecchio file di bozza?",
         "message": "\"{{path}}\" è rimasto da prima che questo negozio passasse al repository di contenuti. La pagina in sé non viene toccata."
       },
-      "delete-legacy-draft-unsaved": {
-        "title": "Eliminare il vecchio file di bozza?",
-        "message": "\"{{path}}\" contiene ancora modifiche che non sono nel repository di contenuti. Eliminandolo andranno perse. La pagina pubblicata non viene toccata."
+      "legacy-draft-changed": {
+        "title": "Il file di bozza è stato mantenuto",
+        "message": "Questa bozza contiene modifiche che la pagina pubblicata non ha, quindi eliminandola andrebbero perse."
       },
       "legacy-draft-kept": {
         "title": "Il file di bozza è stato mantenuto",

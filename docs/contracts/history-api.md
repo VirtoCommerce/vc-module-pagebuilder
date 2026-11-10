@@ -85,7 +85,7 @@ interface ContentVersion {
   author: { name: string; login?: string; email?: string };
   /** "Saved", "Published", "Restored …", "Discarded unpublished changes" */
   description: string;
-  /** the save the designer sent in the X-PageBuilder-Save header */
+  /** the save's id: the request's X-PageBuilder-Save header, else one the server made */
   saveId?: string;
   /** the version holds what is live for every item it changed */
   published: boolean;
@@ -101,13 +101,14 @@ interface ContentVersion {
 
 | Status | When |
 |---|---|
-| 400 | `item` is missing or malformed, or names a path outside the theme or under `snapshots/`; a `cursor` the list did not return; a restore naming two pages, or a theme file the builder does not save |
+| 400 | `item` is missing or malformed, or names a path outside the theme or under `snapshots/`; a `versionId` that is not a version id; a `cursor` the list did not return; a restore naming two pages, or a theme file the builder does not save |
 | 403 | no permission, or no access to the store or the page, or the page is another store's |
-| 404 | the page does not exist, or the item did not exist as of the version |
+| 404 | the page does not exist, the version does not exist, or the item did not exist as of the version |
+| 409 `{ error }` | the store's repository belongs to another store |
 | 412 | restore: the page was saved by someone else while it was being restored |
 | 502 `{ error }` | GitHub did not answer or refused |
 
-Restore and `GET` of a version take the `versionId` the list returned; any other value is 404.
+Restore and `GET` of a version take the `versionId` the list returned.
 
 The designer discards what it shows in one request ([Discard](#discard)). A database page's unpublished changes alone
 are discarded with `POST api/page-builder-pages/grouped/{groupId}/discard` (`builder:update`; 400 for a page never

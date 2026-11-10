@@ -17,13 +17,8 @@ import { useI18n } from "vue-i18n";
 import { ExposedPagesList, PagesList } from "../components";
 import { usePagesListToolbar } from "../composables/usePagesListToolbar";
 import { PageLifecycleFilters } from "../composables";
-import { GroupedPageBuilderPage } from "src/api_client/virtocommerce.pagebuildermodule";
 
 import { VcBlade } from "@vc-shell/framework/ui";
-
-import { useBlade } from "@vc-shell/framework";
-
-const { exposeToChildren } = useBlade();
 
 defineBlade({
   name: "ArchivedPagesList",
@@ -42,13 +37,4 @@ const pagesListRef = useTemplateRef<ExposedPagesList>("pagesListRef");
 const bladeTitle = computed(() => t("PAGE_BUILDER.PAGES.LIST.ARCHIVED_TITLE"));
 
 const bladeToolbar = usePagesListToolbar(PageLifecycleFilters.Archived, pagesListRef);
-
-async function reload() {
-  await pagesListRef.value?.reload();
-}
-
-exposeToChildren({
-  reload,
-  onItemClick: (x: GroupedPageBuilderPage) => pagesListRef.value?.onItemClick?.({ data: x }),
-});
 </script>

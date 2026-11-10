@@ -524,12 +524,12 @@ public class ThemePaletteService : IThemePaletteService
     }
 
     private double GetShortfall(IDictionary<string, PaletteColor?> colors, ISet<string> tokens, IList<PaletteContrastPair> pairs) =>
-        pairs.Select(x => Evaluate(x, colors, tokens)).Zip(pairs).Sum(x => x.First is { Passes: false } evaluation ? x.Second.MinimumRatio - evaluation.Ratio : 0);
+        pairs.Sum(x => Evaluate(x, colors, tokens) is { Passes: false } evaluation ? x.MinimumRatio - evaluation.Ratio : 0);
 
     private static Dictionary<string, string> ToHex(Dictionary<string, PaletteColor?> colors) =>
         colors.Where(x => x.Value != null).ToDictionary(x => x.Key, x => x.Value.Value.ToHex());
 
-    private static List<PaletteContrastPair> CreateContrastPairs()
+    private List<PaletteContrastPair> CreateContrastPairs()
     {
         var pairs = new List<PaletteContrastPair>
         {
@@ -555,7 +555,7 @@ public class ThemePaletteService : IThemePaletteService
         pairs.Add(CreatePair("mobile-menu-icon-active", CreateTokenReference("mobile_menu_icon_active", "additional_50"), mobileMenu, NonTextContrastRatio));
         pairs.Add(CreatePair("mobile-menu-control", CreateTokenReference("mobile_menu_control", "primary_500"), mobileMenu, NonTextContrastRatio));
 
-        foreach (var family in DefaultColorFamilies)
+        foreach (var family in GetColorFamilies())
         {
             pairs.AddRange(CreateButtonPairs(family));
         }

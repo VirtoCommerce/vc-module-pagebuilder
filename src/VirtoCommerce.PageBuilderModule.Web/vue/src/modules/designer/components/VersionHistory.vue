@@ -3,32 +3,19 @@
     class="vh"
     :aria-label="$t('PAGE_BUILDER.DESIGNER.HISTORY.TITLE')"
   >
-    <header class="vh__header">
-      <VcIcon
-        icon="lucide-history"
-        size="s"
-        class="vh__muted"
-      />
-      <h3 class="vh__title">{{ $t("PAGE_BUILDER.DESIGNER.HISTORY.TITLE") }}</h3>
+    <PanelHeader
+      icon="lucide-history"
+      :title="$t('PAGE_BUILDER.DESIGNER.HISTORY.TITLE')"
+      :close-label="$t('PAGE_BUILDER.DESIGNER.HISTORY.CLOSE')"
+      @close="emit('close')"
+    >
       <VcIcon
         v-if="loading"
         icon="lucide-refresh-cw"
         size="xs"
         class="vh__muted vh__spin"
       />
-      <button
-        type="button"
-        class="vh__close"
-        :title="$t('PAGE_BUILDER.DESIGNER.HISTORY.CLOSE')"
-        :aria-label="$t('PAGE_BUILDER.DESIGNER.HISTORY.CLOSE')"
-        @click="emit('close')"
-      >
-        <VcIcon
-          icon="lucide-x"
-          size="s"
-        />
-      </button>
-    </header>
+    </PanelHeader>
 
     <div class="vh__list">
       <p
@@ -156,6 +143,7 @@ import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { VcIcon } from "@vc-shell/framework/ui";
 import type { HistoryVersion } from "../history";
+import PanelHeader from "./PanelHeader.vue";
 
 export interface VersionPage {
   versions: HistoryVersion[];
@@ -221,43 +209,12 @@ defineExpose({ reload: () => load() });
   min-height: 0;
   font-size: 13px;
 
-  &__header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 12px 12px 16px;
-    border-bottom: 1px solid var(--neutrals-200);
-  }
-
-  &__title {
-    flex: 1;
-    margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--neutrals-900);
-  }
-
   &__muted {
     color: var(--neutrals-500);
   }
 
   &__spin {
     animation: vh-spin 1s linear infinite;
-  }
-
-  &__close {
-    display: inline-flex;
-    padding: 4px;
-    border: 0;
-    border-radius: 6px;
-    background: none;
-    color: var(--neutrals-500);
-    cursor: pointer;
-
-    &:hover {
-      background: var(--neutrals-100);
-      color: var(--neutrals-900);
-    }
   }
 
   &__list {

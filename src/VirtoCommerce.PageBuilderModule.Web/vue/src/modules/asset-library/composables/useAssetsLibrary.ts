@@ -4,7 +4,6 @@ import {
   notification,
   parseError,
   type Breadcrumbs,
-  readableSize,
   useAsync,
   useBreadcrumbs,
   useLoading,
@@ -14,11 +13,11 @@ import {
 import { useUrlParams } from "../../page-builder/composables";
 import type { AssetEntry, AssetReferenceDetails } from "../types";
 import { useAssetsLibraryApi } from "./useAssetsLibraryApi";
-import { formatAssetDate, getAssetPath, getAssetPublicUrl, getPreviewUrl, safeDecode } from "../utilities/assetUrl";
-import { getAssetKey, getEntryIcon, getFolderUrl, isImageEntry } from "../utilities/assetEntry";
+import { formatAssetDate, safeDecode } from "../utilities/assetUrl";
+import { getAssetKey, getFolderUrl } from "../utilities/assetEntry";
 import { createAssetEntriesLoader, type AssetEntriesLoadRequest } from "../utilities/assetEntriesLoader";
 import { createLatestRequestTracker } from "../../../utilities/latestRequest";
-import { normalizeAssetFileName } from "../utilities/assetUpload";
+import { normalizeAssetFileName, renameAssetFile } from "../utilities/assetUpload";
 import { useAssetReferences } from "./useAssetReferences";
 import type { DeleteAssetReferences } from "./useAssetReferences";
 import { useAssetSelection } from "./useAssetSelection";
@@ -36,7 +35,6 @@ export interface UseAssetsLibraryOptions {
 export interface IUseAssetsLibrary {
   entries: Ref<AssetEntry[]>;
   loading: ComputedRef<boolean>;
-  totalCount: Ref<number>;
   fileCount: Ref<number>;
   pagination: UseDataTablePaginationReturn;
   pageSize: Ref<number>;
@@ -49,25 +47,17 @@ export interface IUseAssetsLibrary {
   selectedAssetDimensions: Ref<string | undefined>;
   storeId: Ref<string | null>;
   storeContextStatus: ReturnType<typeof useUrlParams>["storeContextStatus"];
-  rootFolderUrl: ComputedRef<string>;
   breadcrumbs: ComputedRef<Breadcrumbs[]>;
   initialize: () => Promise<void>;
   reload: (preferredSelectionUrl?: string) => Promise<void>;
   clearSelection: () => void;
-  navigateToFolder: (folderUrl: string) => Promise<void>;
   onEntryClick: (entry: AssetEntry) => Promise<void>;
-  isImage: (entry: AssetEntry | undefined) => boolean;
-  getEntryIcon: (entry: AssetEntry) => string;
   getReferencesCount: (entry: AssetEntry) => number;
   areReferencesAvailable: (entry: AssetEntry | undefined) => boolean;
   getReferenceDetails: (entry: AssetEntry | undefined) => AssetReferenceDetails;
   getDeleteReferences: (entry: AssetEntry) => Promise<DeleteAssetReferences>;
   findAssetByName: (folderUrl: string, fileName: string) => Promise<AssetEntry | undefined>;
-  formatFileSize: (size?: number) => string;
   formatDate: (value?: string) => string;
-  getAssetPath: (entry: AssetEntry) => string;
-  getAssetPublicUrl: (entry: AssetEntry) => string | undefined;
-  getPreviewUrl: (entry: AssetEntry | undefined) => string | undefined;
   createFolder: (name: string) => Promise<void>;
   uploadFiles: (files: FileList | File[], folderUrl?: string) => Promise<void>;
   replaceSelectedAsset: (file: File) => Promise<void>;
@@ -290,10 +280,7 @@ export function useAssetsLibrary(options: UseAssetsLibraryOptions = {}): IUseAss
         return;
       }
 
-      const renamedFile = new File([replacement], selectedAsset.value.name, {
-        type: replacement.type,
-        lastModified: replacement.lastModified,
-      });
+      const renamedFile = renameAssetFile(replacement, selectedAsset.value.name);
 
       await uploadAsset(getFolderUrl(selectedAsset.value, currentFolderUrl.value), renamedFile);
       await reload(getAssetKey(selectedAsset.value));
@@ -438,7 +425,6 @@ export function useAssetsLibrary(options: UseAssetsLibraryOptions = {}): IUseAss
   return {
     entries,
     loading: useLoading(loadingEntries, loadingCreateFolder, loadingUpload, loadingReplace, loadingDelete),
-    totalCount,
     fileCount,
     pagination,
     pageSize,
@@ -451,25 +437,17 @@ export function useAssetsLibrary(options: UseAssetsLibraryOptions = {}): IUseAss
     selectedAssetDimensions,
     storeId: computed(() => storeId.value ?? null),
     storeContextStatus,
-    rootFolderUrl,
     breadcrumbs,
     initialize,
     reload,
     clearSelection,
-    navigateToFolder,
     onEntryClick,
-    isImage: isImageEntry,
-    getEntryIcon,
     getReferencesCount,
     areReferencesAvailable,
     getReferenceDetails,
     getDeleteReferences,
     findAssetByName,
-    formatFileSize: readableSize,
     formatDate,
-    getAssetPath,
-    getAssetPublicUrl,
-    getPreviewUrl,
     createFolder: createFolderAction,
     uploadFiles: async (files, folderUrl) => uploadFilesAction({ files: Array.from(files), folderUrl }),
     replaceSelectedAsset: replaceSelectedAssetAction,

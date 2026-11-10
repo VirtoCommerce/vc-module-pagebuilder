@@ -74,7 +74,7 @@
         @update="set"
       />
       <div
-        v-if="condition.descriptor.name === 'property' && properties.length"
+        v-if="condition.descriptor.name === PROPERTY_CONDITION && properties.length"
         class="pd-rule-form__chips"
       >
         <button
@@ -82,7 +82,7 @@
           :key="`${property.name}=${String(property.value)}`"
           type="button"
           class="pd-rule-form__pick"
-          @click="set('property', { name: property.name, equals: property.value })"
+          @click="set(PROPERTY_CONDITION, { name: property.name, equals: property.value })"
         >
           {{ property.label || property.name }} = {{ String(property.value) }}
         </button>
@@ -150,6 +150,7 @@ import type { ConditionDescriptor } from "../previewMessages";
 import {
   BUILT_IN_CONDITIONS,
   CATEGORY_CONDITION,
+  PROPERTY_CONDITION,
   categoryIds,
   checkCondition,
   cleanWhen,

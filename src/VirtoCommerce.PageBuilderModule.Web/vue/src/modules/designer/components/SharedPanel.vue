@@ -51,6 +51,12 @@
       </li>
     </ul>
     <p
+      v-else-if="failed"
+      class="pd-shared__empty"
+    >
+      {{ $t("PAGE_BUILDER.DESIGNER.SEARCH.FAILED") }}
+    </p>
+    <p
       v-else-if="!loading"
       class="pd-shared__empty"
     >
@@ -60,10 +66,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
-import { debounce } from "lodash-es";
+import { ref } from "vue";
 import { VcButton, VcIcon, VcInput } from "@vc-shell/framework/ui";
-import { searchSharedComponents, type SharedComponent } from "../api";
+import type { SharedComponent } from "../api";
+import { useSharedComponentSearch } from "../useSharedComponentSearch";
 
 const props = defineProps<{
   storeId?: string;
@@ -72,20 +78,9 @@ const props = defineProps<{
 const emit = defineEmits<{ insert: [component: SharedComponent]; edit: [component: SharedComponent] }>();
 
 const search = ref<string>();
-const components = ref<SharedComponent[]>([]);
-const loading = ref(true);
-let searches = 0;
-const load = debounce(async () => {
-  const request = ++searches;
-  const found = props.storeId ? await searchSharedComponents(props.storeId, search.value).catch(() => []) : [];
-  // An earlier search that answers last must not replace a later one's results.
-  if (request !== searches) return;
-  components.value = found;
-  loading.value = false;
-}, 250);
-watch([search, () => props.storeId], load, { immediate: true });
+const { components, loading, failed, reload } = useSharedComponentSearch(() => props.storeId, search);
 
-defineExpose({ reload: load });
+defineExpose({ reload });
 </script>
 
 <style lang="scss" scoped>

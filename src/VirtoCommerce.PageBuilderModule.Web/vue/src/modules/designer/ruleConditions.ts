@@ -11,11 +11,12 @@ export interface ConditionProblem {
 }
 
 export const CATEGORY_CONDITION = "inCategory";
+export const PROPERTY_CONDITION = "property";
 
 export const BUILT_IN_CONDITIONS: Readonly<Record<string, { label: string; hint?: string; is: string }>> = {
   [CATEGORY_CONDITION]: { label: "IN_CATEGORIES", is: "IS.IN_CATEGORY" },
   productType: { label: "PRODUCT_TYPE", is: "IS.PRODUCT_TYPE" },
-  property: { label: "PROPERTY", is: "IS.PROPERTY" },
+  [PROPERTY_CONDITION]: { label: "PROPERTY", is: "IS.PROPERTY" },
   path: { label: "PATH", hint: "PATH_HINT", is: "IS.PATH" },
   language: { label: "LANGUAGE", hint: "LANGUAGE_HINT", is: "IS.LANGUAGE" },
   source: { label: "SOURCE", is: "IS.SOURCE" },
@@ -31,7 +32,7 @@ const isFilledTextList = (value: unknown): value is string[] => isTextList(value
 
 export function categoryIds(value: unknown): string[] {
   if (Array.isArray(value)) return value.filter((x): x is string => typeof x === "string");
-  return typeof value === "string" ? value.split(",").map((x) => x.trim()).filter(Boolean) : [];
+  return typeof value === "string" ? splitTexts(value) : [];
 }
 
 export const conditionsFor = (descriptors: ConditionDescriptor[], type: PageType) => descriptors.filter((x) => x.pageTypes.includes(type));

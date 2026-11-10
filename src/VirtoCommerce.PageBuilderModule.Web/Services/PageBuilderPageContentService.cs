@@ -21,14 +21,16 @@ public sealed class PageBuilderPageContentService(
     IGroupedPageService groupedPageService,
     IEventPublisher eventPublisher,
     ILogger<PageBuilderPageContentService> logger,
-    IGroupedPageContentService versionedContent)
+    IGroupedPageContentService versionedContent,
+    IGroupedPageContentWriter groupedPageContentWriter)
 {
     public PageBuilderPageContentService(
         IPageBuilderPageService pageService,
         IGroupedPageService groupedPageService,
         IEventPublisher eventPublisher,
         ILogger<PageBuilderPageContentService> logger)
-        : this(pageService, groupedPageService, eventPublisher, logger, groupedPageService as IGroupedPageContentService)
+        : this(pageService, groupedPageService, eventPublisher, logger, groupedPageService as IGroupedPageContentService,
+            new GroupedPageContentWriter(groupedPageService as IGroupedPageContentService, pageService, eventPublisher))
     {
     }
 
@@ -93,8 +95,7 @@ public sealed class PageBuilderPageContentService(
     public async Task<PageBuilderConditionalContentWriteResult> SaveConditionalContentAsync(
         GroupedPageBuilderPage group, string content, string expectedETag, CancellationToken cancellationToken)
     {
-        return await new GroupedPageContentWriter(VersionedContent, pageService, eventPublisher)
-            .SaveContentAsync(group, content, expectedETag, cancellationToken);
+        return await groupedPageContentWriter.SaveContentAsync(group, content, expectedETag, cancellationToken);
     }
 
     public async Task<PageBuilderPageContentWriteResult> CopyContentAsync(

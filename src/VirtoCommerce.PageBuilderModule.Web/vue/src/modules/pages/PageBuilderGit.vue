@@ -66,11 +66,11 @@
             </dd>
           </div>
           <template
-            v-if="!status.enabled || view === 'error'"
+            v-if="mayTurnOn || view === 'error'"
             #actions
           >
             <VcButton
-              v-if="!status.enabled"
+              v-if="mayTurnOn"
               size="sm"
               icon="lucide-history"
               :disabled="busy"
@@ -122,53 +122,50 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { useBlade, usePopup, type IBladeToolbar } from "@vc-shell/framework";
+import { useApiClient, useBlade, usePermissions, usePopup, type IBladeToolbar } from "@vc-shell/framework";
 import { VcBanner, VcBlade, VcButton } from "@vc-shell/framework/ui";
+import { GitContentSetupClient, type GitContentSiteStatus } from "../../api_client/virtocommerce.pagebuildermodule";
 import GitCard from "../page-builder/components/GitCard.vue";
-import { getAuthHeaders } from "../page-builder/composables/usePageContentApi";
-import { siteGitUrl, siteGitView, type SiteGitStatus } from "../widgets/siteGit";
+import { gitErrorMessage, siteGitView } from "../widgets/siteGit";
 
 defineBlade({
   name: "PageBuilderGit",
   url: "/page-builder-git",
-  permissions: "store:read",
+  permissions: "builder:read",
 });
 
 const { param, callParent, openBlade } = useBlade();
 const { t } = useI18n({ useScope: "global" });
 const { showConfirmation } = usePopup();
+const { hasAccess } = usePermissions();
+const { getApiClient } = useApiClient(GitContentSetupClient);
 
-const status = ref<SiteGitStatus>();
+const status = ref<GitContentSiteStatus>();
 const busy = ref(false);
 const actionError = ref<string>();
 const view = computed(() => (status.value ? siteGitView(status.value) : "setup"));
+const mayTurnOn = computed(() => !status.value?.enabled && hasAccess("store:update"));
 
-async function request(action: "" | "/connect" | "/disconnect", method = "GET"): Promise<SiteGitStatus> {
-  const response = await fetch(siteGitUrl(param.value!, action), { method, headers: await getAuthHeaders() });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error((body as { error?: string }).error ?? `${response.status} ${response.statusText}`);
-  return body as SiteGitStatus;
-}
-
-async function run(action: () => Promise<SiteGitStatus>, changed = false) {
+async function run(action: (client: GitContentSetupClient) => Promise<GitContentSiteStatus>, changed = false) {
   if (!param.value) return;
   busy.value = true;
   actionError.value = undefined;
   try {
-    status.value = await action();
+    status.value = await action(await getApiClient());
     if (changed) await callParent("reload").catch(() => undefined);
   } catch (error) {
-    actionError.value = error instanceof Error ? error.message : String(error);
+    actionError.value = gitErrorMessage(error, t("PERMISSION_MESSAGES.ACCESS_RESTRICTED"));
   } finally {
     busy.value = false;
   }
 }
 
-const refresh = () => run(() => request(""));
-const connect = () => run(() => request("/connect", "POST"), true);
+// Reading the site asks GitHub live, so it is also the connection test.
+const refresh = () => run((client) => client.getSite(param.value));
+const connect = () => run((client) => client.connectSite(param.value), true);
 
 async function disconnect() {
-  if (await showConfirmation(t("PAGE_BUILDER.GIT.CONFIRM_OFF"))) await run(() => request("/disconnect", "POST"), true);
+  if (await showConfirmation(t("PAGE_BUILDER.GIT.CONFIRM_OFF"))) await run((client) => client.disconnectSite(param.value), true);
 }
 
 const openConnection = () => openBlade({ name: "PageBuilderGitHub", onClose: refresh });
@@ -186,6 +183,7 @@ const toolbar = computed<IBladeToolbar[]>(() => [
     title: t("PAGE_BUILDER.GIT.TURN_ON"),
     icon: "lucide-history",
     isVisible: view.value === "off" || view.value === "missing",
+    permissions: "store:update",
     disabled: busy.value,
     clickHandler: connect,
   },
@@ -194,6 +192,7 @@ const toolbar = computed<IBladeToolbar[]>(() => [
     title: t("PAGE_BUILDER.GIT.TURN_OFF"),
     icon: "lucide-circle-off",
     isVisible: !!status.value?.enabled,
+    permissions: "store:update",
     disabled: busy.value,
     clickHandler: disconnect,
   },

@@ -1,4 +1,5 @@
 import type { DesignerDiscardRequest, DesignerSaveRequest } from "../../api_client/virtocommerce.pagebuildermodule";
+import type { ThemePart } from "./history";
 
 export type DesignerSavePage = { groupId: string; eTag: string; content: unknown } | { path: string; type: string; content: unknown };
 
@@ -6,6 +7,12 @@ export interface DesignerSaveFile {
   path: string;
   eTag: string;
   content: unknown;
+}
+
+export interface PendingThemeFile {
+  part: ThemePart;
+  file: DesignerSaveFile;
+  saved: (eTag?: string) => void;
 }
 
 export class CatalogPendingError extends Error {

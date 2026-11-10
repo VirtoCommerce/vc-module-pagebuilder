@@ -32,6 +32,8 @@ public class GitHubApiClient(IHttpClientFactory httpClientFactory) : IGitHubApiC
 
     private const string AlreadyExistsError = "already exists";
 
+    private const string NotFastForwardError = "not a fast forward";
+
     private const string GraphQlNotFoundError = "NOT_FOUND";
 
     private const string GraphQlRepositoryField = "repository";
@@ -200,7 +202,10 @@ public class GitHubApiClient(IHttpClientFactory httpClientFactory) : IGitHubApiC
         using var response = await SendAsync(request, operation, cancellationToken);
         if (response.StatusCode == HttpStatusCode.UnprocessableEntity)
         {
-            return false;
+            var details = await response.Content.ReadAsStringAsync(cancellationToken);
+            return details.Contains(NotFastForwardError, StringComparison.OrdinalIgnoreCase)
+                ? false
+                : throw CreateException(response, details, operation);
         }
 
         await EnsureSuccessAsync(response, operation, cancellationToken);

@@ -1,5 +1,6 @@
 import type { AssetEntry } from "../types";
 import { createAssetReferenceDetails } from "./assetReferences";
+import { safeDecode } from "./assetUrl";
 import type { DeleteAssetReferences } from "../composables/useAssetReferences";
 
 export interface AssetUploadConflict {
@@ -100,11 +101,11 @@ function applyUploadDecision(
 
 export function normalizeAssetFileName(value: string): string {
   // Lowercase: an extra warning on case-sensitive providers is harmless, a silent overwrite on case-insensitive ones is not.
-  try {
-    return decodeURIComponent(value).trim().normalize("NFC").toLowerCase();
-  } catch {
-    return value.trim().normalize("NFC").toLowerCase();
-  }
+  return safeDecode(value).trim().normalize("NFC").toLowerCase();
+}
+
+export function hasPathSeparator(fileName: string): boolean {
+  return /[\\/]/.test(fileName);
 }
 
 export function getAssetOverwriteMessageKey(conflict: AssetUploadConflict): AssetOverwriteMessageKey {
@@ -154,7 +155,7 @@ async function validateUploadName(
     return dependencies.getRequiredError();
   }
 
-  if (/[\\/]/.test(normalized)) {
+  if (hasPathSeparator(normalized)) {
     return dependencies.getInvalidError();
   }
 

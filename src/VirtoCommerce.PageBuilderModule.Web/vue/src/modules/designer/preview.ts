@@ -9,6 +9,7 @@ import {
   type Resolved,
   type TextEdit,
 } from "./previewMessages";
+import { clone } from "./json";
 
 export interface PreviewChannelOptions {
   post: (message: DesignerMessage) => void;
@@ -98,7 +99,7 @@ export function usePreviewBridge(options: Omit<PreviewChannelOptions, "post"> & 
       const target = options.frame.value?.contentWindow;
       const targetOrigin = origin();
       // Plain data, because the document is a reactive proxy, which postMessage cannot clone.
-      if (target && targetOrigin) target.postMessage(JSON.parse(JSON.stringify({ ...message, source: "builder" })), targetOrigin);
+      if (target && targetOrigin) target.postMessage(clone({ ...message, source: "builder" }), targetOrigin);
     },
   });
 
