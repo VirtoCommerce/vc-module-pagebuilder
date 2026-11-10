@@ -26,7 +26,7 @@
         :type="type"
         :rule="editing.rule"
         :is-new="editing.index < 0"
-        :keys="keys.filter((key) => pageTypeOf(key) === type)"
+        :keys="knownKeys.filter((key) => pageTypeOf(key) === type)"
         :catalog="catalog"
         :names="names"
         :conditions="conditions ?? []"
@@ -353,6 +353,7 @@ const props = defineProps<{
   previewed?: NamedEntity;
   picked?: RulesPick;
   conditions?: ConditionDescriptor[];
+  builtInTemplates?: string[];
   readonly?: boolean;
 }>();
 const emit = defineEmits<{ close: [] }>();
@@ -379,7 +380,8 @@ const mine = computed(() => rulesFor(props.rules.rules.value, props.templateKey)
 const pickedHere = computed(() => !!props.picked && props.picked.pageType === props.type);
 
 const templateName = (key: string) => (key.includes(".") ? alternateName(key) : t("PAGE_BUILDER.DESIGNER.TEMPLATES.DEFAULT"));
-const templateExists = (key?: string) => !!key && (!key.trim().includes(".") || props.keys.includes(key.trim()));
+const knownKeys = computed(() => [...new Set([...props.keys, ...(props.builtInTemplates ?? [])])]);
+const templateExists = (key?: string) => !!key && (!key.trim().includes(".") || knownKeys.value.includes(key.trim()));
 
 const names = reactive(new Map<string, string>());
 watch(

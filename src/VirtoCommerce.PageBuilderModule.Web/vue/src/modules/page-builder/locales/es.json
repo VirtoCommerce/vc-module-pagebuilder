@@ -446,7 +446,8 @@
         "INVALID": "El portapapeles no contiene ninguna sección ni bloque copiados.",
         "BLOCK_NEEDS_SECTION": "Seleccione una sección en la que pegar el bloque.",
         "BLOCK_NOT_ALLOWED": "La sección seleccionada no admite este bloque.",
-        "GROUP_ONLY": "Esta sección solo va en el encabezado o el pie de página: seleccione una de sus secciones para pegarla allí."
+        "GROUP_ONLY": "Esta sección solo va en el encabezado o el pie de página: seleccione una de sus secciones para pegarla allí.",
+        "LIMIT": "La página ya tiene tantas secciones de este tipo como se permiten."
       },
       "SELECT_MODE": {
         "SELECT": "Seleccionar",

@@ -446,7 +446,8 @@
         "INVALID": "Gli appunti non contengono una sezione o un blocco copiati.",
         "BLOCK_NEEDS_SECTION": "Seleziona una sezione in cui incollare il blocco.",
         "BLOCK_NOT_ALLOWED": "La sezione selezionata non può contenere questo blocco.",
-        "GROUP_ONLY": "Questa sezione va solo nell'intestazione o nel piè di pagina: seleziona una delle loro sezioni per incollarla lì."
+        "GROUP_ONLY": "Questa sezione va solo nell'intestazione o nel piè di pagina: seleziona una delle loro sezioni per incollarla lì.",
+        "LIMIT": "La pagina ha già tutte le sezioni di questo tipo consentite."
       },
       "SELECT_MODE": {
         "SELECT": "Seleziona",

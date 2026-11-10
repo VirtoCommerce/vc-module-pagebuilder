@@ -446,7 +446,8 @@
         "INVALID": "Die Zwischenablage enthält keinen kopierten Abschnitt oder Block.",
         "BLOCK_NEEDS_SECTION": "Wählen Sie einen Abschnitt aus, in den der Block eingefügt werden soll.",
         "BLOCK_NOT_ALLOWED": "Der ausgewählte Abschnitt kann diesen Block nicht aufnehmen.",
-        "GROUP_ONLY": "Dieser Abschnitt gehört nur in Kopf- oder Fußzeile: Wählen Sie dort einen Abschnitt, um ihn einzufügen."
+        "GROUP_ONLY": "Dieser Abschnitt gehört nur in Kopf- oder Fußzeile: Wählen Sie dort einen Abschnitt, um ihn einzufügen.",
+        "LIMIT": "Die Seite hat bereits so viele dieser Abschnitte, wie erlaubt sind."
       },
       "SELECT_MODE": {
         "SELECT": "Auswählen",

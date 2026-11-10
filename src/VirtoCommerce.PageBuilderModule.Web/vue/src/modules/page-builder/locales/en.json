@@ -446,7 +446,8 @@
         "INVALID": "The clipboard doesn't hold a copied section or block.",
         "BLOCK_NEEDS_SECTION": "Select a section to paste a block into.",
         "BLOCK_NOT_ALLOWED": "The selected section can't hold this block.",
-        "GROUP_ONLY": "This section goes in the header or footer only: select one of their sections to paste it there."
+        "GROUP_ONLY": "This section goes in the header or footer only: select one of their sections to paste it there.",
+        "LIMIT": "The page already has as many of these sections as it allows."
       },
       "SELECT_MODE": {
         "SELECT": "Select",

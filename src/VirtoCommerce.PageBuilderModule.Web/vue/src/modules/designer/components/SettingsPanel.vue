@@ -207,7 +207,7 @@ const actions = computed(() => {
   const current = sel.value;
   if (current.kind === "page") return [];
   return [
-    ...(placed.value && !props.designer.canPlaceShared.value
+    ...((placed.value && !props.designer.canPlaceShared.value) || (current.kind === "section" && props.designer.isAtLimit(item.value?.type ?? ""))
       ? []
       : [{ title: t("PAGE_BUILDER.DESIGNER.DUPLICATE"), icon: "lucide-copy-plus", run: () => props.designer.duplicate(current) }]),
     { title: t("PAGE_BUILDER.DESIGNER.CLIPBOARD.COPY"), icon: "lucide-copy", run: () => emit("copy") },

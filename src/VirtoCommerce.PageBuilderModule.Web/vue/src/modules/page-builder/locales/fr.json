@@ -446,7 +446,8 @@
         "INVALID": "Le presse-papiers ne contient ni section ni bloc copiés.",
         "BLOCK_NEEDS_SECTION": "Sélectionnez une section dans laquelle coller le bloc.",
         "BLOCK_NOT_ALLOWED": "La section sélectionnée ne peut pas contenir ce bloc.",
-        "GROUP_ONLY": "Cette section va uniquement dans l'en-tête ou le pied de page : sélectionnez l'une de leurs sections pour l'y coller."
+        "GROUP_ONLY": "Cette section va uniquement dans l'en-tête ou le pied de page : sélectionnez l'une de leurs sections pour l'y coller.",
+        "LIMIT": "La page contient déjà autant de sections de ce type que permis."
       },
       "SELECT_MODE": {
         "SELECT": "Sélectionner",

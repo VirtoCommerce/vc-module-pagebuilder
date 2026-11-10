@@ -446,7 +446,8 @@
         "INVALID": "A área de transferência não contém uma seção ou bloco copiado.",
         "BLOCK_NEEDS_SECTION": "Selecione uma seção para colar o bloco.",
         "BLOCK_NOT_ALLOWED": "A seção selecionada não pode conter este bloco.",
-        "GROUP_ONLY": "Esta secção só pode ir no cabeçalho ou no rodapé: selecione uma das suas secções para a colar lá."
+        "GROUP_ONLY": "Esta secção só pode ir no cabeçalho ou no rodapé: selecione uma das suas secções para a colar lá.",
+        "LIMIT": "A página já tem tantas secções deste tipo quanto o permitido."
       },
       "SELECT_MODE": {
         "SELECT": "Selecionar",

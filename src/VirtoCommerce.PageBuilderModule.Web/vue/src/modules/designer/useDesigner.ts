@@ -96,6 +96,10 @@ export function useDesigner() {
   );
 
   const sectionSchema = (type?: string): ItemSchema | undefined => (type ? schemas.value.sections[type] : undefined);
+  const isAtLimit = (type: string) => {
+    const limit = sectionSchema(type)?.limit;
+    return typeof limit === "number" && doc.value.content.filter((x) => x.type === type).length >= limit;
+  };
   const blockSchema = (type?: string): ItemSchema | undefined => (type ? (schemas.value.blocks[type] ?? schemas.value.sections[type]) : undefined);
 
   const templateKey = computed(() => (file.value?.type === "themes" ? templateKeyOf(file.value.path) : undefined));
@@ -134,7 +138,7 @@ export function useDesigner() {
     const { key, entry } = template.value;
     const pageContent = pageType.value === "page" && !doc.value.content.some((x) => x.type === PAGE_CONTENT);
     return Object.entries(schemas.value.sections)
-      .filter(([, schema]) => !schema.static && !schema.hidden && !schema.groups?.length)
+      .filter(([type, schema]) => !schema.static && !schema.hidden && !schema.groups?.length && !isAtLimit(type))
       .filter(([type]) => type !== PAGE_CONTENT || pageContent)
       .filter(([type, schema]) => (entry.sections ? entry.sections.includes(type) : !schema.targetTemplates?.length || schema.targetTemplates.includes(key)))
       .map(([type, schema]) => ({ type, schema }))
@@ -143,7 +147,7 @@ export function useDesigner() {
 
   const groupSectionTypes = (group: SectionGroup) =>
     Object.entries(schemas.value.sections)
-      .filter(([, schema]) => !schema.hidden && !!schema.groups?.includes(group))
+      .filter(([type, schema]) => !schema.hidden && !!schema.groups?.includes(group) && !isAtLimit(type))
       .map(([type, schema]) => ({ type, schema }))
       .sort((a, b) => (a.schema.name ?? a.type).localeCompare(b.schema.name ?? b.type));
 
@@ -266,7 +270,7 @@ export function useDesigner() {
       const index = doc.value.content.findIndex((x) => x.id === sel.id);
       if (index < 0) return;
       const original = doc.value.content[index];
-      if (isComponentRef(original) && !canPlaceShared.value) return;
+      if ((isComponentRef(original) && !canPlaceShared.value) || isAtLimit(original.type)) return;
       const copy = isComponentRef(original) ? { ...original, id: newId("componentRef") + newId("") } : copyItem(original);
       const content = [...doc.value.content];
       content.splice(index + 1, 0, copy);
@@ -308,6 +312,7 @@ export function useDesigner() {
     const sel = selection.value;
     if (copied.type === "section") {
       if (isComponentRef(copied.content) && !canPlaceShared.value) return "PAGE_BUILDER.DESIGNER.SHARED_ON_PAGES_ONLY";
+      if (isAtLimit(copied.content.type)) return "PAGE_BUILDER.DESIGNER.CLIPBOARD.LIMIT";
       const copy: Item = isComponentRef(copied.content) ? { ...copied.content, id: newId("componentRef") + newId("") } : copyItem(copied.content);
       let target: Item | undefined;
       if (sel?.kind === "block") target = findSection(sel.sectionId);
@@ -753,6 +758,7 @@ export function useDesigner() {
     mainSection,
     mainItem,
     isMainKept,
+    isAtLimit,
     isMainShown,
     restoreMainSection,
     templateIsNew,

@@ -75,8 +75,10 @@ export function fieldAt(fields: Field[], [key, ...rest]: (string | number)[]): F
   return field.type === "object" ? fieldAt(field.element ?? [], rest) : undefined;
 }
 
+/** A link (`"format": "url"`) is set in the settings panel only, never by an edit from the preview. */
 export function isTextEdit(fields: Field[], path: (string | number)[], value: unknown): boolean {
-  return typeof value === "string" && fieldAt(fields, path)?.type === "string";
+  const field = fieldAt(fields, path);
+  return typeof value === "string" && field?.type === "string" && field.format !== "url";
 }
 
 export function withTextEdit<T>(item: T, fields: Field[], path: (string | number)[], text: string, at?: Translating): T | undefined {

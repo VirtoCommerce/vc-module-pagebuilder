@@ -446,7 +446,8 @@
         "INVALID": "Urklipp innehåller ingen kopierad sektion eller något kopierat block.",
         "BLOCK_NEEDS_SECTION": "Välj en sektion att klistra in blocket i.",
         "BLOCK_NOT_ALLOWED": "Den valda sektionen kan inte innehålla det här blocket.",
-        "GROUP_ONLY": "Den här sektionen hör bara hemma i sidhuvudet eller sidfoten: markera en av deras sektioner för att klistra in den där."
+        "GROUP_ONLY": "Den här sektionen hör bara hemma i sidhuvudet eller sidfoten: markera en av deras sektioner för att klistra in den där.",
+        "LIMIT": "Sidan har redan så många sådana sektioner som tillåts."
       },
       "SELECT_MODE": {
         "SELECT": "Välj",

@@ -31,6 +31,8 @@ export interface Field {
   required?: boolean;
   hidden?: boolean;
   multiline?: boolean;
+  /** `url`: the string is a link */
+  format?: string;
   multiple?: boolean;
   min?: number;
   max?: number;
@@ -67,6 +69,8 @@ export interface ItemSchema {
   /** A page-level section: its fields are the page settings, and it is not in the list of sections. */
   static?: boolean | "top" | "bottom";
   groups?: SectionGroup[];
+  /** At most this many sections of the type on a page, its header and footer counted in. */
+  limit?: number;
   default?: Record<string, unknown>;
   preview?: Record<string, unknown>;
   group?: string;

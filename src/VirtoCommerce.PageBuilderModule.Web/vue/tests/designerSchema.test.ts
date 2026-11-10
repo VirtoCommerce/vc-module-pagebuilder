@@ -97,6 +97,7 @@ test("the preview edits only plain-text settings the item's schema declares, wit
     ...fieldsOf(schemas.sections["call-to-action"], "section", schemas),
     { id: "body", type: "text" },
     { id: "link", type: "object", element: [{ id: "label", type: "string" }, { id: "image", type: "images" }] },
+    { id: "url", type: "string", format: "url" },
   ];
   assert.equal(isTextEdit(fields, ["title"], "Sale"), true);
   assert.equal(isTextEdit(fields, ["buttons", 0, "label"], "Buy"), true);
@@ -104,6 +105,7 @@ test("the preview edits only plain-text settings the item's schema declares, wit
   assert.equal(isTextEdit(fields, ["title"], 4), false);
   assert.equal(isTextEdit(fields, ["body"], "<b>rich</b>"), false);
   assert.equal(isTextEdit(fields, ["link", "image"], "/x.png"), false);
+  assert.equal(isTextEdit(fields, ["url"], "https://evil.test"), false);
   assert.equal(isTextEdit(fields, ["missing"], "x"), false);
   assert.equal(isTextEdit(fields, ["buttons", "label"], "x"), false);
   assert.equal(isTextEdit(fields, ["buttons", 0], "x"), false);

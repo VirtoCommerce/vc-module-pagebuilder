@@ -446,7 +446,8 @@
         "INVALID": "Leikepöydällä ei ole kopioitua osiota tai lohkoa.",
         "BLOCK_NEEDS_SECTION": "Valitse osio, johon lohko liitetään.",
         "BLOCK_NOT_ALLOWED": "Valittuun osioon ei voi lisätä tätä lohkoa.",
-        "GROUP_ONLY": "Tämä osio kuuluu vain ylä- tai alatunnisteeseen: valitse jokin niiden osioista liittääksesi sen sinne."
+        "GROUP_ONLY": "Tämä osio kuuluu vain ylä- tai alatunnisteeseen: valitse jokin niiden osioista liittääksesi sen sinne.",
+        "LIMIT": "Sivulla on jo niin monta tällaista osiota kuin sallitaan."
       },
       "SELECT_MODE": {
         "SELECT": "Valitse",

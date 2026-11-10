@@ -36,6 +36,7 @@ const loadedData = (extra: Record<string, unknown> = {}) => ({
   protocol: 2,
   capabilities: ["templates", "layouts", "groups", "inline-edit", "color-scheme", "inspector"],
   conditions: [{ name: "inCategory", pageTypes: ["product", "category"], label: "In category", value: { type: "string" } }],
+  builtInTemplates: ["product", "product.b2c"],
   ...extra,
 });
 
@@ -58,14 +59,20 @@ test("a protocol 2 loaded gives the catalog without the handshake's own fields, 
   assert.equal(loaded.hash, "0badc0de");
   assert.deepEqual(loaded.capabilities, ["templates", "layouts", "groups", "inline-edit", "color-scheme", "inspector"]);
   assert.deepEqual(loaded.conditions.map((x) => x.name), ["inCategory"]);
+  assert.deepEqual(loaded.builtInTemplates, ["product", "product.b2c"]);
   assert.deepEqual(loaded.paletteTokens, { light: ["color-primary-500"], dark: ["color-primary-500"] });
   assert.deepEqual(Object.keys(loaded.catalog).sort(), ["blocks", "hash", "objects", "paletteTokens", "sections", "settingsSchema", "shared", "templates"]);
   assert.equal(loaded.catalog.hash, "0badc0de");
   assert.deepEqual(loaded.catalog.sections, loadedData().sections);
 });
 
+test("a storefront that does not list its built-in templates, or lists them in another shape, has none", () => {
+  for (const builtInTemplates of [undefined, "product.b2c", [1]])
+    assert.deepEqual((parseLoaded(loadedData({ builtInTemplates })) as Loaded).builtInTemplates, [], JSON.stringify(builtInTemplates));
+});
+
 test("a loaded without protocol 2 is a storefront the designer can't preview", () => {
-  const { protocol: _protocol, hash: _hash, capabilities: _capabilities, conditions: _conditions, paletteTokens: _tokens, ...v1 } = loadedData();
+  const { protocol: _protocol, hash: _hash, capabilities: _capabilities, conditions: _conditions, builtInTemplates: _builtIn, paletteTokens: _tokens, ...v1 } = loadedData();
   assert.equal(parseLoaded(v1), "unsupported");
   assert.equal(parseLoaded(loadedData({ protocol: 1 })), "unsupported");
   assert.equal(parseLoaded(loadedData({ protocol: "2" })), "unsupported");

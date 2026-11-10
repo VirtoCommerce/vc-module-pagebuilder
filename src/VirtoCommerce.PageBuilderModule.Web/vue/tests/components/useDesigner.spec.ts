@@ -14,7 +14,7 @@ import { TEST_TOKEN } from "./support/vcShell";
 const STORE = "B2B-store";
 const LOCKED = "PAGE_BUILDER.DESIGNER.MAIN_SECTION.LOCKED";
 
-const HANDSHAKE: Handshake = { hash: "catalog-hash-1", capabilities: ["groups"], conditions: [], paletteTokens: { light: [], dark: [] } };
+const HANDSHAKE: Handshake = { hash: "catalog-hash-1", capabilities: ["groups"], conditions: [], builtInTemplates: [], paletteTokens: { light: [], dark: [] } };
 
 const title = { id: "title", type: "string", label: "Title", translatable: true };
 const SCHEMAS: Schemas = {
@@ -545,6 +545,21 @@ describe("useDesigner: translatable settings and the main section", () => {
 
     expect(designer.paste({ type: "section", content: { id: "h2", type: "site-header" } })).toBe("PAGE_BUILDER.DESIGNER.CLIPBOARD.GROUP_ONLY");
     expect(designer.doc.value.content).toHaveLength(before);
+  });
+
+  it("offers, duplicates and pastes no second section of a type the schema limits to one", async () => {
+    await openDatabasePage();
+    designer.schemas.value = { ...SCHEMAS, sections: { ...SCHEMAS.sections, "site-header": { ...SCHEMAS.sections["site-header"], limit: 1 } } };
+    const before = designer.doc.value.content.length;
+
+    expect(designer.groupSectionTypes("header").map((x) => x.type)).not.toContain("site-header");
+    designer.duplicate({ kind: "section", id: "header-1" });
+    designer.selection.value = { kind: "section", id: "header-1" };
+    expect(designer.paste({ type: "section", content: { id: "h2", type: "site-header" } })).toBe("PAGE_BUILDER.DESIGNER.CLIPBOARD.LIMIT");
+    expect(designer.doc.value.content).toHaveLength(before);
+
+    designer.remove({ kind: "section", id: "header-1" });
+    expect(designer.groupSectionTypes("header").map((x) => x.type)).toContain("site-header");
   });
 
   it("pastes a header section the header does not take into the page's own sections with the language's text", async () => {

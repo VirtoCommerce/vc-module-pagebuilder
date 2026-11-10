@@ -446,7 +446,8 @@
         "INVALID": "Schowek nie zawiera skopiowanej sekcji ani bloku.",
         "BLOCK_NEEDS_SECTION": "Zaznacz sekcję, do której chcesz wkleić blok.",
         "BLOCK_NOT_ALLOWED": "Wybrana sekcja nie może zawierać tego bloku.",
-        "GROUP_ONLY": "Ta sekcja może być tylko w nagłówku lub stopce: zaznacz jedną z ich sekcji, aby ją tam wkleić."
+        "GROUP_ONLY": "Ta sekcja może być tylko w nagłówku lub stopce: zaznacz jedną z ich sekcji, aby ją tam wkleić.",
+        "LIMIT": "Strona ma już tyle sekcji tego typu, ile jest dozwolone."
       },
       "SELECT_MODE": {
         "SELECT": "Zaznacz",

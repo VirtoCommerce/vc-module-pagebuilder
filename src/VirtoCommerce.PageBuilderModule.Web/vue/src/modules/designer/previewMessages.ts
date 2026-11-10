@@ -27,6 +27,8 @@ export interface Handshake {
   hash: string;
   capabilities: string[];
   conditions: ConditionDescriptor[];
+  /** template keys the storefront has without a theme file, such as `product.b2c` */
+  builtInTemplates: string[];
   paletteTokens: PaletteTokens;
 }
 
@@ -124,7 +126,7 @@ const isCondition = (value: unknown): value is ConditionDescriptor =>
 export function parseLoaded(data: unknown): Loaded | "unsupported" | undefined {
   if (!isRecord(data)) return undefined;
   if (data.protocol !== PREVIEW_PROTOCOL) return "unsupported";
-  const { protocol: _protocol, capabilities, conditions, ...catalog } = data;
+  const { protocol: _protocol, capabilities, conditions, builtInTemplates, ...catalog } = data;
   const tokens = catalog.paletteTokens;
   if (
     !isText(catalog.hash) ||
@@ -140,7 +142,14 @@ export function parseLoaded(data: unknown): Loaded | "unsupported" | undefined {
   // A condition the designer cannot read is left out, and the storefront stays usable.
   const known = conditions.filter(isCondition);
   if (known.length !== conditions.length) console.warn("[page-builder] Left out template rule conditions the preview announced in an unknown shape");
-  return { catalog: catalog as Catalog, hash: catalog.hash, capabilities, conditions: known, paletteTokens: { light: tokens.light, dark: tokens.dark } };
+  return {
+    catalog: catalog as Catalog,
+    hash: catalog.hash,
+    capabilities,
+    conditions: known,
+    builtInTemplates: isTextList(builtInTemplates) ? builtInTemplates : [],
+    paletteTokens: { light: tokens.light, dark: tokens.dark },
+  };
 }
 
 const templateChoice = (data: Record<string, unknown>): TemplateChoice | undefined =>

@@ -442,6 +442,7 @@
           :previewed="previewed"
           :picked="rulesChoice"
           :conditions="designer.handshake.value?.conditions"
+          :built-in-templates="designer.handshake.value?.builtInTemplates"
           :readonly="!mayEditTemplates"
           @close="rulesOpen = false"
         />
@@ -859,7 +860,13 @@ const bridge = usePreviewBridge({
   onLoaded: (loaded) => {
     // A new document reports what its rules picked again.
     reported.value = undefined;
-    designer.handshake.value = { hash: loaded.hash, capabilities: loaded.capabilities, conditions: loaded.conditions, paletteTokens: loaded.paletteTokens };
+    designer.handshake.value = {
+      hash: loaded.hash,
+      capabilities: loaded.capabilities,
+      conditions: loaded.conditions,
+      builtInTemplates: loaded.builtInTemplates,
+      paletteTokens: loaded.paletteTokens,
+    };
     designer.schemas.value = {
       ...loaded.catalog,
       sections: { [PAGE_CONTENT]: { name: t("PAGE_BUILDER.DESIGNER.TEMPLATES.PAGE_CONTENT"), icon: "lucide-file-text", targetTemplates: ["page", "page-template"] }, ...loaded.catalog.sections },

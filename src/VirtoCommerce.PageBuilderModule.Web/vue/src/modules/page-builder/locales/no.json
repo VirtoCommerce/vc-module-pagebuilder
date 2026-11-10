@@ -446,7 +446,8 @@
         "INVALID": "Utklippstavlen inneholder ingen kopiert seksjon eller blokk.",
         "BLOCK_NEEDS_SECTION": "Velg en seksjon å lime blokken inn i.",
         "BLOCK_NOT_ALLOWED": "Den valgte seksjonen kan ikke inneholde denne blokken.",
-        "GROUP_ONLY": "Denne seksjonen hører bare hjemme i topp- eller bunnteksten: velg en av seksjonene deres for å lime den inn der."
+        "GROUP_ONLY": "Denne seksjonen hører bare hjemme i topp- eller bunnteksten: velg en av seksjonene deres for å lime den inn der.",
+        "LIMIT": "Siden har allerede så mange slike seksjoner som tillatt."
       },
       "SELECT_MODE": {
         "SELECT": "Velg",

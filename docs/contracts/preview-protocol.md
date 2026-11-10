@@ -62,6 +62,8 @@ interface Loaded {
     protocol: 2;
     capabilities: Capability[];
     conditions: ConditionDescriptor[];
+    /** template keys the storefront renders without a theme file, such as `product.b2c` */
+    builtInTemplates: string[];
   };
 }
 
@@ -265,7 +267,8 @@ is not overwritten by its own echo.
 - For a translatable setting, `cultureName` is the language edited; the designer writes that language's text only.
   When the setting still held a plain string, the designer keeps that string as the store default language's text.
 - The designer applies `edit` only to a setting the item's schema declares as plain text: `string`, with or without
-  `multiline`. Rich text (`text`), `markdown` and links are edited in the settings panel.
+  `multiline`, and not a link. Rich text (`text`), `markdown` and links (`"format": "url"`) are edited in the settings
+  panel.
 - Outside the designer preview the storefront's markup does not change: no `data-pb-*` attributes, no editing code.
 
 ## Schemas
@@ -284,6 +287,10 @@ Schemas are data, never code.
   `Authorization` header, and a 401 from it does not end the designer's session. Expression keys only the Angular designer reads (`selector`, `optionsSelector`, `previewRule`) are
   ignored by the Vue designer.
 - A field may be `"translatable": true` ([theme snapshot](theme-snapshot.md#translatable-fields)).
+- A `string` field holding a link is `"format": "url"`. The Angular designer ignores the key.
+- A section may have a `limit`: the designer adds, duplicates or pastes no more sections of its type than that on a
+  page, its header and footer counted in. `site-header`, `announcement-bar` and `site-footer` have `"limit": 1`, since
+  the storefront shows the first of each.
 - An `object` field and a row of a `list` field hold the fields under `element`; a `list` field without `element` is a
   list of strings.
 - Field types added for the theme:
