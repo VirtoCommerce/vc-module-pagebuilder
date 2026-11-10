@@ -110,6 +110,12 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
+        public void Two_date_strings_of_the_same_moment_are_different_documents()
+        {
+            Assert.False(PageJson.AreSameDocuments("{\"d\":\"2024-05-01T00:00:00Z\"}", "{\"d\":\"2024-05-01T00:00:00\"}"));
+        }
+
+        [Fact]
         public void Encoding_does_not_emit_a_bom()
         {
             Assert.Empty(PageJson.Encoding.GetPreamble());

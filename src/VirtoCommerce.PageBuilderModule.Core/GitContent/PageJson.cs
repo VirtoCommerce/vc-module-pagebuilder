@@ -95,12 +95,25 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
 
             try
             {
-                return JToken.DeepEquals(JToken.Parse(left), JToken.Parse(right));
+                return JToken.DeepEquals(Parse(left), Parse(right));
             }
             catch (JsonReaderException)
             {
                 return false;
             }
+        }
+
+        // a string that looks like a date stays that string
+        private static JToken Parse(string json)
+        {
+            using var reader = new JsonTextReader(new StringReader(json)) { DateParseHandling = DateParseHandling.None };
+            var token = JToken.ReadFrom(reader);
+            while (reader.Read())
+            {
+                // as JToken.Parse: the reader throws on anything but a comment after the document
+            }
+
+            return token;
         }
     }
 }

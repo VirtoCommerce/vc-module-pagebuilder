@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defineComponent } from "vue";
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { usePageDesigner } from "../../src/modules/page-builder/composables/usePageDesigner";
+import useUrlParams from "../../src/modules/page-builder/composables/useStoreParams";
 import { fakePlatform, status, type FakePlatform } from "./support/fakePlatform";
 import { notification } from "./support/vcShell";
 
@@ -74,5 +75,16 @@ describe("opening the page designer", () => {
 
     expect(windowOpen).not.toHaveBeenCalled();
     expect(notification.error).toHaveBeenCalledWith("The site couldn't be read, so the designer didn't open. Try again.");
+  });
+
+  it("opens the Angular designer within the click for the store in context, whose setting was read ahead", async () => {
+    platform.on("GET", `/api/stores/${STORE}`, { languages: ["en-US"], settings: [] });
+    useUrlParams().setStoreId(STORE);
+    const open = pageDesigner();
+    await flushPromises();
+
+    void open(CONTEXT);
+
+    expect(windowOpen).toHaveBeenCalledTimes(1);
   });
 });

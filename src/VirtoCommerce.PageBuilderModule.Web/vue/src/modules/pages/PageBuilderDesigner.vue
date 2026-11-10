@@ -501,7 +501,7 @@
             required
           />
           <VcButton
-            :disabled="!sharedName?.trim()"
+            :disabled="!sharedName?.trim() || savingShared"
             @click="saveShared"
           >
             {{ $t("PAGE_BUILDER.DESIGNER.SAVE") }}
@@ -1209,9 +1209,11 @@ async function removeChecked() {
 }
 
 const sharedName = ref<string>();
+const savingShared = ref(false);
 async function saveShared() {
   const name = sharedName.value?.trim();
-  if (!name) return;
+  if (!name || savingShared.value) return;
+  savingShared.value = true;
   try {
     const problem = await designer.saveCheckedAsShared(name);
     if (problem) {
@@ -1222,6 +1224,8 @@ async function saveShared() {
     notification.success(t("PAGE_BUILDER.DESIGNER.SELECT_MODE.SHARED_SAVED", { name }));
   } catch {
     notification.error(t("PAGE_BUILDER.DESIGNER.SELECT_MODE.SHARED_FAILED"));
+  } finally {
+    savingShared.value = false;
   }
 }
 

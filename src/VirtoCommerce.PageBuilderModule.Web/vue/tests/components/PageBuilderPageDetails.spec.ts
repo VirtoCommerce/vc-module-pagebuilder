@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { defineComponent, h, nextTick } from "vue";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import PageBuilderPageDetails from "../../src/modules/page-builder/pages/PageBuilderPageDetails.vue";
+import { blade } from "./support/vcShell";
 
 // Replaced by a reactive ref when the framework mock loads.
 const form = vi.hoisted(() => ({ modified: { value: false } }));
@@ -104,5 +105,28 @@ describe("unpublishing a page from its details", () => {
     await nextTick();
 
     expect(toolbarItem(wrapper, "unpublishPage")?.disabled).toBe(true);
+  });
+});
+
+describe("cloning a page from its details", () => {
+  beforeEach(() => {
+    vi.stubGlobal("defineBlade", () => undefined);
+    form.modified.value = false;
+    blade.param.value = "g1";
+  });
+
+  it("is offered when the details have no unsaved edits", async () => {
+    const wrapper = await mountPage();
+
+    expect(toolbarItem(wrapper, "clonePage")?.disabled).toBe(false);
+  });
+
+  it("is not offered while the details have unsaved edits, which the clone replacing this blade would throw away", async () => {
+    const wrapper = await mountPage();
+
+    form.modified.value = true;
+    await nextTick();
+
+    expect(toolbarItem(wrapper, "clonePage")?.disabled).toBe(true);
   });
 });

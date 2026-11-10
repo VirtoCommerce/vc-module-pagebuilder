@@ -115,6 +115,8 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       result = await apiClient.updateGroup(group);
       item.value = reactive(result);
       await saveSeo(result.id!);
+      // a new name, permalink or language is written into the page content as a draft
+      status.value = await apiClient.publishStatus(result.id!);
     }
 
     return result;
@@ -126,7 +128,6 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     const { doc, eTag } = await loadPage(groupId);
     await savePage(groupId, { ...doc, settings: { ...doc.settings, seoInfo: { ...seo.value } } }, eTag ?? "");
     savedSeo = seoKey(seo.value);
-    status.value = await (await getApiClient()).publishStatus(groupId);
   }
 
   const { action: deleteGroup, loading: deletingGroup } = useAsync(async () => {

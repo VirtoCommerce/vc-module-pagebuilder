@@ -158,6 +158,34 @@ describe("telling open lists the page changed", () => {
   });
 });
 
+describe("saving sections as a shared component", () => {
+  it("creates one component when Save is clicked again while the first is on its way", async () => {
+    let created!: (component: unknown) => void;
+    const platform = fakePlatform()
+      .on("GET", `/api/stores/${STORE}`, { id: STORE, dynamicProperties: [{ name: "DefaultThemeName", values: [{ value: "default" }] }] })
+      .on("GET", "/api/page-builder-pages/grouped/g1/content", { content: JSON.stringify(PAGE), eTag: '"v1"' })
+      .on("GET", "/api/page-builder-pages/grouped/publish-status/g1", { published: true, hasChanges: true })
+      .on("GET", "/api/pagebuilder/designer/theme-file", themeFileAnswer({}))
+      .on("GET", "/api/pagebuilder/theme/status", { publication: 3, drafts: [] })
+      .on("POST", "/api/page-builder-shared-components", () => new Promise((resolve) => (created = resolve)))
+      .install();
+    blade.param.value = "g1";
+    apiClient.getGroup = vi.fn(async () => ({ id: "g1", storeId: STORE, name: "About", status: "Published" }));
+    const wrapper = shallowMount(PageBuilderDesigner, { global: { plugins: [await routerAt("/")], stubs: { VcBlade: false } } });
+    await flushPromises();
+    const page = wrapper.vm as unknown as { designer: { checked: { value: string[] } }; sharedName: string; saveShared: () => Promise<void> };
+    page.designer.checked.value = ["hero-1"];
+    page.sharedName = "Promo";
+
+    void page.saveShared();
+    void page.saveShared();
+    created({ id: "c1", storeId: STORE, name: "Promo" });
+    await flushPromises();
+
+    expect(platform.to("/api/page-builder-shared-components", "POST")).toHaveLength(1);
+  });
+});
+
 describe("picking an asset", () => {
   it("opens the asset library on the types the field asked for", async () => {
     blade.param.value = "g1";

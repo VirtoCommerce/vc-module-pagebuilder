@@ -59,3 +59,28 @@ describe("the SEO of a page's details", () => {
     expect((save.body as { settings: { seoInfo: unknown } }).settings.seoInfo).toEqual({ ...SEO, pageTitle: "New title" });
   });
 });
+
+describe("saving a page's details", () => {
+  const publishStatus = vi.fn();
+
+  beforeEach(() => {
+    fakePlatform().install().on("GET", CONTENT, stored);
+    publishStatus.mockResolvedValue({ hasChanges: false });
+    Object.assign(apiClient, {
+      getGroup: vi.fn(async () => ({ id: "g1", name: "Page", storeId: "s1" })),
+      publishStatus,
+      updateGroup: vi.fn(async (group: unknown) => group),
+    });
+  });
+
+  it("reads the publish status again when only the name changed, since the server keeps the new name in a draft", async () => {
+    const page = details();
+    await page.loadGroup();
+    publishStatus.mockResolvedValue({ hasChanges: true });
+
+    page.item.value.name = "Renamed";
+    await page.saveGroup();
+
+    expect(page.status.value).toEqual({ hasChanges: true });
+  });
+});

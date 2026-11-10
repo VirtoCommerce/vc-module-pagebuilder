@@ -319,7 +319,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     id: "clonePage",
     icon: "lucide-copy",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.CLONE"),
-    disabled: !param.value || isReadOnly.value,
+    disabled: !param.value || isReadOnly.value || isModified.value,
     clickHandler: async () => {
       if (loading.value) return;
       const cloned = await clonePage();
