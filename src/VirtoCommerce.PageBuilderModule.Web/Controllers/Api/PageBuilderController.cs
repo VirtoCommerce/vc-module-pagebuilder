@@ -1116,6 +1116,10 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             var location = GitLocation(repository, type, path);
 
+            // a promotion decides on the branches as they are now, so an edit made on GitHub a moment ago counts
+            gitContentRepository.InvalidateRead(location.Repository, location.RepoPath, baseBranch);
+            gitContentRepository.InvalidateRead(location.Repository, location.RepoPath, options.ReleaseBranch);
+
             var onBase = await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, baseBranch, HttpContext.RequestAborted);
             if (onBase == null)
             {

@@ -118,6 +118,17 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
+        public async Task Promote_ReadsBothBranchesPastTheReadCache()
+        {
+            // an edit made on GitHub a moment ago must count, or the promotion answers from a minute-old read
+            var repository = Repository();
+
+            await Controller(repository, Publisher()).GitPromote("vccom", Page, "pages");
+
+            Assert.Equal(["invalidate master", "invalidate production", "read master", "read production"], repository.Calls[..4]);
+        }
+
+        [Fact]
         public async Task Promote_APageProductionAlreadyHolds_ShipsNothing()
         {
             // an empty pull request would leave the editor waiting for a merge that means nothing
@@ -250,8 +261,13 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             public List<(string Branch, string FromRef)> CreatedBranches { get; } = [];
             public List<string> DeletedBranches { get; } = [];
 
-            public Task<string> ReadFileAsync(string repository, string path, string gitRef, CancellationToken cancellationToken = default) =>
-                Task.FromResult(Files.GetValueOrDefault((path, gitRef)));
+            public List<string> Calls { get; } = [];
+
+            public Task<string> ReadFileAsync(string repository, string path, string gitRef, CancellationToken cancellationToken = default)
+            {
+                Calls.Add($"read {gitRef}");
+                return Task.FromResult(Files.GetValueOrDefault((path, gitRef)));
+            }
 
             public Task<string> GetBranchHeadShaAsync(string repository, string branch, CancellationToken cancellationToken = default) =>
                 Task.FromResult(BranchHeads.GetValueOrDefault(branch));
@@ -276,7 +292,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 return Task.CompletedTask;
             }
 
-            public void InvalidateRead(string repository, string path, string gitRef) { }
+            public void InvalidateRead(string repository, string path, string gitRef) => Calls.Add($"invalidate {gitRef}");
 
             public Task<string> CommitFileAsync(string repository, string path, string content, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default)
             {
