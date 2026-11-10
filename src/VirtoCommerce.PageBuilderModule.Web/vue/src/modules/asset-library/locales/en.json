@@ -91,7 +91,10 @@
       "DELETE_SINGLE": "Delete {name}?",
       "DELETE_USED_ONE": "Delete {name}? It is used in 1 Page Builder item.",
       "DELETE_USED_MANY": "Delete {name}? It is used in {count} Page Builder items.",
-      "DELETE_SELECTED": "Delete {count} selected assets?"
+      "DELETE_SELECTED": "Delete {count} selected assets?",
+      "TITLE": "Confirm deletion",
+      "DELETE": "Delete",
+      "CANCEL": "Cancel"
     },
     "OVERWRITE": {
       "TITLE": "File name conflict",

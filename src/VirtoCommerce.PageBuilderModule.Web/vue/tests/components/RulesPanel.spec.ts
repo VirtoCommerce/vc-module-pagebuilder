@@ -98,6 +98,19 @@ describe("RulesPanel", () => {
     expect(wrapper.findAll(".pd-rules__rule--flat .pd-rules__number").map((x) => x.text())).toEqual(["1", "3"]);
   });
 
+  it("names every category the rules hold, past one search page of them", async () => {
+    const ids = Array.from({ length: 25 }, (_, i) => `cat-${i}`);
+    // As the catalog answers: at most `first` categories, 20 unless asked otherwise.
+    platform.graphql("categories(", (request) => {
+      const { query, variables } = request.body as { query: string; variables: { ids?: string[]; first?: number } };
+      const first = variables.first ?? Number(/first: (\d+)/.exec(query)?.[1] ?? 20);
+      return { data: { categories: { items: (variables.ids ?? []).slice(0, first).map((id) => ({ id, name: `Name of ${id}` })) } } };
+    });
+    const { wrapper } = await mountPanel({ file: { version: 2, conditions: ["inCategory"], product: [{ id: "r-many", template: "product.printer", when: { inCategory: ids } }] } });
+
+    expect(rows(wrapper)[0].find(".pd-rules__text").text()).toBe(`Products in ${ids.map((id) => `Name of ${id}`).join(", ")} and below→Printer`);
+  });
+
   it("gives a version 1 file's rules the ids the storefront gives them", async () => {
     const { products } = await mountPanel({ file: { version: 1, product: [{ template: "product.printer", when: { productType: "Printer" } }] } });
 

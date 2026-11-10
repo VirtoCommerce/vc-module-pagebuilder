@@ -21,7 +21,7 @@ export const VcHint = defineComponent({ name: "VcHint", setup: (_, { slots }) =>
 export const VcBlade = defineComponent({
   name: "VcBlade",
   props: { loading: Boolean, title: String, subtitle: String, toolbarItems: Array, modified: Boolean, width: String },
-  setup: (props, { slots }) => () => h("section", { "data-loading": String(props.loading) }, slots.default?.()),
+  setup: (props, { slots }) => () => h("section", { class: "vc-blade", "data-loading": String(props.loading) }, slots.default?.()),
 });
 
 export const VcBanner = defineComponent({

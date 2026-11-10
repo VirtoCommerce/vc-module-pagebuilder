@@ -114,11 +114,12 @@ test("setStoreId pins the store over the URL and uses the store it is given", as
   };
 
   const storeContext = useUrlParams();
-  storeContext.setStoreId("Electronics", { url: "https://electronics.example.com", languages: ["en-US", "de-DE"] });
+  storeContext.setStoreId("Electronics", { url: "https://electronics.example.com", languages: ["en-US", "de-DE"], defaultLanguage: "de-DE" });
   storeContext.initUrlParams();
 
   assert.equal(storeContext.storeId.value, "Electronics");
   assert.equal(await storeContext.validateStoreContext(), true);
   assert.deepEqual(await storeContext.getLanguages(), ["en-US", "de-DE"]);
+  assert.equal(await storeContext.getDefaultLanguage(), "de-DE");
   assert.equal(storeContext.storeContextStatus.value, "ready");
 });

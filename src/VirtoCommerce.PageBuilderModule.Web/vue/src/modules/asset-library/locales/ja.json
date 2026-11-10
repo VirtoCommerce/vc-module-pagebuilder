@@ -91,7 +91,10 @@
       "DELETE_SINGLE": "{name} を削除しますか？",
       "DELETE_SELECTED": "選択した {count} 件のアセットを削除しますか？",
       "DELETE_USED_ONE": "{name} を削除しますか？1 件の Page Builder 項目で使用されています。",
-      "DELETE_USED_MANY": "{name} を削除しますか？{count} 件の Page Builder 項目で使用されています。"
+      "DELETE_USED_MANY": "{name} を削除しますか？{count} 件の Page Builder 項目で使用されています。",
+      "TITLE": "削除の確認",
+      "DELETE": "削除",
+      "CANCEL": "キャンセル"
     },
     "OVERWRITE": {
       "TITLE": "ファイル名の競合",

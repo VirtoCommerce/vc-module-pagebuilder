@@ -91,7 +91,10 @@
       "DELETE_SINGLE": "删除 {name}？",
       "DELETE_SELECTED": "删除选中的 {count} 个资源？",
       "DELETE_USED_ONE": "删除 {name}？它正在 1 个 Page Builder 项目中使用。",
-      "DELETE_USED_MANY": "删除 {name}？它正在 {count} 个 Page Builder 项目中使用。"
+      "DELETE_USED_MANY": "删除 {name}？它正在 {count} 个 Page Builder 项目中使用。",
+      "TITLE": "确认删除",
+      "DELETE": "删除",
+      "CANCEL": "取消"
     },
     "OVERWRITE": {
       "TITLE": "文件名冲突",

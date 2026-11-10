@@ -91,7 +91,10 @@
       "DELETE_SINGLE": "Excluir {name}?",
       "DELETE_SELECTED": "Excluir {count} ativo(s) selecionado(s)?",
       "DELETE_USED_ONE": "Excluir {name}? Ele é usado em 1 item do Page Builder.",
-      "DELETE_USED_MANY": "Excluir {name}? Ele é usado em {count} itens do Page Builder."
+      "DELETE_USED_MANY": "Excluir {name}? Ele é usado em {count} itens do Page Builder.",
+      "TITLE": "Confirmar exclusão",
+      "DELETE": "Excluir",
+      "CANCEL": "Cancelar"
     },
     "OVERWRITE": {
       "TITLE": "Conflito de nome de arquivo",

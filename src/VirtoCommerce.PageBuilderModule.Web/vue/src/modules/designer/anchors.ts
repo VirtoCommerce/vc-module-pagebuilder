@@ -35,10 +35,14 @@ function textAnchors(value: unknown): string[] {
 }
 
 /** Hidden items are not rendered, so they have no anchors, and shared-component content is not in this document. */
-export function pageAnchors(content: Item[], schemaOf: (item: Item, kind: "section" | "block") => ItemSchema | undefined): PageAnchor[] {
+export function pageAnchors(
+  content: Item[],
+  schemaOf: (item: Item, kind: "section" | "block") => ItemSchema | undefined,
+  defaultLanguage?: string,
+): PageAnchor[] {
   const anchors = new Map<string, string>();
   const add = (item: Item, kind: "section" | "block") => {
-    const label = itemTitle(item, schemaOf(item, kind));
+    const label = itemTitle(item, schemaOf(item, kind), defaultLanguage);
     const { blocks: _blocks, ...settings } = item;
     for (const value of [anchorOf(item), ...textAnchors(settings)]) {
       if (value && !anchors.has(value)) anchors.set(value, label);

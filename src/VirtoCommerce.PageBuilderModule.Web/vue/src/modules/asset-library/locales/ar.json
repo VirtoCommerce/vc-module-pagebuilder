@@ -91,7 +91,10 @@
       "DELETE_SINGLE": "هل تريد حذف {name}؟",
       "DELETE_USED_ONE": "هل تريد حذف {name}؟ إنه مستخدم في عنصر واحد في Page Builder.",
       "DELETE_USED_MANY": "هل تريد حذف {name}؟ إنه مستخدم في عناصر Page Builder ({count}).",
-      "DELETE_SELECTED": "هل تريد حذف الأصول المحددة ({count})؟"
+      "DELETE_SELECTED": "هل تريد حذف الأصول المحددة ({count})؟",
+      "TITLE": "تأكيد الحذف",
+      "DELETE": "حذف",
+      "CANCEL": "إلغاء"
     },
     "OVERWRITE": {
       "TITLE": "تعارض في اسم الملف",

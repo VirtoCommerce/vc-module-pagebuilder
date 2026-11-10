@@ -18,6 +18,7 @@ export function templateKeyOf(path: string): string | undefined {
 export function alternateKey(type: PageType, name: string): string | undefined {
   const slug = name
     .normalize("NFKD")
+    .replace(/\p{M}+/gu, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");

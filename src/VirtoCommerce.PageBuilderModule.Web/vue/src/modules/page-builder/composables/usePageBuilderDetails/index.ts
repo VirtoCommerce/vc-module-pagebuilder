@@ -219,7 +219,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
         cultureName: item.value?.cultureName,
         status: item.value?.status,
       },
-      onClose,
+      { onClose },
     );
   }
 

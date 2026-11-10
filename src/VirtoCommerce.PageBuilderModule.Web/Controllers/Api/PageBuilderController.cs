@@ -95,6 +95,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         private const int MaxLegacyDraftPageSize = 200;
         private const string LegacyDraftOnlyCopy = "only-copy";
         private const string LegacyDraftHasChanges = "has-changes";
+        private const string LegacyDraftsOfPagesError = "Leftover drafts are listed for pages and blog articles: the content type must be pages or blogs.";
         // How many "_N" names a duplicate will try before asking the caller to pick one. A page with
         // this many copies is a naming problem, not a paging problem.
         private const int MaxCopyIndex = 100;
@@ -1586,9 +1587,16 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/legacy-drafts")]
         public async Task<ActionResult> GetLegacyDrafts(string storeId, string type, string theme, int skip = 0, int take = 50)
         {
-            if (await CheckRequestAsync(storeId, type ?? PagesContentType, theme, []) is { } refused)
+            var contentType = type ?? PagesContentType;
+            if (await CheckRequestAsync(storeId, contentType, theme, []) is { } refused)
             {
                 return refused;
+            }
+
+            // The request check holds the type to pages only for a request that names some, and this one names none.
+            if (!GitPageLocation.IsPageContent(contentType))
+            {
+                return BadRequest(new { error = LegacyDraftsOfPagesError });
             }
 
             var repository = await gitContentPolicy.GetRepositoryAsync(storeId, HttpContext.RequestAborted);
@@ -1599,7 +1607,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return NotFound();
             }
 
-            var contentType = type ?? PagesContentType;
             var storageProvider = blobContentStorageProviderFactory.CreateProvider(
                 GetContentBasePath(storeId, contentType, await GetCurrentThemeName(storeId, theme)));
 
@@ -1842,7 +1849,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/legacy-draft")]
         public async Task<ActionResult> GetLegacyDraft(string storeId, string type, string path, string theme)
         {
-            if (await CheckRequestAsync(storeId, type ?? PagesContentType, theme, PathsOf(path)) is { } refused)
+            var request = PageRequest(storeId, type, PathsOf(path));
+            request.Theme = theme;
+            if (await CheckRequestAsync(request) is { } refused)
             {
                 return refused;
             }

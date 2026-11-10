@@ -18,7 +18,7 @@
         role="button"
         tabindex="0"
         @click="select({ kind: 'section', id: section.id })"
-        @keydown.enter="select({ kind: 'section', id: section.id })"
+        @keydown.enter.self="select({ kind: 'section', id: section.id })"
         @mouseenter="emit('hover', section.id)"
         @mouseleave="emit('hover', null)"
       >
@@ -100,14 +100,14 @@
             role="button"
             tabindex="0"
             @click="select({ kind: 'block', sectionId: section.id, id: block.id })"
-            @keydown.enter="select({ kind: 'block', sectionId: section.id, id: block.id })"
+            @keydown.enter.self="select({ kind: 'block', sectionId: section.id, id: block.id })"
           >
             <VcIcon
               :icon="iconOf(designer.blockSchema(block.type))"
               size="s"
               class="pd-tree__icon"
             />
-            <span class="pd-tree__name">{{ itemTitle(block, designer.blockSchema(block.type)) }}</span>
+            <span class="pd-tree__name">{{ itemTitle(block, designer.blockSchema(block.type), designer.languages.value.default) }}</span>
             <button
               type="button"
               class="pd-tree__eye"
@@ -197,7 +197,7 @@ const expanded = reactive(new Set<string>());
 const sectionName = (section: Item) =>
   isComponentRef(section)
     ? (props.designer.components.get(section.componentRef)?.name ?? t("PAGE_BUILDER.DESIGNER.SHARED_COMPONENT"))
-    : itemTitle(section, props.designer.sectionSchema(section.type));
+    : itemTitle(section, props.designer.sectionSchema(section.type), props.designer.languages.value.default);
 const isSelected = (id: string) => {
   const sel = props.designer.selection.value;
   return !!sel && sel.kind !== "page" && sel.id === id;

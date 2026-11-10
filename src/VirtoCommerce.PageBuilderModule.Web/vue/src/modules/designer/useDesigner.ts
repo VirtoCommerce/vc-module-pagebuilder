@@ -345,6 +345,14 @@ export function useDesigner() {
   }
 
   const checked = ref<string[]>([]);
+  // Select mode picks among the page's own sections, so it ends once none are left.
+  const selecting = ref(false);
+  watch(
+    () => doc.value.content.some((x) => !x.__group),
+    (hasSections) => {
+      if (!hasSections) selecting.value = false;
+    },
+  );
   function toggleChecked(id: string) {
     checked.value = checked.value.includes(id) ? checked.value.filter((x) => x !== id) : [...checked.value, id];
   }
@@ -428,7 +436,7 @@ export function useDesigner() {
 
   const sectionLabels = computed(() =>
     Object.fromEntries(
-      doc.value.content.filter((x) => !isComponentRef(x) && !x.hidden).map((x) => [x.id, itemTitle(x, sectionSchema(x.type))]),
+      doc.value.content.filter((x) => !isComponentRef(x) && !x.hidden).map((x) => [x.id, itemTitle(x, sectionSchema(x.type), languages.value.default)]),
     ),
   );
 
@@ -522,6 +530,7 @@ export function useDesigner() {
     selection.value = null;
     hovered.value = null;
     checked.value = [];
+    selecting.value = false;
     components.clear();
     status.value = {};
     storeId.value = source.storeId;
@@ -792,6 +801,7 @@ export function useDesigner() {
     insertShared,
     paste,
     checked,
+    selecting,
     toggleChecked,
     removeChecked,
     saveCheckedAsShared,

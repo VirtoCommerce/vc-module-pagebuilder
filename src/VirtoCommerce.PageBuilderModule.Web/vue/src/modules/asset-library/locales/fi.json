@@ -91,7 +91,10 @@
       "DELETE_SINGLE": "Poistetaanko {name}?",
       "DELETE_SELECTED": "Poistetaanko {count} valittua resurssia?",
       "DELETE_USED_ONE": "Poistetaanko {name}? Sitä käytetään 1 Page Builder -kohteessa.",
-      "DELETE_USED_MANY": "Poistetaanko {name}? Sitä käytetään {count} Page Builder -kohteessa."
+      "DELETE_USED_MANY": "Poistetaanko {name}? Sitä käytetään {count} Page Builder -kohteessa.",
+      "TITLE": "Vahvista poisto",
+      "DELETE": "Poista",
+      "CANCEL": "Peruuta"
     },
     "OVERWRITE": {
       "TITLE": "Tiedostonimiristiriita",

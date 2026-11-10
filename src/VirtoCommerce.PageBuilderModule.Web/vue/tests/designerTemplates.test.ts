@@ -46,6 +46,7 @@ test("a template is a theme file under templates/", () => {
 test("an alternate's key comes from its name", () => {
   assert.equal(alternateKey("product", "  Big Printers! "), "product.big-printers");
   assert.equal(alternateKey("page", "Café landing"), "page.cafe-landing");
+  assert.equal(alternateKey("product", "Crème brûlée"), "product.creme-brulee");
   assert.equal(alternateKey("category", "!!"), undefined);
   assert.equal(alternateName("product.big-printers"), "Big printers");
 });

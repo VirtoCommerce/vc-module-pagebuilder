@@ -68,7 +68,7 @@ export default () => {
   const setStoreId = (id: string, store?: Partial<IStoreItem> | null) => {
     storeIdPinned = true;
     if (store && Array.isArray(store.languages)) {
-      cache.set(id, { url: store.url ?? "", languages: store.languages });
+      cache.set(id, { url: store.url ?? "", languages: store.languages, defaultLanguage: store.defaultLanguage });
     }
     if (storeId.value !== id) {
       storeId.value = id;

@@ -1,5 +1,9 @@
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
+import { compileStyle, parse } from "vue/compiler-sfc";
 import VersionHistory from "../../src/modules/designer/components/VersionHistory.vue";
 import type { HistoryVersion } from "../../src/modules/designer/history";
 
@@ -91,5 +95,29 @@ describe("loading more versions", () => {
 
     expect(wrapper.find(".vh__spin").exists()).toBe(false);
     expect(listed(wrapper)).toEqual(["v3", "v2"]);
+  });
+});
+
+describe("a row's Preview and Restore", () => {
+  it("stay in the tab order while the row is neither hovered nor focused", async () => {
+    // jsdom has no layout and skips the @media (hover: hover) block that clips them, so this checks the rest of the sheet.
+    const file = resolve(dirname(fileURLToPath(import.meta.url)), "../../src/modules/designer/components/VersionHistory.vue");
+    const { descriptor } = parse(readFileSync(file, "utf8"));
+    const sheet = document.createElement("style");
+    sheet.textContent = compileStyle({ source: descriptor.styles[0].content, filename: file, id: "vh", preprocessLang: "scss" }).code;
+    document.head.append(sheet);
+    try {
+      const wrapper = mount(VersionHistory, {
+        attachTo: document.body,
+        props: { source: async () => ({ versions: [version("v2"), version("v1")] }), dirty: false, busy: false, canDiscard: false },
+      });
+      await flushPromises();
+
+      const actions = wrapper.findAll("button.vh__action");
+      expect(actions.map((x) => x.text())).toEqual(["Preview", "Preview", "Restore"]);
+      for (const action of actions) expect(getComputedStyle(action.element).display).not.toBe("none");
+    } finally {
+      sheet.remove();
+    }
   });
 });

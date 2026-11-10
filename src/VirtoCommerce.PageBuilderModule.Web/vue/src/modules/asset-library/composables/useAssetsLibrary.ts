@@ -266,16 +266,19 @@ export function useAssetsLibrary(options: UseAssetsLibraryOptions = {}): IUseAss
       }
 
       let uploaded: AssetEntry | undefined;
-      for (const file of files) {
-        uploaded = await uploadAsset(targetFolderUrl, file);
-      }
-
-      if (targetFolderUrl === currentFolderUrl.value && uploaded) {
-        searchValue.value = undefined;
-        pagination.reset();
-        await reload(getAssetKey(uploaded));
-      } else {
-        await reload();
+      try {
+        for (const file of files) {
+          uploaded = await uploadAsset(targetFolderUrl, file);
+        }
+      } finally {
+        // The files before a failed one are stored.
+        if (targetFolderUrl === currentFolderUrl.value && uploaded) {
+          searchValue.value = undefined;
+          pagination.reset();
+          await reload(getAssetKey(uploaded));
+        } else {
+          await reload();
+        }
       }
     },
     { notify: false },

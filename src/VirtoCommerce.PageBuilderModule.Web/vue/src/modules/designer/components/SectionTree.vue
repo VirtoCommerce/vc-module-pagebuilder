@@ -207,9 +207,9 @@ const emit = defineEmits<{
 
 const { t } = useI18n({ useScope: "global" });
 const addingTo = ref<SectionGroup | "page" | null>(null);
-const selecting = ref(false);
+const selecting = computed(() => props.designer.selecting.value);
 function toggleSelectMode() {
-  selecting.value = !selecting.value;
+  props.designer.selecting.value = !selecting.value;
   props.designer.checked.value = [];
 }
 

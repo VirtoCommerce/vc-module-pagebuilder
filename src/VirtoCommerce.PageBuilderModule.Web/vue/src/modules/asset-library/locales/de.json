@@ -91,7 +91,10 @@
       "DELETE_SINGLE": "{name} löschen?",
       "DELETE_SELECTED": "{count} ausgewählte Asset(s) löschen?",
       "DELETE_USED_ONE": "{name} löschen? Es wird in 1 Page Builder-Element verwendet.",
-      "DELETE_USED_MANY": "{name} löschen? Es wird in {count} Page Builder-Elementen verwendet."
+      "DELETE_USED_MANY": "{name} löschen? Es wird in {count} Page Builder-Elementen verwendet.",
+      "TITLE": "Löschen bestätigen",
+      "DELETE": "Löschen",
+      "CANCEL": "Abbrechen"
     },
     "OVERWRITE": {
       "TITLE": "Dateinamenskonflikt",

@@ -52,7 +52,11 @@
         :placeholder="field.placeholder"
         :hint="field.info"
         :required="field.required"
+        :min="field.min"
+        :max="field.max"
+        :step="field.step?.toString()"
         @update:model-value="set(field, $event === '' || $event == null ? undefined : Number($event))"
+        @blur="keepInRange(field)"
       />
       <VcSwitch
         v-else-if="field.type === 'checkbox'"
@@ -412,6 +416,14 @@ async function readStoreMenus() {
 const shown = computed(() => props.fields.filter((field) => isVisible(field, props.context)));
 
 const set = (field: Field, value: unknown) => field.id && emit("update", field.id, value);
+
+// On leaving the field, not per keystroke: with a minimum of 10, the "1" of a typed "15" would become 10.
+function keepInRange(field: Field) {
+  const value = props.values[field.id!];
+  if (typeof value !== "number") return;
+  const kept = Math.min(Math.max(value, field.min ?? -Infinity), field.max ?? Infinity);
+  if (kept !== value) set(field, kept);
+}
 
 const TEXT_TYPES = ["string", "markdown", "text"];
 const translated = (field: Field) =>

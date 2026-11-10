@@ -96,9 +96,9 @@ export function pick(source: unknown, path: string): unknown {
 
 export const humanize = (type: string) => type.replace(/[-_]+/g, " ").trim().replace(/^\w/, (c) => c.toUpperCase());
 
-export function itemTitle(item: Item, schema: ItemSchema | undefined): string {
+export function itemTitle(item: Item, schema: ItemSchema | undefined, defaultLanguage?: string): string {
   const field = schema?.displayField;
-  const value = field && field !== "default" ? displayText(pick(item, field)) : undefined;
+  const value = field && field !== "default" ? displayText(pick(item, field), defaultLanguage) : undefined;
   return value?.trim() || schema?.name || humanize(item.type);
 }
 

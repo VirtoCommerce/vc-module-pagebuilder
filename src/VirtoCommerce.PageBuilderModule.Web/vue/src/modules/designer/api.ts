@@ -446,10 +446,11 @@ export async function searchProducts(ctx: CatalogContext, keyword?: string, ids?
 
 export async function searchCategories(ctx: CatalogContext, keyword?: string, ids?: string[]): Promise<NamedEntity[]> {
   const data = await graphql<{ categories: { items: NamedEntity[] } }>(
-    `query ($storeId: String!, $cultureName: String, $query: String, $ids: [String]) {
-      categories(storeId: $storeId, cultureName: $cultureName, query: $query, categoryIds: $ids, first: 20) { items { id name } }
+    `query ($storeId: String!, $cultureName: String, $query: String, $ids: [String], $first: Int) {
+      categories(storeId: $storeId, cultureName: $cultureName, query: $query, categoryIds: $ids, first: $first) { items { id name } }
     }`,
-    { storeId: ctx.storeId, cultureName: ctx.cultureName, query: keyword?.trim() || undefined, ids: ids?.length ? ids : undefined },
+    // Every category asked for by id comes back, however many; a search lists its first page.
+    { storeId: ctx.storeId, cultureName: ctx.cultureName, query: keyword?.trim() || undefined, ids: ids?.length ? ids : undefined, first: ids?.length || 20 },
   );
   return data.categories.items;
 }

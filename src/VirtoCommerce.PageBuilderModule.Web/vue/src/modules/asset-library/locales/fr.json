@@ -91,7 +91,10 @@
       "DELETE_SINGLE": "Supprimer {name} ?",
       "DELETE_SELECTED": "Supprimer {count} ressource(s) sélectionnée(s) ?",
       "DELETE_USED_ONE": "Supprimer {name} ? Il est utilisé dans 1 élément Page Builder.",
-      "DELETE_USED_MANY": "Supprimer {name} ? Il est utilisé dans {count} éléments Page Builder."
+      "DELETE_USED_MANY": "Supprimer {name} ? Il est utilisé dans {count} éléments Page Builder.",
+      "TITLE": "Confirmer la suppression",
+      "DELETE": "Supprimer",
+      "CANCEL": "Annuler"
     },
     "OVERWRITE": {
       "TITLE": "Conflit de nom de fichier",

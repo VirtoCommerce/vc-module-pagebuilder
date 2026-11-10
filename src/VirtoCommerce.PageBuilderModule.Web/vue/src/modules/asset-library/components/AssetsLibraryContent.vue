@@ -128,21 +128,21 @@
         @delete="confirmDelete"
       />
     </div>
-  </div>
 
-  <div
-    v-if="pickable"
-    class="assets-library__pick"
-  >
-    <span class="assets-library__pick-name">{{
-      canPick && selectedAsset ? selectedAsset.name : $t("ASSET_LIBRARY.PICK.HINT")
-    }}</span>
-    <VcButton
-      :disabled="!canPick"
-      @click="canPick && selectedAsset && emit('pick', getAssetStoredUrl(selectedAsset))"
+    <div
+      v-if="pickable"
+      class="assets-library__pick"
     >
-      {{ $t("ASSET_LIBRARY.PICK.SELECT") }}
-    </VcButton>
+      <span class="assets-library__pick-name">{{
+        canPick && selectedAsset ? selectedAsset.name : $t("ASSET_LIBRARY.PICK.HINT")
+      }}</span>
+      <VcButton
+        :disabled="!canPick"
+        @click="canPick && selectedAsset && emit('pick', getAssetStoredUrl(selectedAsset))"
+      >
+        {{ $t("ASSET_LIBRARY.PICK.SELECT") }}
+      </VcButton>
+    </div>
   </div>
 
   <input
@@ -198,6 +198,13 @@
     @replace="resolveUploadConflict({ action: 'replace' })"
     @upload-as="handleUploadAs"
   />
+
+  <AssetDeletePopup
+    v-if="deleteConfirmation"
+    :confirmation="deleteConfirmation"
+    @cancel="resolveDeleteConfirmation(false)"
+    @confirm="resolveDeleteConfirmation(true)"
+  />
 </template>
 
 <script lang="ts" setup>
@@ -218,7 +225,12 @@ import AssetLibraryTable from "./AssetLibraryTable.vue";
 import AssetLibraryToolbar from "./AssetLibraryToolbar.vue";
 import CreateFolderPopup from "./CreateFolderPopup.vue";
 import AssetOverwritePopup from "./AssetOverwritePopup.vue";
-import type { AssetUploadConflict, AssetUploadConflictDecision } from "../composables/useAssetLibraryActions";
+import AssetDeletePopup from "./AssetDeletePopup.vue";
+import type {
+  AssetDeleteConfirmation,
+  AssetUploadConflict,
+  AssetUploadConflictDecision,
+} from "../composables/useAssetLibraryActions";
 import {
   createAssetLibraryDetailsViewModel,
   createAssetLibraryEntryViewModel,
@@ -249,8 +261,10 @@ const viewMode = ref<AssetLibraryViewMode>("grid");
 const uploadConflict = ref<AssetUploadConflict>();
 const uploadNameError = ref<string>();
 const validatingUploadName = ref(false);
+const deleteConfirmation = ref<AssetDeleteConfirmation>();
 let uploadConflictResolver: ((decision: AssetUploadConflictDecision) => void) | undefined;
 let uploadNameValidator: ((fileName: string) => Promise<string | undefined>) | undefined;
+let deleteConfirmationResolver: ((confirmed: boolean) => void) | undefined;
 
 const {
   entries,
@@ -308,6 +322,7 @@ const { notifyError, uploadAssets, createAssetFolder, replaceAsset, copyAssetUrl
     getDeleteReferences,
     findAssetByName,
     requestUploadConflictDecision,
+    requestDeleteConfirmation,
     getAssetPublicUrl,
     acceptedTypes,
   });
@@ -496,6 +511,21 @@ function resolveUploadConflict(decision: AssetUploadConflictDecision) {
   uploadNameError.value = undefined;
 }
 
+function requestDeleteConfirmation(confirmation: AssetDeleteConfirmation): Promise<boolean> {
+  deleteConfirmationResolver?.(false);
+  deleteConfirmation.value = confirmation;
+
+  return new Promise((resolve) => {
+    deleteConfirmationResolver = resolve;
+  });
+}
+
+function resolveDeleteConfirmation(confirmed: boolean) {
+  deleteConfirmationResolver?.(confirmed);
+  deleteConfirmationResolver = undefined;
+  deleteConfirmation.value = undefined;
+}
+
 async function handleUploadAs(fileName: string) {
   if (!uploadNameValidator || validatingUploadName.value) {
     return;
@@ -540,6 +570,9 @@ onUnmounted(() => {
   if (uploadConflictResolver) {
     resolveUploadConflict({ action: "cancel" });
   }
+  if (deleteConfirmationResolver) {
+    resolveDeleteConfirmation(false);
+  }
 });
 
 defineExpose<ExposedAssetsLibraryContent>({
@@ -563,15 +596,15 @@ defineExpose<ExposedAssetsLibraryContent>({
   --assets-library-checker-tile: color-mix(in srgb, var(--neutrals-200), transparent 25%);
   @apply tw-bg-[color:var(--neutrals-50)] tw-text-sm tw-leading-[18px] tw-text-[color:var(--neutrals-800)];
 
-  button,
-  input,
-  select,
-  textarea {
-    font: inherit;
-  }
-
   &__body {
     @apply tw-flex tw-min-h-0 tw-flex-1 tw-flex-col lg:tw-flex-row;
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
   }
 
   &__content {

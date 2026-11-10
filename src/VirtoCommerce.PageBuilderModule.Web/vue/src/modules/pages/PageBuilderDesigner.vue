@@ -1,7 +1,7 @@
 <template>
   <VcBlade
     :width="sitePanel ? '60%' : '100%'"
-    :class="{ 'pd-full-view': fullView, 'pd-own-actions': ownActions }"
+    :class="{ 'pd-full-view': fullViewOn, 'pd-own-actions': ownActions }"
     :title="title"
     :subtitle="subtitle"
     :toolbar-items="toolbar"
@@ -9,7 +9,7 @@
     :loading="(!!param && !group && !openFailed) || designer.busy.value === 'loading' || designer.busy.value === 'restoring'"
   >
     <div
-      v-if="designer.loadError.value || archived || openFailed"
+      v-if="!designerShown"
       class="pd-message"
     >
       <VcIcon
@@ -713,10 +713,13 @@ const maximized = inject(BladeMaximizedKey, null);
 if (maximized) maximized.value = true;
 // The full-view z-index sits over the shell's chrome (40-60) and under its dropdowns (100+) and popups (9000+).
 const fullView = useLocalStorage("vc-page-designer-full-view", false);
+const designerShown = computed(() => !designer.loadError.value && !archived.value && !openFailed.value);
+// Full view hides the blade's header, and only the designer's own bar has a way out of it.
+const fullViewOn = computed(() => fullView.value && designerShown.value);
 // The shell's narrow mode folds a blade's toolbar into a floating button, so the designer's bar carries the actions while the preview shows.
 const { isMobile } = useResponsive();
 const previewShown = useMediaQuery("(min-width: 768px)");
-const ownActions = computed(() => fullView.value || (isMobile.value && previewShown.value));
+const ownActions = computed(() => designerShown.value && (fullView.value || (isMobile.value && previewShown.value)));
 const { blades, closeChildren } = useBladeStack();
 const parentCrumbs = computed(() =>
   blades.value
@@ -963,7 +966,7 @@ const designerRoot = ref<HTMLElement>();
 watchEffect(() => {
   const blade = designerRoot.value?.closest<HTMLElement>(".vc-blade");
   for (const [property, value] of Object.entries(FULL_VIEW_STYLE)) {
-    if (fullView.value) blade?.style.setProperty(property, value, "important");
+    if (fullViewOn.value) blade?.style.setProperty(property, value, "important");
     else blade?.style.removeProperty(property);
   }
 });
@@ -1022,7 +1025,11 @@ function picked(asset: string | undefined) {
 provide(
   PageAnchorsKey,
   computed(() =>
-    pageAnchors(designer.doc.value.content, (item, kind) => (kind === "block" ? designer.blockSchema(item.type) : designer.sectionSchema(item.type))),
+    pageAnchors(
+      designer.doc.value.content,
+      (item, kind) => (kind === "block" ? designer.blockSchema(item.type) : designer.sectionSchema(item.type)),
+      designer.languages.value.default,
+    ),
   ),
 );
 let menusOf: { storeId: string; lists: Promise<unknown[]> } | undefined;
@@ -1389,6 +1396,7 @@ async function restoreSiteVersion(version: HistoryVersion, items: string[]) {
   designer.busy.value = "restoring";
   try {
     await restoreContentVersion(storeId, version.id, items);
+    if (files.includes("page")) notifyPagesChanged();
     await Promise.all([
       files.includes("rules") ? rules.load(storeId, themeName.value!).catch(() => undefined) : undefined,
       files.some((x) => Object.values<HistoryFile>(LOOK_FILES).includes(x)) ? loadTheme(storeId).catch(() => undefined) : undefined,
@@ -1427,6 +1435,7 @@ async function discardDrafts(choice: { page: boolean; theme: ThemePart[] }) {
   let failed = false;
   try {
     if (drafts) await asOneSave(() => designer.discardDrafts(choice));
+    if (choice.page) notifyPagesChanged();
   } catch {
     failed = true;
   }
@@ -1576,6 +1585,7 @@ const toolbar = computed<IBladeToolbar[]>(() => [
     id: "full-view",
     title: t(fullView.value ? "PAGE_BUILDER.DESIGNER.EXIT_FULL_VIEW" : "PAGE_BUILDER.DESIGNER.FULL_VIEW"),
     icon: fullView.value ? "lucide-minimize-2" : "lucide-maximize-2",
+    isVisible: designerShown.value,
     clickHandler: () => (fullView.value = !fullView.value),
   },
 ]);
@@ -1600,6 +1610,7 @@ const { getApiClient } = useApiClient(PageBuilderPageClient);
 onMounted(async () => {
   let storeId: string;
   let open: Promise<void>;
+  const target = param.value ? undefined : (query.value ?? restoreQueryFromAddress());
   try {
     if (param.value) {
       group.value = await (await getApiClient()).getGroup(param.value);
@@ -1607,15 +1618,16 @@ onMounted(async () => {
       storeId = group.value.storeId!;
       home = { groupId: param.value, storeId };
       open = designer.open(home);
-    } else if (query.value?.storeId && query.value.sharedComponentId) {
-      storeId = query.value.storeId;
-      open = designer.open({ sharedComponentId: query.value.sharedComponentId, storeId });
-    } else if (query.value?.storeId && query.value.path) {
-      storeId = query.value.storeId;
-      const page: FilePage = { storeId, path: query.value.path, type: query.value.type || "pages", theme: await storeTheme(storeId) };
+    } else if (target?.storeId && target.sharedComponentId) {
+      storeId = target.storeId;
+      open = designer.open({ sharedComponentId: target.sharedComponentId, storeId });
+    } else if (target?.storeId && target.path) {
+      storeId = target.storeId;
+      const page: FilePage = { storeId, path: target.path, type: target.type || "pages", theme: await storeTheme(storeId) };
       if (page.type !== "themes") home = page;
       open = designer.open(page);
     } else {
+      openFailed.value = true;
       return;
     }
   } catch {
@@ -1631,10 +1643,10 @@ onMounted(async () => {
       themeName.value = name;
       return Promise.all([
         loadTheme(storeId),
-        query.value?.sharedComponentId ? undefined : loadSiteHistory(storeId),
-        query.value?.sharedComponentId ? undefined : loadTemplateKeys(),
+        target?.sharedComponentId ? undefined : loadSiteHistory(storeId),
+        target?.sharedComponentId ? undefined : loadTemplateKeys(),
         // The preview gets the rules with the theme: they choose a content page's template too.
-        query.value?.sharedComponentId || rules.loaded.value ? undefined : rules.load(storeId, name).catch(() => undefined),
+        target?.sharedComponentId || rules.loaded.value ? undefined : rules.load(storeId, name).catch(() => undefined),
       ]);
     }).catch(() => undefined),
     loadStorefront(storeId)
@@ -1649,7 +1661,7 @@ onMounted(async () => {
   ]);
   homeTitle.value = home && !designer.templateKey.value ? title.value : undefined;
   // A shared component has no template: the address may hold the one of the designer it was opened from.
-  const reloaded = query.value?.sharedComponentId ? undefined : templateInUrl();
+  const reloaded = target?.sharedComponentId ? undefined : templateInUrl();
   if (reloaded && reloaded !== designer.templateKey.value && pageTypeOf(reloaded) && switcherShown.value) await switchTo(reloaded);
   else if (designer.templateKey.value) await enterTemplate();
 });
@@ -1660,6 +1672,23 @@ const router = useRouter();
 function templateInUrl(): string | undefined {
   const value = query.value?.template ?? router.currentRoute.value.query.template;
   return typeof value === "string" ? value : undefined;
+}
+/**
+ * A shared component or a file page is opened by query alone, and the shell reopens a blade from the address with its param only.
+ * The history's location, not the current route: the shell opens this blade while the navigation to it is still under way.
+ */
+function restoreQueryFromAddress(): Record<string, string> | undefined {
+  const address = router.resolve(router.options.history.location).query;
+  const keys = address.sharedComponentId ? ["storeId", "sharedComponentId"] : ["storeId", "path", "type", "cultureName"];
+  const restored: Record<string, string> = {};
+  for (const key of keys) {
+    const value = address[key];
+    if (typeof value === "string" && value) restored[key] = value;
+  }
+  if (!restored.storeId || (!restored.sharedComponentId && !restored.path)) return undefined;
+  // The stack writes the address from the blades' queries, so the next reload finds it there too.
+  bladeStack?.updateBladeQuery(bladeId.value, restored);
+  return restored;
 }
 watch(designer.templateKey, (key) => {
   bladeStack?.updateBladeQuery(bladeId.value, { template: key ?? "" });

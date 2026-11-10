@@ -109,7 +109,7 @@ import LanguagePills from "../page-builder/components/languagePills.vue";
 
 const props = defineProps<{
   storeId: string;
-  store?: { url?: string; languages?: string[] } | null;
+  store?: { url?: string; languages?: string[]; defaultLanguage?: string } | null;
 }>();
 
 const ALL = "all";
@@ -164,10 +164,12 @@ function openDesigner(row: PageBuilderPageListItem) {
   const page = row.page;
   const context = { groupId: page?.id, storeId: props.storeId, cultureName: page?.cultureName, status: page?.status };
   if (!page || !canOpenPageDesigner(context)) return openPage(row);
-  openPageId.value = row.id;
-  designPage(context, () => {
-    openPageId.value = undefined;
-    reload();
+  designPage(context, {
+    onOpen: () => (openPageId.value = row.id),
+    onClose: () => {
+      openPageId.value = undefined;
+      reload();
+    },
   });
 }
 

@@ -355,10 +355,9 @@ defineExpose({ reload: () => load() });
     }
   }
 
-  // Preview and Restore take no room until the row is hovered, so the date shows in full.
   &__action {
     flex: none;
-    display: none;
+    display: inline-flex;
     align-items: center;
     gap: 4px;
     padding: 3px 8px;
@@ -379,7 +378,6 @@ defineExpose({ reload: () => load() });
     }
 
     &--on {
-      display: inline-flex;
       border-color: color-mix(in srgb, var(--primary-500) 45%, transparent);
       color: var(--primary-700, var(--primary-500));
     }
@@ -390,9 +388,20 @@ defineExpose({ reload: () => load() });
     }
   }
 
-  &__row:hover &__action,
-  &__row:focus-within &__action {
-    display: inline-flex;
+  // Preview and Restore take no room until the row is hovered or holds focus, so the date shows in full. Clipped, not
+  // undisplayed, they stay in the tab order; where nothing can hover they always show.
+  @media (hover: hover) {
+    &__row:not(:hover, :focus-within) &__action:not(.vh__action--on) {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      border: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
   }
 
   &__footer {

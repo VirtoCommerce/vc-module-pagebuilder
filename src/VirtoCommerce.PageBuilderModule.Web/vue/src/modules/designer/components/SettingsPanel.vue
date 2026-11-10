@@ -15,6 +15,7 @@
         v-model="menuOpen"
         :items="actions"
         floating
+        close-on-select
         placement="bottom-end"
         @item-click="(x: { run: () => void }) => x.run()"
       >
@@ -163,7 +164,7 @@ const pageRow = computed(() => (sel.value.kind === "page" ? props.designer.pageR
 const title = computed(() => {
   if (sel.value.kind === "page") return pageRow.value && pageRow.value.key !== "settings" ? pageRow.value.name : t("PAGE_BUILDER.DESIGNER.PAGE_SETTINGS");
   if (placed.value) return component.value?.name ?? t("PAGE_BUILDER.DESIGNER.SHARED_COMPONENT");
-  return item.value ? itemTitle(item.value, schema.value) : "";
+  return item.value ? itemTitle(item.value, schema.value, props.designer.languages.value.default) : "";
 });
 const icon = computed(() => {
   if (sel.value.kind === "page") return pageRow.value?.key === "settings" ? "lucide-file-cog" : iconOf({ icon: pageRow.value?.icon });

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { computed, defineComponent, ref } from "vue";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
+import AssetDeletePopup from "../../src/modules/asset-library/components/AssetDeletePopup.vue";
 import AssetLibraryGrid from "../../src/modules/asset-library/components/AssetLibraryGrid.vue";
 import AssetsLibraryContent from "../../src/modules/asset-library/components/AssetsLibraryContent.vue";
 import { useAssetLibraryActions, type AssetUploadConflictDecision } from "../../src/modules/asset-library/composables/useAssetLibraryActions";
@@ -8,7 +9,7 @@ import { useAssetReferences } from "../../src/modules/asset-library/composables/
 import { useAssetsLibrary } from "../../src/modules/asset-library/composables/useAssetsLibrary";
 import type { AssetEntry, AssetLibraryEntryViewModel } from "../../src/modules/asset-library/types";
 import { createAssetReferenceDetails } from "../../src/modules/asset-library/utilities/assetReferences";
-import { notification } from "./support/vcShell";
+import { notification, popup } from "./support/vcShell";
 
 const api = vi.hoisted(() => ({
   searchAssetReferences: vi.fn(),
@@ -120,6 +121,7 @@ describe("uploading assets", () => {
         return undefined;
       },
       requestUploadConflictDecision: vi.fn(),
+      requestDeleteConfirmation: vi.fn(),
       getAssetPublicUrl: () => undefined,
     });
 
@@ -144,6 +146,7 @@ describe("uploading assets", () => {
       getDeleteReferences: async () => ({ ...createAssetReferenceDetails([]), usageKnown: true }),
       findAssetByName: async (folderUrl, name) => ({ type: "blob", name, relativeUrl: `${folderUrl}/${name}` }),
       requestUploadConflictDecision,
+      requestDeleteConfirmation: vi.fn(),
       getAssetPublicUrl: () => undefined,
     });
 
@@ -181,6 +184,7 @@ describe("uploading assets", () => {
         getDeleteReferences: vi.fn(),
         findAssetByName: async () => undefined,
         requestUploadConflictDecision: vi.fn(),
+        requestDeleteConfirmation: vi.fn(),
         getAssetPublicUrl: () => undefined,
         acceptedTypes,
       });
@@ -274,6 +278,7 @@ describe("a failed asset library action", () => {
             getDeleteReferences: library.getDeleteReferences,
             findAssetByName: library.findAssetByName,
             requestUploadConflictDecision: vi.fn(),
+            requestDeleteConfirmation: async () => true,
             getAssetPublicUrl: () => undefined,
           });
           return () => null;
@@ -296,6 +301,20 @@ describe("a failed asset library action", () => {
 
     await actions.uploadAssets([new File(["x"], "b.txt")]);
 
+    expect(notification.error).toHaveBeenCalledTimes(1);
+    expect(notification.error).toHaveBeenCalledWith(refused.message);
+  });
+
+  it("lists and selects the files a batch stored before one failed, and reports the failure", async () => {
+    const stored: AssetEntry = { type: "blob", name: "a.txt", relativeUrl: `${ROOT}/a.txt` };
+    api.uploadAsset.mockResolvedValueOnce(stored).mockRejectedValueOnce(refused);
+    const { actions } = assetLibrary();
+
+    const batch = ["a.txt", "b.txt", "c.txt"].map((name) => new File(["x"], name));
+    await expect(actions.uploadAssets(batch)).resolves.toBe(false);
+
+    expect(api.uploadAsset).toHaveBeenCalledTimes(2);
+    expect(api.searchAssets).toHaveBeenLastCalledWith(ROOT, undefined, expect.objectContaining({ preferredAssetUrl: stored.relativeUrl }));
     expect(notification.error).toHaveBeenCalledTimes(1);
     expect(notification.error).toHaveBeenCalledWith(refused.message);
   });
@@ -389,5 +408,57 @@ describe("the asset picker", () => {
     const wrapper = await mountLibrary({}, []);
 
     expect(wrapper.findComponent({ name: "VcFileUpload" }).props("accept")).toBe("");
+  });
+
+  it("keeps the Select bar inside the library's sized column", async () => {
+    const wrapper = await mountLibrary({ pickable: true });
+
+    expect(wrapper.find(".assets-library > .assets-library__pick").exists()).toBe(true);
+  });
+
+  async function deleteFromGrid(wrapper: VueWrapper, entry: AssetEntry) {
+    wrapper.findComponent({ name: "AssetLibraryGrid" }).vm.$emit("delete", entry);
+    await flushPromises();
+    return wrapper.findComponent(AssetDeletePopup);
+  }
+
+  it("asks to confirm a delete in a dialog of its own, so the picker around it stays open, and keeps the asset on Cancel", async () => {
+    const wrapper = await mountLibrary({ pickable: true });
+
+    const confirmation = await deleteFromGrid(wrapper, PNG);
+
+    expect(confirmation.exists()).toBe(true);
+    expect(popup.showConfirmation).not.toHaveBeenCalled();
+
+    await confirmation.findAll("button").find((x) => x.text() === "Cancel")!.trigger("click");
+    await flushPromises();
+
+    expect(wrapper.findComponent(AssetDeletePopup).exists()).toBe(false);
+    expect(api.deleteAssets).not.toHaveBeenCalled();
+  });
+
+  it("lists each page and shared component that uses the asset it deletes", async () => {
+    api.searchAssetReferences.mockResolvedValue([
+      {
+        assetUrl: PNG.relativeUrl,
+        pages: [{ id: "home", name: "Home" }, { id: "about", name: "About" }],
+        sharedComponents: [{ id: "header", name: "Header" }],
+      },
+    ]);
+    const wrapper = await mountLibrary({});
+
+    const confirmation = await deleteFromGrid(wrapper, PNG);
+
+    expect(confirmation.text()).toContain("Delete a.png? It is used in 3 Page Builder items.");
+    expect(confirmation.findAll("ul").map((list) => [list.attributes("aria-label"), list.findAll("li").map((item) => item.text())])).toEqual([
+      ["Pages", ["Home", "About"]],
+      ["Shared components", ["Header"]],
+    ]);
+
+    await confirmation.findAll("button").find((x) => x.text() === "Delete")!.trigger("click");
+    await flushPromises();
+
+    expect(api.deleteAssets).toHaveBeenCalledWith([PNG.relativeUrl]);
+    expect(wrapper.findComponent(AssetDeletePopup).exists()).toBe(false);
   });
 });

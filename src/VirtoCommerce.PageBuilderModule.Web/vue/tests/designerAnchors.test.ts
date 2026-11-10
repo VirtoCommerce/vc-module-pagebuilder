@@ -30,3 +30,12 @@ test("the page's anchors: visible sections and blocks in order, once each, no sh
     { value: "b1", label: "Block" },
   ]);
 });
+
+test("an anchor's label is the default language's text of a translated title", () => {
+  const anchors = pageAnchors(
+    [{ id: "promo1", type: "promo", anchor: "Sale", title: { "de-DE": "Rabatt", "en-US": "Sale" } }],
+    () => ({ name: "Promo", displayField: "title" }),
+    "en-US",
+  );
+  assert.deepEqual(anchors, [{ value: "sale", label: "Sale" }]);
+});

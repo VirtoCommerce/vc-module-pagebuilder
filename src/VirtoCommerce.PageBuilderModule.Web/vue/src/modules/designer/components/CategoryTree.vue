@@ -51,10 +51,17 @@
         />
       </li>
       <li
-        v-else-if="failed"
+        v-else-if="failed.size"
         class="pd-cats__note"
       >
         {{ $t("PAGE_BUILDER.DESIGNER.RULES.TREE_FAILED") }}
+        <button
+          type="button"
+          class="pd-cats__retry"
+          @click="retry"
+        >
+          {{ $t("PAGE_BUILDER.DESIGNER.RULES.RETRY") }}
+        </button>
       </li>
     </ul>
   </div>
@@ -62,7 +69,7 @@
 
 <script setup lang="ts">
 // A rule's category holds for its subcategories too, so they show checked under a picked one.
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive } from "vue";
 import { VcIcon } from "@vc-shell/framework/ui";
 import { childCategories, type CatalogContext, type NamedEntity } from "../api";
 
@@ -80,11 +87,12 @@ const children = reactive(new Map<string, Node[]>());
 const parents = new Map<string, string>();
 const expanded = reactive(new Set<string>());
 const loading = reactive(new Set<string>());
-const failed = ref(false);
+const failed = reactive(new Set<string>());
 
 async function load(id: string) {
   if (children.has(id) || loading.has(id)) return;
   loading.add(id);
+  failed.delete(id);
   try {
     const list = await childCategories(props.catalog, id || undefined);
     for (const node of list) {
@@ -93,12 +101,14 @@ async function load(id: string) {
     }
     children.set(id, list);
   } catch {
-    failed.value = true;
+    failed.add(id);
   } finally {
     loading.delete(id);
   }
 }
 onMounted(() => load(""));
+
+const retry = () => [...failed].forEach((id) => void load(id));
 
 function toggle(id: string) {
   if (expanded.has(id)) expanded.delete(id);
@@ -197,8 +207,22 @@ function check(id: string) {
   &__note {
     display: flex;
     justify-content: center;
+    gap: 6px;
     padding: 8px;
     color: var(--neutrals-500);
+  }
+
+  &__retry {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--primary-600);
+    font: inherit;
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+    }
   }
 
   &__spin {

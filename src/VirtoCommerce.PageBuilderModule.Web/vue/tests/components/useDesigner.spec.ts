@@ -619,6 +619,14 @@ describe("useDesigner: translatable settings and the main section", () => {
     expect(designer.selectedItem.value).toMatchObject({ type: "hero", title: "Hallo" });
   });
 
+  it("labels a section in the preview by the default language's text, whichever language is edited", async () => {
+    themeFiles["default/templates/product.json"] = { ...PRODUCT_TEMPLATE, content: [{ id: "hero-t", type: "hero", title: { "de-DE": "Hallo", "en-US": "Hello" } }] };
+    await openTemplate();
+    designer.schemas.value = { ...SCHEMAS, sections: { ...SCHEMAS.sections, hero: { ...SCHEMAS.sections.hero, displayField: "title" } } };
+
+    expect(designer.sectionLabels.value["hero-t"]).toBe("Hello");
+  });
+
   it("keeps a template's last main section: it can't be removed or hidden, alone or among others", async () => {
     await openTemplate();
 
@@ -671,6 +679,32 @@ describe("useDesigner: translatable settings and the main section", () => {
     expect(designer.remove({ kind: "section", id: "info-1" })).toBeUndefined();
     expect(designer.remove({ kind: "section", id: "info-2" })).toBe(LOCKED);
     expect(designer.mainSection.value).toEqual({ type: "product-info", state: "shown" });
+  });
+});
+
+describe("useDesigner: select mode", () => {
+  it("ends once the page has no sections of its own left, and stays while some are", async () => {
+    themeFiles["about.page"] = { ...PAGE, content: [...PAGE.content, { id: "hero-2", type: "hero", title: "Again" }] };
+    await designer.open({ storeId: STORE, theme: "default", type: "pages", path: "about.page" });
+    designer.selecting.value = true;
+
+    designer.checked.value = ["hero-1"];
+    designer.removeChecked();
+    await nextTick();
+    expect(designer.selecting.value).toBe(true);
+
+    designer.remove({ kind: "section", id: "hero-2" });
+    await nextTick();
+    expect(designer.selecting.value).toBe(false);
+  });
+
+  it("is not carried into the next document opened", async () => {
+    await openDatabasePage();
+    designer.selecting.value = true;
+
+    await openTemplate();
+
+    expect(designer.selecting.value).toBe(false);
   });
 });
 

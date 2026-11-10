@@ -91,7 +91,10 @@
       "DELETE_SINGLE": "Slette {name}?",
       "DELETE_SELECTED": "Slette {count} valgte ressurs(er)?",
       "DELETE_USED_ONE": "Slette {name}? Den brukes i 1 Page Builder-element.",
-      "DELETE_USED_MANY": "Slette {name}? Den brukes i {count} Page Builder-elementer."
+      "DELETE_USED_MANY": "Slette {name}? Den brukes i {count} Page Builder-elementer.",
+      "TITLE": "Bekreft sletting",
+      "DELETE": "Slett",
+      "CANCEL": "Avbryt"
     },
     "OVERWRITE": {
       "TITLE": "Konflikt med filnavn",

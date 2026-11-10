@@ -91,7 +91,10 @@
       "DELETE_SINGLE": "Ta bort {name}?",
       "DELETE_SELECTED": "Ta bort {count} valda resurser?",
       "DELETE_USED_ONE": "Ta bort {name}? Den används i 1 Page Builder-objekt.",
-      "DELETE_USED_MANY": "Ta bort {name}? Den används i {count} Page Builder-objekt."
+      "DELETE_USED_MANY": "Ta bort {name}? Den används i {count} Page Builder-objekt.",
+      "TITLE": "Bekräfta borttagning",
+      "DELETE": "Ta bort",
+      "CANCEL": "Avbryt"
     },
     "OVERWRITE": {
       "TITLE": "Konflikt med filnamn",

@@ -91,7 +91,10 @@
       "DELETE_SINGLE": "האם למחוק את {name}?",
       "DELETE_USED_ONE": "האם למחוק את {name}? הוא בשימוש בפריט 1 של Page Builder.",
       "DELETE_USED_MANY": "האם למחוק את {name}? הוא בשימוש בפריטים של Page Builder ({count}).",
-      "DELETE_SELECTED": "האם למחוק את הנכסים שנבחרו ({count})?"
+      "DELETE_SELECTED": "האם למחוק את הנכסים שנבחרו ({count})?",
+      "TITLE": "אישור מחיקה",
+      "DELETE": "מחיקה",
+      "CANCEL": "ביטול"
     },
     "OVERWRITE": {
       "TITLE": "התנגשות בשם הקובץ",

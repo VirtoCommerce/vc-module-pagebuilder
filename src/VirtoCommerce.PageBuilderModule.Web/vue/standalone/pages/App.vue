@@ -14,6 +14,7 @@ import { nextTick, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import logoImage from "/assets/logo.svg";
 import { refreshMenuBadges } from "../../src/modules/page-builder/composables";
+import { designerFromLink, forgetDesignerLink } from "../designerLink";
 
 import { VcApp } from "@vc-shell/framework/ui";
 
@@ -24,23 +25,13 @@ const { isAuthenticated } = useUser();
 const { openBlade } = useBlade();
 const router = useRouter();
 
-/** The classic admin's page blade links here, so these query parameters are a contract with it. */
 async function openDesignerFromLink() {
-  const params = new URLSearchParams(window.location.search);
-  const storeId = params.get("storeId");
-  const group = params.get("designGroup");
-  const path = params.get("designPath");
-  if (!storeId || (!group && !path)) return;
+  const designer = designerFromLink(window.location.search);
+  if (!designer) return;
   await router.isReady();
   await nextTick();
-  if (group) {
-    openBlade({ name: "PageBuilderDesigner", param: group });
-    return;
-  }
-  const query: Record<string, string> = { storeId, path: path!, type: params.get("designType") || "pages" };
-  const cultureName = params.get("cultureName");
-  if (cultureName) query.cultureName = cultureName;
-  openBlade({ name: "PageBuilderDesigner", query });
+  forgetDesignerLink();
+  openBlade(designer);
 }
 
 onMounted(async () => {

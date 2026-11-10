@@ -224,11 +224,20 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [InlineData("git/preview")]
         [InlineData("git/discard-draft")]
         [InlineData("git/copy")]
+        [InlineData("git/legacy-draft")]
         [InlineData("git/legacy-drafts/delete")]
         public async Task PageActions_RefuseThemeFiles(string action)
         {
             // a page document's name, so that only the content type is wrong
             var result = await Actions[action](Controller(), Store, "themes", Page);
+
+            Assert.IsType<BadRequestObjectResult>(result);
+        }
+
+        [Fact]
+        public async Task LegacyDraftInventory_OfThemeFiles_IsBadRequest()
+        {
+            var result = await Controller().GetLegacyDrafts(Store, "themes", "default");
 
             Assert.IsType<BadRequestObjectResult>(result);
         }
@@ -243,6 +252,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [InlineData("git/preview")]
         [InlineData("git/discard-draft")]
         [InlineData("git/copy")]
+        [InlineData("git/legacy-draft")]
         public async Task PageActions_RefuseAPathThatIsNotAPage(string action)
         {
             var result = await Actions[action](Controller(), Store, "pages", "/README.md");

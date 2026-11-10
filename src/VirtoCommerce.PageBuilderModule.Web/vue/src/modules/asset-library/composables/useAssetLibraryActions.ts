@@ -1,8 +1,7 @@
 import { toValue, type ComputedRef, type MaybeRefOrGetter, type Ref } from "vue";
-import { notification, parseError, usePopup } from "@vc-shell/framework";
+import { notification, parseError } from "@vc-shell/framework";
 import type { AssetEntry } from "../types";
 import { matchesAcceptedTypes } from "../utilities/assetAccept";
-import { getReferenceSharedComponentNames, getReferencePageNames } from "../utilities/assetReferences";
 import type { DeleteAssetReferences } from "./useAssetReferences";
 import {
   prepareAssetUploadFiles,
@@ -11,6 +10,11 @@ import {
 } from "../utilities/assetUpload";
 
 export type { AssetUploadConflict, AssetUploadConflictDecision } from "../utilities/assetUpload";
+
+export interface AssetDeleteConfirmation {
+  entry: AssetEntry;
+  references: DeleteAssetReferences;
+}
 
 interface UseAssetLibraryActionsOptions {
   t: (key: string, params?: Record<string, unknown>) => string;
@@ -26,6 +30,8 @@ interface UseAssetLibraryActionsOptions {
     conflict: AssetUploadConflict,
     validateName: (fileName: string) => Promise<string | undefined>,
   ) => Promise<AssetUploadConflictDecision>;
+  /** Shown inside the library, so that it nests in a dialog that hosts the library. */
+  requestDeleteConfirmation: (confirmation: AssetDeleteConfirmation) => Promise<boolean>;
   getAssetPublicUrl: (entry: AssetEntry) => string | undefined;
   /** Files of other types are not uploaded. */
   acceptedTypes?: MaybeRefOrGetter<readonly string[]>;
@@ -37,8 +43,6 @@ export interface AssetActionResult {
 }
 
 export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
-  const { showConfirmation } = usePopup();
-
   function getErrorMessage(error: unknown): string {
     const parsed = parseError(error);
     return parsed.message || options.t("ASSET_LIBRARY.NOTIFICATIONS.ERROR_GENERIC");
@@ -165,7 +169,7 @@ export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
       return;
     }
 
-    const confirmed = await showConfirmation(getDeleteConfirmationMessage(entry, references));
+    const confirmed = await options.requestDeleteConfirmation({ entry, references });
 
     if (!confirmed) {
       return;
@@ -177,47 +181,6 @@ export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
     } catch (error) {
       notifyError(error);
     }
-  }
-
-  function getDeleteConfirmationMessage(entry: AssetEntry, references: DeleteAssetReferences): string {
-    const referencesCount = references.referencesCount;
-
-    if (referencesCount > 0) {
-      const key =
-        referencesCount === 1 ? "ASSET_LIBRARY.CONFIRM.DELETE_USED_ONE" : "ASSET_LIBRARY.CONFIRM.DELETE_USED_MANY";
-
-      const message = options.t(key, {
-        name: entry.name,
-        count: referencesCount,
-      });
-
-      const referenceSections = getReferenceSections(references);
-      return referenceSections.length ? `${message}\n\n${referenceSections.join("\n\n")}` : message;
-    }
-
-    return options.t("ASSET_LIBRARY.CONFIRM.DELETE_SINGLE", { name: entry.name });
-  }
-
-  function getReferenceSections(references: DeleteAssetReferences): string[] {
-    const sections: string[] = [];
-    const pageNames = getReferencePageNames(references.referencePages);
-    const sharedComponentNames = getReferenceSharedComponentNames(references.referenceSharedComponents);
-
-    if (pageNames.length) {
-      sections.push(`${options.t("ASSET_LIBRARY.DETAILS.PAGES")}:\n${formatReferenceNames(pageNames)}`);
-    }
-
-    if (sharedComponentNames.length) {
-      sections.push(
-        `${options.t("ASSET_LIBRARY.DETAILS.SHARED_COMPONENTS")}:\n${formatReferenceNames(sharedComponentNames)}`,
-      );
-    }
-
-    return sections;
-  }
-
-  function formatReferenceNames(names: string[]): string {
-    return names.map((name) => `- ${name}`).join("\n");
   }
 
   return {

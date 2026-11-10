@@ -91,7 +91,10 @@
       "DELETE_SINGLE": "Usunąć {name}?",
       "DELETE_SELECTED": "Usunąć {count} wybranych zasobów?",
       "DELETE_USED_ONE": "Usunąć {name}? Jest używany w 1 elemencie Page Builder.",
-      "DELETE_USED_MANY": "Usunąć {name}? Jest używany w {count} elementach Page Builder."
+      "DELETE_USED_MANY": "Usunąć {name}? Jest używany w {count} elementach Page Builder.",
+      "TITLE": "Potwierdź usunięcie",
+      "DELETE": "Usuń",
+      "CANCEL": "Anuluj"
     },
     "OVERWRITE": {
       "TITLE": "Konflikt nazwy pliku",

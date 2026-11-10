@@ -91,7 +91,10 @@
       "DELETE_SINGLE": "Удалить {name}?",
       "DELETE_SELECTED": "Удалить выбранные ресурсы ({count})?",
       "DELETE_USED_ONE": "Удалить {name}? Ресурс используется в 1 объекте Page Builder.",
-      "DELETE_USED_MANY": "Удалить {name}? Ресурс используется в {count} объектах Page Builder."
+      "DELETE_USED_MANY": "Удалить {name}? Ресурс используется в {count} объектах Page Builder.",
+      "TITLE": "Подтверждение удаления",
+      "DELETE": "Удалить",
+      "CANCEL": "Отмена"
     },
     "OVERWRITE": {
       "TITLE": "Конфликт имени файла",

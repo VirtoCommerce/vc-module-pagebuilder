@@ -300,7 +300,7 @@ async function handleDelete(component: SharedComponent) {
 
 function editContent(component: SharedComponent) {
   const store = component.storeId || storeId.value;
-  if (store) openSharedComponentDesigner(store, component.id, () => void refreshComponent(component));
+  if (store) openSharedComponentDesigner(store, component.id, () => void refreshComponent(component).catch(notifyError));
 }
 
 function openUsagePageDesigner(page: SharedComponentUsagePage) {
@@ -308,12 +308,16 @@ function openUsagePageDesigner(page: SharedComponentUsagePage) {
     return;
   }
 
-  openPageDesigner({
-    groupId: page.id,
-    storeId: storeId.value,
-    cultureName: page.cultureName,
-    status: page.status,
-  });
+  // A save there can change the component's usage, and with it whether it can be deleted.
+  openPageDesigner(
+    {
+      groupId: page.id,
+      storeId: storeId.value,
+      cultureName: page.cultureName,
+      status: page.status,
+    },
+    { onClose: () => void reloadContent() },
+  );
 }
 
 function canOpenUsagePageDesigner(page: SharedComponentUsagePage): boolean {

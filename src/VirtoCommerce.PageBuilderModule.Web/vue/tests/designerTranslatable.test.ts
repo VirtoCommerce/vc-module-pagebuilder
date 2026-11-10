@@ -69,6 +69,8 @@ test("a label shows a dictionary's default language text", () => {
   assert.equal(displayText("Hi"), "Hi");
   assert.equal(displayText(3), undefined);
   assert.equal(itemTitle({ id: "a", type: "announcement", text: { "en-US": "Sale" } }, { displayField: "text", name: "Announcement" }), "Sale");
+  const translated = { id: "a", type: "announcement", text: { "de-DE": "Rabatt", "en-US": "Sale" } };
+  assert.equal(itemTitle(translated, { displayField: "text", name: "Announcement" }, "en-US"), "Sale");
 });
 
 const announcement: Field[] = [

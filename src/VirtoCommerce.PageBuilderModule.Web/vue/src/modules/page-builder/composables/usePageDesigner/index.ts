@@ -8,7 +8,8 @@ export function usePageDesigner() {
   const { openBlade } = useBlade();
   const { isNewPageBuilder } = useUrlParams();
 
-  return async (context: PageDesignerContext, onClose?: () => void) => {
+  // A designer in another tab never reports back, so onOpen and onClose run only for the designer blade.
+  return async (context: PageDesignerContext, { onOpen, onClose }: { onOpen?: () => void; onClose?: () => void } = {}) => {
     const newPageBuilder = await isNewPageBuilder(context.storeId);
     if (newPageBuilder === undefined) {
       notification.error(t("PAGE_BUILDER.DESIGNER.STORE_READ_FAILED"));
@@ -25,7 +26,7 @@ export function usePageDesigner() {
     if (!canOpenPageDesigner(context)) {
       throw new Error("Can't open page.");
     }
-    openBlade({ name: "PageBuilderDesigner", param: context.groupId, onClose });
+    openBlade({ name: "PageBuilderDesigner", param: context.groupId, onOpen, onClose });
   };
 }
 
