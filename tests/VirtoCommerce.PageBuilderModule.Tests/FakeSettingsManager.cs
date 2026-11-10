@@ -41,6 +41,11 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
         public Task<IEnumerable<ObjectSettingEntry>> GetObjectSettingsAsync(IEnumerable<string> names, string objectType = null, string objectId = null)
         {
+            if (ReadFailure != null)
+            {
+                return Task.FromException<IEnumerable<ObjectSettingEntry>>(ReadFailure);
+            }
+
             var asked = names.ToList();
             AskedName = asked.FirstOrDefault();
             AskedObjectType = objectType;
@@ -53,7 +58,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
         public Task SaveObjectSettingsAsync(IEnumerable<ObjectSettingEntry> objectSettings)
         {
-            foreach (var setting in objectSettings)
+            // Like the platform, unregistered settings and settings without a value are not saved.
+            foreach (var setting in objectSettings.Where(x => x.ItHasValues && Core.ModuleConstants.Settings.AllSettings.Any(descriptor => descriptor.Name == x.Name)))
             {
                 Values[setting.Name] = setting.Value;
             }

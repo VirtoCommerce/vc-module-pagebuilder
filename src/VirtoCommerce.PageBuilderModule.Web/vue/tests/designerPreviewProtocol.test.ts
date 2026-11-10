@@ -17,6 +17,7 @@ import {
   storefrontPath,
   storefrontRoute,
   type Catalog,
+  type ColorScheme,
   type DesignerMessage,
   type Loaded,
 } from "../src/modules/designer/previewMessages";
@@ -227,7 +228,7 @@ test("a storefront path keeps only the path, query and hash: the host never chan
   assert.equal(storefrontPath("product/1").pathname, "/product/1");
 });
 
-test("the light and dark switch is one definition for the canvas bar and the Theme tab", () => {
+test("the color schemes are light then dark", () => {
   assert.deepEqual(
     COLOR_SCHEMES.map((x) => x.id),
     ["light", "dark"],
@@ -242,7 +243,7 @@ test("a loaded with no capabilities and no dark tokens is a storefront's, not a 
 });
 
 test("a render's route never leaves the storefront", () => {
-  for (const path of ["//evil.example/x", "https://evil.example/x", "\\\\evil.example"]) assert.ok(storefrontRoute(path)?.startsWith("/"), path);
+  for (const path of ["//evil.example/x", "https://evil.example/x", "\\\\evil.example"]) assert.match(storefrontRoute(path) ?? "", /^\/(?![/\\])/, path);
   assert.equal(storefrontRoute("//evil.example/x"), "/evil.example/x");
 });
 
@@ -308,6 +309,7 @@ test("a click selects the block it names, in the section that has it; else the s
     { id: "s2", type: "text" },
   ]);
   assert.deepEqual(selectionFrom(page, { sectionId: "s1", blockId: "b1" }), { kind: "block", sectionId: "s1", id: "b1" });
+  assert.deepEqual(selectionFrom(page, { sectionId: "s2", blockId: "b1" }), { kind: "block", sectionId: "s1", id: "b1" });
   assert.deepEqual(selectionFrom(page, { sectionId: "s2" }), { kind: "section", id: "s2" });
   assert.deepEqual(selectionFrom(page, { sectionId: "lc1s0", blockId: "lc1s0b0" }), { kind: "section", id: "lc1s0" });
 });
@@ -404,7 +406,7 @@ test("a failed upload is logged and tried again; an editor who may not upload it
   assert.deepEqual(forbidden.calls, ["GET b2c 0badc0de", "PUT b2c 0badc0de"]);
 });
 
-function channel(options: { prepare?: () => Promise<void> } = {}) {
+function channel(options: { prepare?: () => Promise<void>; colorScheme?: () => ColorScheme } = {}) {
   const posted: DesignerMessage[] = [];
   const log: string[] = [];
   const events: unknown[] = [];
@@ -420,7 +422,7 @@ function channel(options: { prepare?: () => Promise<void> } = {}) {
       log.push("catalog");
       await options.prepare?.();
     },
-    handshake: () => handshakeMessages({ inspector: false, colorScheme: "light", draft, render }),
+    handshake: () => handshakeMessages({ inspector: false, colorScheme: options.colorScheme?.() ?? "light", draft, render }),
     onSelect: (event) => events.push(["select", event]),
     onHover: (id) => events.push(["hover", id]),
     onEdit: (edit) => events.push(["edit", edit]),
@@ -447,13 +449,17 @@ test("on loaded: the schemas, the catalog, then auth, inspector, colorScheme, dr
 
 test("nothing but the handshake goes out before it: it carries the state as it is when it goes", async () => {
   let release!: () => void;
-  const preview = channel({ prepare: () => new Promise<void>((resolve) => (release = resolve)) });
+  let colorScheme: ColorScheme = "light";
+  const preview = channel({ prepare: () => new Promise<void>((resolve) => (release = resolve)), colorScheme: () => colorScheme });
   const handshake = preview.receive(fromPreview(loadedData()));
   preview.send({ type: "hover", sectionId: "s1" });
+  colorScheme = "dark";
+  preview.send({ type: "colorScheme", scheme: colorScheme });
   assert.deepEqual(preview.posted, []);
   release();
   await handshake;
   assert.deepEqual(preview.posted.map((x) => x.type), ["auth", "inspector", "colorScheme", "draft", "render"]);
+  assert.deepEqual(preview.posted[2], { type: "colorScheme", scheme: "dark" });
 });
 
 test("a frame reloaded during the catalog step drops that handshake", async () => {

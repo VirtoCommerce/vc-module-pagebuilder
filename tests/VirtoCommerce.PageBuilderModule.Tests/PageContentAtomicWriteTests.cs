@@ -20,6 +20,8 @@ using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
+// The grouped page search cache region is static: tests running in parallel expire it under these tests' entries.
+[Collection(nameof(PageContentAtomicWriteTests))]
 public partial class PageContentAtomicWriteTests
 {
     [Fact]
@@ -717,3 +719,6 @@ public partial class PageContentAtomicWriteTests
     private const string UpdatedPageContent = "{ \"settings\": { \"image\": \"/stores/store/b.png\" }, \"content\": [{ \"id\": \"placement-a-updated\", \"type\": \"componentRef\", \"componentRef\": \"component-a\" }] }";
     private const string UpdatedComponentContent = "{ \"settings\": { \"image\": \"/stores/store/component-a-updated.png\" }, \"content\": [] }";
 }
+
+[CollectionDefinition(nameof(PageContentAtomicWriteTests), DisableParallelization = true)]
+public class PageContentAtomicWriteTestsCollection;

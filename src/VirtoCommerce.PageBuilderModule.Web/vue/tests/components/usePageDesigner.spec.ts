@@ -82,6 +82,7 @@ describe("opening the page designer", () => {
     useUrlParams().setStoreId(STORE);
     const open = pageDesigner();
     await flushPromises();
+    expect(platform.to(`/api/stores/${STORE}`)).toHaveLength(1);
 
     void open(CONTEXT);
 

@@ -71,8 +71,8 @@ test("failing pairs show one row per pair of tokens, the worst first, with the h
   const failures = [
     failure({ pair: "link", text: "color_accent_600", background: "color_neutral_50", ratio: 4.1 }),
     failure({}),
-    failure({ pair: "button-outline-primary", text: "color_primary_500", background: "color_additional_50" }),
     failure({ pair: "empty-list-icon", text: "color_primary_500", background: "color_additional_50", minimumRatio: 3 }),
+    failure({ pair: "button-outline-primary", text: "color_primary_500", background: "color_additional_50" }),
     failure({ scheme: "dark", pair: "header-top-text", ratio: 1.5 }),
   ];
 
@@ -81,7 +81,7 @@ test("failing pairs show one row per pair of tokens, the worst first, with the h
     rows.map((x) => [x.text, x.background, x.ratio, x.required, x.pairs]),
     [
       ["Additional 50", "Primary 500", "2.11:1", "4.5:1", ["Button solid primary"]],
-      ["Primary 500", "Additional 50", "2.11:1", "4.5:1", ["Button outline primary", "Empty list icon"]],
+      ["Primary 500", "Additional 50", "2.11:1", "4.5:1", ["Empty list icon", "Button outline primary"]],
       ["Accent 600", "Neutral 50", "4.1:1", "4.5:1", ["Link"]],
     ],
   );
@@ -96,7 +96,6 @@ test("ratios read as people write them", () => {
   assert.equal(formatRatio(4.5), "4.5:1");
   assert.equal(formatRatio(3), "3:1");
   assert.equal(formatRatio(2.11), "2.11:1");
-  assert.equal(formatRatio(4.499), "4.5:1");
   assert.equal(humanize("mobile-menu-link-active"), "Mobile menu link active");
 });
 

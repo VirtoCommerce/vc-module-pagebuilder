@@ -394,9 +394,9 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
         // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
-        private static GitHubContentRepository Create(ScriptedHandler handler, string repository = "o/r")
+        private static GitHubContentRepository Create(ScriptedHandler handler)
         {
-            var options = Options.Create(new GitContentOptions { Repository = repository, BaseBranch = "master" });
+            var options = Options.Create(new GitContentOptions { BaseBranch = "master" });
             var cache = new MemoryCache(new MemoryCacheOptions());
             return new GitHubContentRepository(new FakeHttpClientFactory(handler), cache, options);
         }

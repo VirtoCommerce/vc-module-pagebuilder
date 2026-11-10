@@ -70,9 +70,15 @@ public class DesignerRequestValidatorTests
     public async Task DesignerDiscard_ThemeFilesNamedOnce_IsAccepted()
     {
         var once = new DesignerDiscardRequest { ThemeFiles = [Header, "default/templates/product.json"] };
-        var twice = new DesignerDiscardRequest { ThemeFiles = [Header, Header] };
 
         Assert.True((await RequestValidators.DesignerDiscard.ValidateAsync(once, TestContext.Current.CancellationToken)).IsValid);
+    }
+
+    [Fact]
+    public async Task DesignerDiscard_ThemeFileNamedTwiceOrNothingNamed_IsRefused()
+    {
+        var twice = new DesignerDiscardRequest { ThemeFiles = [Header, Header] };
+
         Assert.False((await RequestValidators.DesignerDiscard.ValidateAsync(twice, TestContext.Current.CancellationToken)).IsValid);
         Assert.False((await RequestValidators.DesignerDiscard.ValidateAsync(new DesignerDiscardRequest(), TestContext.Current.CancellationToken)).IsValid);
     }

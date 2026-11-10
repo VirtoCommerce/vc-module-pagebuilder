@@ -10,6 +10,8 @@ internal sealed class FakeGitContentPublisher(GitPublishState state, GitPendingP
 {
     public List<(string Branch, string Into)> Merges { get; } = [];
 
+    public HashSet<string> Repositories { get; } = [];
+
     public string PullRequestUrl { get; init; }
 
     public Action OnMerge { get; set; }
@@ -19,11 +21,15 @@ internal sealed class FakeGitContentPublisher(GitPublishState state, GitPendingP
 
     public Task<GitPublishResult> MergeBranchIntoAsync(string repository, string branch, string title, string baseBranch, CancellationToken cancellationToken = default)
     {
+        Repositories.Add(repository);
         Merges.Add((branch, baseBranch));
         OnMerge?.Invoke();
         return Task.FromResult(new GitPublishResult { State = state, PullRequestNumber = 7, Url = PullRequestUrl });
     }
 
-    public Task<GitPendingPublish> GetOpenPullRequestAsync(string repository, string branch, CancellationToken cancellationToken = default) =>
-        Task.FromResult(openPullRequest);
+    public Task<GitPendingPublish> GetOpenPullRequestAsync(string repository, string branch, CancellationToken cancellationToken = default)
+    {
+        Repositories.Add(repository);
+        return Task.FromResult(openPullRequest);
+    }
 }

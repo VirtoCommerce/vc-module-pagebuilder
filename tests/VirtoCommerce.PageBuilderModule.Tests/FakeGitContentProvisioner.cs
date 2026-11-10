@@ -16,6 +16,8 @@ internal sealed class FakeGitContentProvisioner : IGitContentProvisioner
 
     public Exception ConnectFailure { get; init; }
 
+    public Action OnEnsure { get; init; }
+
     public Task<GitContentSiteStatus> GetStatusAsync(string storeId, CancellationToken cancellationToken = default) =>
         Task.FromResult(new GitContentSiteStatus { Configured = true, Repository = "o/r" });
 
@@ -25,6 +27,7 @@ internal sealed class FakeGitContentProvisioner : IGitContentProvisioner
     public Task EnsureRepositoryAsync(string storeId, CancellationToken cancellationToken = default)
     {
         Ensured.Add(storeId);
+        OnEnsure?.Invoke();
         return Task.CompletedTask;
     }
 

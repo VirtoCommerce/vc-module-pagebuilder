@@ -52,6 +52,7 @@ public class BlobPublishTests
 
         var result = await Controller(publishing).GitPublishStatus("vccom", Page, "pages");
 
+        Assert.IsType<OkObjectResult>(result.Result);
         var status = PlatformJson.ParseBody(result);
         Assert.True(status.Value<bool>("published"));
         Assert.True(status.Value<bool>("hasChanges"));
@@ -65,6 +66,7 @@ public class BlobPublishTests
 
         var result = await Controller(publishing).GitPublishStatus("vccom", Page, "pages");
 
+        Assert.IsType<OkObjectResult>(result.Result);
         Assert.Equal("""{"published":true,"hasChanges":true,"pending":false,"awaitingMerge":false,"flow":"blob","liveBehind":false}""", PlatformJson.SerializeBody(result));
     }
 

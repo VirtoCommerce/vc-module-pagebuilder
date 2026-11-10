@@ -7,7 +7,7 @@ const schemas: Schemas = {
   sections: {
     "call-to-action": { name: "Call to Action", displayField: "title", includeShared: ["buttons"], settings: [{ id: "title", type: "string" }] },
     "page-header": { name: "Page Header", displayField: "default", static: "top", settings: [] },
-    slider: { name: "Slider", blocks: [], settings: [{ id: "height", type: "select", default: "auto", sort: -1 }] },
+    slider: { name: "Slider", blocks: [], settings: [{ id: "height", type: "select", default: "auto", sort: 1 }] },
   },
   blocks: { text: { name: "Text", settings: [{ id: "text", type: "markdown", default: "Hi" }] } },
   shared: {
@@ -20,7 +20,7 @@ const schemas: Schemas = {
 
 test("fields: own, then shared ones it doesn't define, sorted stably", () => {
   assert.deepEqual(fieldsOf(schemas.sections["call-to-action"], "section", schemas).map((x) => x.id), ["title", "anchor", "buttons"]);
-  assert.deepEqual(fieldsOf(schemas.sections.slider, "section", schemas).map((x) => x.id), ["height", "anchor", "title"]);
+  assert.deepEqual(fieldsOf(schemas.sections.slider, "section", schemas).map((x) => x.id), ["anchor", "title", "height"]);
   assert.deepEqual(fieldsOf(schemas.blocks.text, "block", schemas).map((x) => x.id), ["text", "name"]);
   assert.deepEqual(fieldsOf({ settings: [], excludeShared: ["anchor"] }, "section", schemas).map((x) => x.id), ["title"]);
 });

@@ -116,10 +116,11 @@ describe("useDesigner: opening", () => {
 
   it("opens a file page from its draft, with the store's flow and the page's state", async () => {
     pageStatus = { published: true, hasChanges: true };
+    platform.on("GET", "/api/pagebuilder/settings", { history: {} });
     await designer.open({ storeId: STORE, theme: "default", type: "pages", path: "about.page" });
 
     expect(designer.file.value?.path).toBe("about.page");
-    expect(designer.gitFlow.value).toBe(false);
+    expect(designer.gitFlow.value).toBe(true);
     expect(designer.doc.value.content.filter((x) => !x.__group).map((x) => x.id)).toEqual(["hero-1"]);
     expect(platform.to("/api/pagebuilder/template").find((x) => x.query.path === "about.page")?.query).toMatchObject({ type: "pages", draft: "true" });
     expect(designer.status.value).toEqual({ published: true, hasChanges: true });
@@ -283,6 +284,9 @@ describe("useDesigner: editing and saving", () => {
 
     await expect(designer.save()).rejects.toMatchObject({ status: 412 });
     expect(designer.dirty.value).toBe(true);
+    await expect(designer.save()).rejects.toMatchObject({ status: 412 });
+    const sentETags = (n: number) => (saves()[n].body as { themeFiles: { eTag: string }[] }).themeFiles.map((x) => x.eTag);
+    expect(sentETags(1)).toEqual([themeETag(header)]);
 
     themeFiles[header] = { ...HEADER, content: [{ ...HEADER.content[0], announcement: "Theirs" }] };
     platform.on("GET", "/api/pagebuilder/designer/theme-file", (request: Request) =>
@@ -294,7 +298,7 @@ describe("useDesigner: editing and saving", () => {
     designer.selection.value = { kind: "section", id: "header-1" };
     designer.setField("announcement", "Mine again");
     await designer.save();
-    expect((saves()[1].body as { themeFiles: { eTag: string }[] }).themeFiles.map((x) => x.eTag)).toEqual(['"theirs"']);
+    expect(sentETags(2)).toEqual(['"theirs"']);
   });
 
   it("sends a template with the version it was read at; a template the theme lacks with the version of none", async () => {

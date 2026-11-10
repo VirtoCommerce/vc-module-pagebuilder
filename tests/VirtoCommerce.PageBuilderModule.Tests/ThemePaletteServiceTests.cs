@@ -173,10 +173,11 @@ public class ThemePaletteServiceTests
     public void GetContrastPairs_ChangedByAnOverride_LeavesTheNextCallsPairsAlone()
     {
         var service = new DefaultPairsPaletteService();
+        var before = service.Pairs[0].MinimumRatio;
 
         service.Pairs[0].MinimumRatio += 1;
 
-        Assert.Equal(DefaultPairs[0].MinimumRatio, service.Pairs[0].MinimumRatio);
+        Assert.Equal(before, service.Pairs[0].MinimumRatio);
     }
 
     [Fact]
@@ -299,6 +300,7 @@ public class ThemePaletteServiceTests
         }));
 
         Assert.DoesNotContain(result.Failures, x => x.Pair.EndsWith("-primary"));
+        Assert.Equal(DefaultPairs.Count, result.Unchecked);
     }
 
     [Fact]
@@ -312,7 +314,9 @@ public class ThemePaletteServiceTests
             foreach (var reference in new[] { pair.Text, pair.Background })
             {
                 Assert.True(reference.Fallback == null || StorefrontPaletteTokens.Light.Contains(reference.Fallback), reference.Fallback);
-                Assert.True(known.Contains(reference.Token) || reference.Token.StartsWith("color_vc_background_"), reference.Token);
+                Assert.True(known.Contains(reference.Token)
+                    || reference.Token.StartsWith("color_vc_background_outline_")
+                    || reference.Token.StartsWith("color_vc_background_surface_"), reference.Token);
             }
         });
         Assert.Equal(DefaultPairs.Count, DefaultPairs.Select(x => x.Name).Distinct().Count());

@@ -34,6 +34,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
     {
         private const string Login = "john";
         private const string Page = "/about-us.page";
+        private const string LivePage = "pages/s1/about-us.page";
         private const string RepoPath = "pages/about-us.page";
         private const string Published = """{ "settings": { "type": "settings", "name": "About" }, "content": [] }""";
         private const string BranchHead = "9111111111111111111111111111111111111111";
@@ -102,11 +103,11 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var publisher = Publisher(GitPublishState.Merged);
             publisher.OnMerge = () => repository.Files.Remove((RepoPath, "master"));
             var live = new FakeBlobStorage();
-            live.Files[Page] = Published;
+            live.Files[LivePage] = Published;
 
             await Controller(repository, publisher, live: live).GitUnpublish("s1", Page, "pages");
 
-            Assert.Equal([Page], live.Removed);
+            Assert.Equal([LivePage], live.Removed);
             Assert.Empty(live.Files);
             Assert.Single(live.Events.OfType<PageBuilderContentChangedEvent>());
             var indexed = Assert.Single(live.Events.OfType<ContentFileChangedEvent>());
@@ -118,13 +119,28 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
+        public async Task Unpublish_WorksInTheStoresRepository_NotTheSharedOne()
+        {
+            var repository = Repository();
+            var publisher = Publisher(GitPublishState.Merged);
+            publisher.OnMerge = () => repository.Files.Remove((RepoPath, "master"));
+            var live = new FakeBlobStorage();
+            live.Files[LivePage] = Published;
+
+            await Controller(repository, publisher, live: live).GitUnpublish("s1", Page, "pages");
+
+            Assert.Equal(["acme/site-s1"], repository.Repositories);
+            Assert.Equal(["acme/site-s1"], publisher.Repositories);
+        }
+
+        [Fact]
         public async Task Unpublish_WhenMergedWithTheTypeInAnotherCase_NamesItInLowerCase()
         {
             var repository = Repository();
             var publisher = Publisher(GitPublishState.Merged);
             publisher.OnMerge = () => repository.Files.Remove((RepoPath, "master"));
             var live = new FakeBlobStorage();
-            live.Files[Page] = Published;
+            live.Files[LivePage] = Published;
 
             await Controller(repository, publisher, live: live).GitUnpublish("s1", Page, "Pages");
 
@@ -140,12 +156,12 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var repository = Repository(withBranch: false);
             repository.Files.Remove((RepoPath, "master"));
             var live = new FakeBlobStorage();
-            live.Files[Page] = Published;
+            live.Files[LivePage] = Published;
 
             var result = await Controller(repository, Publisher(), live: live, history: Unpublished()).GitUnpublish("s1", Page, "pages");
 
             Assert.Equal(nameof(GitPublishState.AlreadyPublished), JObject.FromObject(Assert.IsType<OkObjectResult>(result).Value!)["state"]!.Value<string>());
-            Assert.Equal([Page], live.Removed);
+            Assert.Equal([LivePage], live.Removed);
             Assert.Empty(repository.DeletedFiles);
         }
 
@@ -156,12 +172,12 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             repository.Files.Remove((RepoPath, "master"));
             repository.Files[(RepoPath, BranchHead)] = Published;
             var live = new FakeBlobStorage();
-            live.Files[Page] = Published;
+            live.Files[LivePage] = Published;
 
             var result = await Controller(repository, Publisher(), live: live, history: Unpublished()).GitUnpublish("s1", Page, "pages");
 
             Assert.IsType<NotFoundObjectResult>(result);
-            Assert.Equal(Published, live.Files[Page]);
+            Assert.Equal(Published, live.Files[LivePage]);
             Assert.Empty(live.Removed);
         }
 
@@ -175,7 +191,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var repository = Repository(withBranch: false);
             repository.Files.Remove((RepoPath, "master"));
             var live = new FakeBlobStorage();
-            live.Files[Page] = Published;
+            live.Files[LivePage] = Published;
 
             var result = await Controller(repository, Publisher(), live: live, source: source, history: hadThePage ? Unpublished() : null)
                 .GitPublishStatus("s1", Page, "pages");
@@ -203,11 +219,11 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var publisher = Publisher(GitPublishState.Merged);
             publisher.OnMerge = () => repository.Files.Remove((RepoPath, "master"));
             var live = new FakeBlobStorage();
-            live.Files[Page] = Published;
+            live.Files[LivePage] = Published;
 
             await Controller(repository, publisher, live: live, source: GitRepositorySource.StoreSetting).GitUnpublish("s1", Page, "pages");
 
-            Assert.Equal(Published, live.Files[Page]);
+            Assert.Equal(Published, live.Files[LivePage]);
             Assert.Empty(live.Removed);
         }
 
@@ -251,7 +267,9 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             // The live storage stays null without a merge, so an unpublish waiting for its merge must not reach for it.
             var connection = GitHubConnections.CreateService(options.Value);
             var gitHistory = new FakeGitContentHistory(history);
-            var filePageDrafts = TestServices.FilePageDrafts(live, options, connection, new FakeGitContentPolicy(source: source), repository, gitHistory, new FakeGitContentProvisioner());
+            // The store's own repository, not the shared one configured above, so a call to the wrong one shows.
+            var policy = new FakeGitContentPolicy(source: source, repositoryFormat: "acme/site-{0}");
+            var filePageDrafts = TestServices.FilePageDrafts(live, options, connection, policy, repository, gitHistory, new FakeGitContentProvisioner());
             var controller = new PageBuilderController(
                 storeService: live?.StoreService,
                 pathResolver: live,
@@ -260,7 +278,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 eventPublisher: live,
                 gitContentOptions: options,
                 gitHubConnectionService: connection,
-                gitContentPolicy: new FakeGitContentPolicy(source: source),
+                gitContentPolicy: policy,
                 gitContentRepository: repository,
                 gitContentHistory: gitHistory,
                 gitContentPublisher: publisher,
@@ -303,15 +321,23 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             public List<(string Branch, string FromRef)> CreatedBranches { get; } = [];
             public List<string> DeletedBranches { get; } = [];
             public List<(string Path, string Branch)> DeletedFiles { get; } = [];
+            public HashSet<string> Repositories { get; } = [];
 
-            public Task<string> ReadFileAsync(string repository, string path, string gitRef, CancellationToken cancellationToken = default) =>
-                Task.FromResult(Files.GetValueOrDefault((path, gitRef)));
+            public Task<string> ReadFileAsync(string repository, string path, string gitRef, CancellationToken cancellationToken = default)
+            {
+                Repositories.Add(repository);
+                return Task.FromResult(Files.GetValueOrDefault((path, gitRef)));
+            }
 
-            public Task<string> GetBranchHeadShaAsync(string repository, string branch, CancellationToken cancellationToken = default) =>
-                Task.FromResult(BranchHeads.GetValueOrDefault(branch));
+            public Task<string> GetBranchHeadShaAsync(string repository, string branch, CancellationToken cancellationToken = default)
+            {
+                Repositories.Add(repository);
+                return Task.FromResult(BranchHeads.GetValueOrDefault(branch));
+            }
 
             public Task CreateBranchAsync(string repository, string branch, string fromRef, CancellationToken cancellationToken = default)
             {
+                Repositories.Add(repository);
                 CreatedBranches.Add((branch, fromRef));
                 BranchHeads[branch] = BranchHeads.GetValueOrDefault(fromRef, NewCommitSha);
                 Files[(RepoPath, branch)] = Files.GetValueOrDefault((RepoPath, fromRef));
@@ -320,26 +346,30 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             public Task SetBranchAsync(string repository, string branch, string sha, string pagePath, CancellationToken cancellationToken = default)
             {
+                Repositories.Add(repository);
                 BranchHeads[branch] = sha;
                 return Task.CompletedTask;
             }
 
             public Task DeleteBranchAsync(string repository, string branch, string pagePath, CancellationToken cancellationToken = default)
             {
+                Repositories.Add(repository);
                 DeletedBranches.Add(branch);
                 return Task.CompletedTask;
             }
 
-            public void InvalidateRead(string repository, string path, string gitRef) { }
+            public void InvalidateRead(string repository, string path, string gitRef) => Repositories.Add(repository);
 
             public Task<string> CommitFileAsync(string repository, string path, string content, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default)
             {
+                Repositories.Add(repository);
                 Files[(path, branch)] = content;
                 return Task.FromResult(NewCommitSha);
             }
 
             public Task<string> DeleteFileAsync(string repository, string path, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default)
             {
+                Repositories.Add(repository);
                 if (!Files.Remove((path, branch)))
                 {
                     throw new InvalidOperationException($"Cannot delete \"{path}\": it does not exist on branch \"{branch}\".");

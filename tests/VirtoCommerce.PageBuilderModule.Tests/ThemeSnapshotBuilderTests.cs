@@ -79,6 +79,7 @@ public class ThemeSnapshotBuilderTests
                       "id": "s1", "type": "banner",
                       "title": { "en-US": "Free shipping", "de-DE": "Kostenloser Versand" },
                       "note": { "fr-FR": "Livraison" },
+                      "cta": { "fr-FR": "Acheter", "en-US": "Buy" },
                       "button": { "url": "/sale", "label": { "en-US": "Shop", "de-DE": "Kaufen" } },
                       "filter": { "name": "color", "equals": "red" }
                     },
@@ -95,6 +96,7 @@ public class ThemeSnapshotBuilderTests
         Assert.Equal("Kaufen", de["button"]!.Value<string>("label"));
         Assert.Equal("/sale", de["button"]!.Value<string>("url"));
         Assert.Equal("Livraison", de.Value<string>("note"));
+        Assert.Equal("Buy", de.Value<string>("cta"));
         Assert.Equal("red", de["filter"]!.Value<string>("equals"));
         Assert.Equal("Free shipping", Section(set.Files["en-US"], "page").Value<string>("title"));
     }

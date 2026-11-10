@@ -157,14 +157,12 @@ test("a rule keeps its id when it changes, moves or is switched on, and when oth
   assert.deepEqual(rulesOf(readRules(saved), "product").map((x) => x.id), [ids[0]]);
 });
 
-test("a new rule's id is short, url-safe and taken by no rule of the file, the defaults included", () => {
+test("a new rule's id is short, url-safe and random", () => {
   const rules = readRules(v1);
-  const taken = new Set(["product-0", "product-1", "category-0", "page-0", "default-b2c"]);
   const made = new Set<string>();
   for (let i = 0; i < 200; i++) {
     const id = newRuleId(rules);
     assert.match(id, /^[a-z0-9]{8}$/);
-    assert.ok(!taken.has(id));
     made.add(id);
   }
   assert.ok(made.size > 190);

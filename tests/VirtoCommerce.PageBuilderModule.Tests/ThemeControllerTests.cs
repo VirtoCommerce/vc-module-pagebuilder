@@ -11,6 +11,7 @@ using VirtoCommerce.PageBuilderModule.Core.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using Xunit;
+using Permissions = VirtoCommerce.PageBuilderModule.Core.ModuleConstants.Security.Permissions;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
@@ -23,7 +24,7 @@ public class ThemeControllerTests
     [Fact]
     public async Task ThemeActions_StoreUserDoesNotWorkIn_ReturnForbidWithoutCallingServices()
     {
-        var controller = Controller(new FakeAuthorizationService(false));
+        var controller = Controller(new FakeAuthorizationService("s2", Permissions.Read, Permissions.Update, Permissions.Publish, Permissions.Theme));
 
         Assert.IsType<ForbidResult>((await controller.Publish("s1", "abcdefgh", Ct)).Result);
         Assert.IsType<ForbidResult>((await controller.GetStatus("s1", Ct)).Result);
@@ -74,13 +75,19 @@ public class ThemeControllerTests
         var controller = Controller(new FakeAuthorizationService(true));
         var noTokens = GenerationRequest("#1b789b");
         noTokens.Tokens.Light = [];
+        var generationWithoutTokens = GenerationRequest("#1b789b");
+        generationWithoutTokens.Tokens = null;
+        var checkWithoutTokens = CheckRequest();
+        checkWithoutTokens.Tokens = null;
         var badToken = CheckRequest();
         badToken.Tokens.Dark = ["color primary"];
 
         Assert.IsType<BadRequestObjectResult>((await controller.GeneratePalette("s1", null, Ct)).Result);
         Assert.IsType<BadRequestObjectResult>((await controller.GeneratePalette("s1", noTokens, Ct)).Result);
+        Assert.IsType<BadRequestObjectResult>((await controller.GeneratePalette("s1", generationWithoutTokens, Ct)).Result);
         Assert.IsType<BadRequestObjectResult>((await controller.CheckPalette("s1", null, Ct)).Result);
         Assert.IsType<BadRequestObjectResult>((await controller.CheckPalette("s1", new ThemePaletteCheckRequest { Tokens = new ThemePaletteTokens() }, Ct)).Result);
+        Assert.IsType<BadRequestObjectResult>((await controller.CheckPalette("s1", checkWithoutTokens, Ct)).Result);
         Assert.IsType<BadRequestObjectResult>((await controller.CheckPalette("s1", badToken, Ct)).Result);
 
         Assert.Empty(_services.Calls);
@@ -124,7 +131,7 @@ public class ThemeControllerTests
 
         Assert.IsType<OkObjectResult>((await controller.SaveCatalog("s1", Ct)).Result);
 
-        Assert.Equal(["save s1"], _services.Calls);
+        Assert.Equal(["save s1 { \"hash\": \"abcdefgh\" }"], _services.Calls);
     }
 
     [Fact]
@@ -209,7 +216,7 @@ public class ThemeControllerTests
 
         public Task<string> SaveAsync(string storeId, string catalogJson, CancellationToken cancellationToken = default)
         {
-            Calls.Add($"save {storeId}");
+            Calls.Add($"save {storeId} {catalogJson}");
             return Task.FromResult("abcdefgh");
         }
 

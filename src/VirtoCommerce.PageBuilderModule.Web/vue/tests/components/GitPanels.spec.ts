@@ -1,14 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import PageBuilderGit from "../../src/modules/pages/PageBuilderGit.vue";
 import PageBuilderGitHub from "../../src/modules/pages/PageBuilderGitHub.vue";
 import { blade, permissions } from "./support/vcShell";
 import { fakePlatform, status, type FakePlatform } from "./support/fakePlatform";
-
-vi.mock("@vc-shell/framework", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("./support/vcShell")>()),
-  useApiClient: (Client: new () => unknown) => ({ getApiClient: async () => new Client() }),
-}));
 
 const SITE = "/api/pagebuilder/git/site";
 const CONNECTION = "/api/pagebuilder/git/connection";
@@ -25,9 +20,6 @@ async function focusWindow() {
 }
 
 let platform: FakePlatform;
-
-// The panel listens on the window, so a panel left mounted would answer the next test's focus.
-enableAutoUnmount(afterEach);
 
 beforeEach(() => {
   vi.stubGlobal("defineBlade", () => undefined);

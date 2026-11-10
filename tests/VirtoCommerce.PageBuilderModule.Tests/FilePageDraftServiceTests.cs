@@ -19,32 +19,32 @@ public class FilePageDraftServiceTests
     [Fact]
     public async Task DiscardBlobDraftAsync_PublishedPage_RemovesTheDraftAndRaisesTheEvent()
     {
-        _live.Files["about.page"] = "live";
-        _live.Files["about.page-draft"] = "draft";
+        _live.Files["pages/s1/about.page"] = "live";
+        _live.Files["pages/s1/about.page-draft"] = "draft";
 
         var status = await Service().DiscardBlobDraftAsync("s1", "pages", "about.page", theme: null, Ct);
 
         Assert.Equal(DraftDiscardStatus.Discarded, status);
-        Assert.False(_live.Files.ContainsKey("about.page-draft"));
+        Assert.False(_live.Files.ContainsKey("pages/s1/about.page-draft"));
         Assert.Equal(["about.page"], _live.Events.OfType<PageBuilderContentChangedEvent>().Single().ChangedEntries.Select(x => x.NewEntry.Path));
     }
 
     [Fact]
     public async Task DiscardBlobDraftAsync_PageNeverPublished_KeepsTheDraft()
     {
-        _live.Files["about.page-draft"] = "draft";
+        _live.Files["pages/s1/about.page-draft"] = "draft";
 
         var status = await Service().DiscardBlobDraftAsync("s1", "pages", "about.page", theme: null, Ct);
 
         Assert.Equal(DraftDiscardStatus.OnlyCopy, status);
-        Assert.True(_live.Files.ContainsKey("about.page-draft"));
+        Assert.True(_live.Files.ContainsKey("pages/s1/about.page-draft"));
         Assert.Empty(_live.Events);
     }
 
     [Fact]
     public async Task DiscardBlobDraftAsync_NoDraft_ChangesNothing()
     {
-        _live.Files["about.page"] = "live";
+        _live.Files["pages/s1/about.page"] = "live";
 
         var status = await Service().DiscardBlobDraftAsync("s1", "pages", "about.page", theme: null, Ct);
 

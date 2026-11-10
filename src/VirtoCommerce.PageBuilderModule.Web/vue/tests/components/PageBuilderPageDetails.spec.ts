@@ -69,6 +69,7 @@ vi.mock("../../src/modules/page-builder/components/pageAdvancedOptions.vue", () 
 
 interface ToolbarItem {
   id: string;
+  isVisible?: boolean;
   disabled?: boolean;
 }
 
@@ -90,12 +91,13 @@ describe("unpublishing a page from its details", () => {
   beforeEach(() => {
     vi.stubGlobal("defineBlade", () => undefined);
     form.modified.value = false;
+    blade.param.value = "g1";
   });
 
   it("is offered when the details have no unsaved edits", async () => {
     const wrapper = await mountPage();
 
-    expect(toolbarItem(wrapper, "unpublishPage")?.disabled).toBe(false);
+    expect(toolbarItem(wrapper, "unpublishPage")).toMatchObject({ isVisible: true, disabled: false });
   });
 
   it("is not offered while the details have unsaved edits, which reloading the page would throw away", async () => {

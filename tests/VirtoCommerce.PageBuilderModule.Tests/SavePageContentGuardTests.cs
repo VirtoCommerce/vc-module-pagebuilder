@@ -101,9 +101,11 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public async Task Valid_content_save_publishes_page_changed_event_exactly_once()
+        public async Task Saving_over_an_existing_draft_publishes_page_changed_event_exactly_once()
         {
             var service = NewServiceWithPublishedPage(out var groupId);
+            // The first save creates the draft, and the grouped page service raises the events for that.
+            await SaveContent(service, groupId, "{ \"settings\": {}, \"content\": [ { \"type\": \"hero\" } ] }");
             var events = new RecordingEventPublisher();
 
             var (result, _) = await SaveContent(

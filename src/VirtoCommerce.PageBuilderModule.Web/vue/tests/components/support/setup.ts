@@ -1,5 +1,5 @@
 import { afterEach, beforeEach } from "vitest";
-import { config } from "@vue/test-utils";
+import { config, enableAutoUnmount } from "@vue/test-utils";
 import { createI18n } from "vue-i18n";
 import locales from "../../../src/modules/locales";
 import { resetVcShell } from "./vcShell";
@@ -9,4 +9,7 @@ config.global.plugins = [createI18n({ legacy: false, locale: "en", fallbackLocal
 beforeEach(resetVcShell);
 afterEach(() => {
   document.body.innerHTML = "";
+  localStorage.clear();
+  sessionStorage.clear();
 });
+enableAutoUnmount(afterEach);

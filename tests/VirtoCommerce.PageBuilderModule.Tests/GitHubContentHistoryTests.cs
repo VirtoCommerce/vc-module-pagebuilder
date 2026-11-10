@@ -338,11 +338,10 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
         private static GitHistoryQuery Query() => new() { BaseBranch = "master" };
 
-        private static IOptions<GitContentOptions> Options(string repository = "o/r", Action<GitContentOptions> configure = null)
+        private static IOptions<GitContentOptions> Options(Action<GitContentOptions> configure = null)
         {
             var options = new GitContentOptions
             {
-                Repository = repository,
                 BaseBranch = "master",
                 GraphQlUrl = new Uri("https://api.github.test/graphql"),
             };

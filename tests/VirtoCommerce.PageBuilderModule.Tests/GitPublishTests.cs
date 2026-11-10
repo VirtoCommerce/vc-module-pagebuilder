@@ -35,6 +35,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
     {
         private const string Login = "john";
         private const string Page = "/about-us.page";
+        private const string LivePage = "pages/s1/about-us.page";
         private const string RepoPath = "pages/about-us.page";
         private const string Published = """{ "settings": { "type": "settings", "name": "About" }, "content": [] }""";
         private const string Draft = """{ "settings": { "type": "settings", "name": "About, rewritten" }, "content": [] }""";
@@ -194,13 +195,13 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             await Controller(repository, Publisher(GitPublishState.Merged), live: live).GitPublish("s1", Page, "pages");
 
-            Assert.True(JToken.DeepEquals(JToken.Parse(Published), JToken.Parse(live.Files[Page])));
+            Assert.True(JToken.DeepEquals(JToken.Parse(Published), JToken.Parse(live.Files[LivePage])));
             Assert.Single(live.Events.OfType<PageBuilderContentChangedEvent>());
             var indexed = Assert.Single(live.Events.OfType<ContentFileChangedEvent>());
             Assert.Equal(("pages", "s1"), (indexed.ContentType, indexed.StoreId));
             var entry = Assert.Single(indexed.ChangedEntries);
             Assert.Equal(Page, entry.NewEntry.RelativeUrl);
-            Assert.Equal(["o/r"], repository.Repositories);
+            Assert.Equal(["acme/site-s1"], repository.Repositories);
         }
 
         [Theory]
@@ -241,7 +242,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             await Controller(Repository(withDraft: false), Publisher(GitPublishState.Merged), live: live).GitPublish("s1", Page, "pages");
 
-            Assert.True(JToken.DeepEquals(JToken.Parse(Published), JToken.Parse(live.Files[Page])));
+            Assert.True(JToken.DeepEquals(JToken.Parse(Published), JToken.Parse(live.Files[LivePage])));
         }
 
         [Fact]
@@ -250,12 +251,12 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var repository = Repository(withDraft: false);
             repository.Files[(RepoPath, "master")] = "{ \"settings\": ";
             var live = new FakeBlobStorage();
-            live.Files[Page] = LastWeek;
+            live.Files[LivePage] = LastWeek;
 
             await Assert.ThrowsAsync<GitContentException>(() =>
                 Controller(repository, Publisher(GitPublishState.Merged), live: live).GitPublish("s1", Page, "pages"));
 
-            Assert.Equal(LastWeek, live.Files[Page]);
+            Assert.Equal(LastWeek, live.Files[LivePage]);
         }
 
         [Fact]
@@ -266,7 +267,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             await Controller(MergedOnGitHub(), Publisher(GitPublishState.AlreadyPublished), live: live).GitPublish("s1", Page, "pages");
 
-            Assert.True(JToken.DeepEquals(JToken.Parse(Published), JToken.Parse(live.Files[Page])));
+            Assert.True(JToken.DeepEquals(JToken.Parse(Published), JToken.Parse(live.Files[LivePage])));
         }
 
         [Theory]
@@ -285,7 +286,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         public async Task GitPublishStatus_ReleaseBranchAndLivePageBehind_WritesTheStatusJson()
         {
             var live = new FakeBlobStorage();
-            live.Files[Page] = LastWeek;
+            live.Files[LivePage] = LastWeek;
 
             var result = await Controller(Repository(), Publisher(GitPublishState.Merged), live: live, releaseBranch: "production").GitPublishStatus("s1", Page, "pages");
 
@@ -304,7 +305,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var live = new FakeBlobStorage();
             if (livePage != null)
             {
-                live.Files[Page] = livePage;
+                live.Files[LivePage] = livePage;
             }
 
             var result = await Controller(MergedOnGitHub(), Publisher(GitPublishState.AlreadyPublished), live: live, source: source).GitPublishStatus("s1", Page, "pages");
@@ -321,11 +322,11 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var repository = Repository(withDraft: false);
             repository.Files.Remove((RepoPath, "master"));
             var live = new FakeBlobStorage();
-            live.Files[Page] = Published;
+            live.Files[LivePage] = Published;
 
             await Controller(repository, Publisher(GitPublishState.Merged), live: live).GitPublish("s1", Page, "pages");
 
-            Assert.Equal(Published, live.Files[Page]);
+            Assert.Equal(Published, live.Files[LivePage]);
             Assert.Empty(live.Removed);
             Assert.Empty(live.Events);
         }
@@ -334,7 +335,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         public async Task Save_WhenTheRepositoryHasNoBaseBranch_HasItMadeFirst()
         {
             var repository = new RecordingRepository();
-            var provisioner = new FakeGitContentProvisioner();
+            var provisioner = new FakeGitContentProvisioner { OnEnsure = () => repository.BranchHeads["master"] = BaseHead };
             var files = new JArray { new JObject { ["path"] = Page, ["type"] = "pages", ["content"] = JObject.Parse(Draft) } };
 
             await Controller(repository, Publisher(GitPublishState.Merged), provisioner: provisioner)
@@ -390,7 +391,9 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             live ??= new FakeBlobStorage();
             var connection = GitHubConnections.CreateService(options.Value);
             var history = new FakeGitContentHistory();
-            var filePageDrafts = TestServices.FilePageDrafts(live, options, connection, new FakeGitContentPolicy(source: source), repository, history, provisioner ?? new FakeGitContentProvisioner());
+            // The store's own repository, not the shared one configured above, so a call to the wrong one shows.
+            var policy = new FakeGitContentPolicy(source: source, repositoryFormat: "acme/site-{0}");
+            var filePageDrafts = TestServices.FilePageDrafts(live, options, connection, policy, repository, history, provisioner ?? new FakeGitContentProvisioner());
             var controller = new PageBuilderController(
                 storeService: live.StoreService,
                 pathResolver: live,
@@ -399,7 +402,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 eventPublisher: live,
                 gitContentOptions: options,
                 gitHubConnectionService: connection,
-                gitContentPolicy: new FakeGitContentPolicy(source: source),
+                gitContentPolicy: policy,
                 gitContentRepository: repository,
                 gitContentHistory: history,
                 gitContentPublisher: publisher,
@@ -430,7 +433,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
         /// <summary>
         /// Behaves like the real repository where it matters here: a branch cut from a ref starts with that
-        /// ref's copy of the page, and deleting a branch takes its copy away.
+        /// ref's copy of the page, a branch cannot be cut from a ref that does not exist, and deleting a
+        /// branch takes its copy away.
         /// </summary>
         private sealed class RecordingRepository : IGitContentRepository
         {
@@ -474,10 +478,11 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             public Task CreateBranchAsync(string repository, string branch, string fromRef, CancellationToken cancellationToken = default)
             {
+                var head = BranchHeads.GetValueOrDefault(fromRef) ?? throw new GitContentException($"Could not resolve \"{fromRef}\" to a commit.");
                 Repositories.Add(repository);
                 Order.Add("create");
                 CreatedBranches.Add((branch, fromRef));
-                BranchHeads[branch] = BranchHeads.GetValueOrDefault(fromRef, NewCommitSha);
+                BranchHeads[branch] = head;
                 Files[(RepoPath, branch)] = Files.GetValueOrDefault((RepoPath, fromRef));
                 return Task.CompletedTask;
             }
@@ -496,6 +501,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                     throw new HttpRequestException($"could not move \"{branch}\"");
                 }
 
+                Repositories.Add(repository);
                 Order.Add("move");
                 MovedBranches.Add((branch, sha));
                 BranchHeads[branch] = sha;
@@ -507,6 +513,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             public Task DeleteBranchAsync(string repository, string branch, string pagePath, CancellationToken cancellationToken = default)
             {
+                Repositories.Add(repository);
                 Order.Add("delete");
                 DeletedBranches.Add(branch);
                 BranchHeads.Remove(branch);
@@ -514,7 +521,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 return Task.CompletedTask;
             }
 
-            public void InvalidateRead(string repository, string path, string gitRef) { }
+            public void InvalidateRead(string repository, string path, string gitRef) => Repositories.Add(repository);
 
             public Task<string> CommitFileAsync(string repository, string path, string content, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default)
             {
@@ -544,6 +551,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             public Task<string> DeleteFileAsync(string repository, string path, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default)
             {
+                Repositories.Add(repository);
                 Files.Remove((path, branch));
                 return Task.FromResult(NewCommitSha);
             }

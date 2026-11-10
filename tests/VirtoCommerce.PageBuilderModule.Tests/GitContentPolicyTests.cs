@@ -449,11 +449,15 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [InlineData("acme/..")]
         [InlineData("acme/web site")]
         [InlineData("acme/website/contents")]
-        public async Task GetConfiguredRepositoryAsync_SettingNotOwnerAndName_Throws(string configured)
+        public async Task GetConfiguredRepositoryAsync_AllowedSettingNotOwnerAndName_Throws(string configured)
         {
             // The setting ends up in API urls and is never replaced by the computed name.
+            // An "owner/*" entry lets such a setting through the allow list, so the format check alone has to refuse it.
+            var options = PerSite();
+            options.AllowedRepositories = [configured];
+
             await Assert.ThrowsAsync<GitContentException>(() =>
-                Policy(PerSite(), settings: null).GetConfiguredRepositoryAsync("b2b-store", configured, TestContext.Current.CancellationToken));
+                Policy(options, settings: null).GetConfiguredRepositoryAsync("b2b-store", configured, TestContext.Current.CancellationToken));
         }
 
         [Fact]

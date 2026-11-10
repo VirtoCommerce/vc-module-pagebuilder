@@ -181,12 +181,13 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 {
                     if (snapshot.Content == content)
                     {
-                        return new(snapshot.PageId, snapshot.ETag);
+                        return new(snapshot.PageId, snapshot.ETag) { ContentWritten = false };
                     }
                     throw new PageBuilderContentConflictException();
                 }
                 if (SaveContentException != null) throw SaveContentException;
                 var draft = PageBuilderPageSelection.Order(current.Pages).FirstOrDefault(x => x.Status == Draft);
+                var groupedEventsPublished = draft == null;
                 if (draft == null)
                 {
                     draft = new PageBuilderPage { Id = $"page-new-{++_idSeq}", StoreId = current.StoreId, Status = Draft };
@@ -194,7 +195,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 }
                 draft.Content = content;
                 await SaveChangesAsync([current]);
-                return new(draft.Id, PageBuilderContentVersion.Create(current, content));
+                return new(draft.Id, PageBuilderContentVersion.Create(current, content)) { GroupedEventsPublished = groupedEventsPublished };
             }
 
             public async Task SaveGroupSettingsAsync(GroupedPageBuilderPage group, CancellationToken cancellationToken = default)

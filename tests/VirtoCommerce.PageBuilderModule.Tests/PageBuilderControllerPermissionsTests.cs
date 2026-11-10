@@ -67,6 +67,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [Fact]
         public void NoAction_IsOpenToAnonymousCallers()
         {
+            Assert.True(typeof(PageBuilderController).IsDefined(typeof(AuthorizeAttribute), inherit: true));
             Assert.Empty(typeof(PageBuilderController).GetCustomAttributes(inherit: true).OfType<IAllowAnonymous>());
             Assert.All(Actions(), action => Assert.Empty(action.GetCustomAttributes(inherit: true).OfType<IAllowAnonymous>()));
         }

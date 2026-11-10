@@ -14,12 +14,14 @@ internal sealed class GitHubScript(params (string Method, string Url, Func<HttpR
     : HttpMessageHandler, IHttpClientFactory
 {
     private int _step;
+    private int _requests;
     private ExceptionDispatchInfo _failed;
 
-    public int Requests => _step;
+    public int Requests => _requests;
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
+        _requests++;
         try
         {
             Assert.True(_step < script.Length, $"Unexpected request #{_step + 1}: {request.Method} {request.RequestUri}");

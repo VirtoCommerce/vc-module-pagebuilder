@@ -283,6 +283,8 @@ describe("loading an asset's reference details", () => {
 describe("a failed asset library action", () => {
   const ROOT = "/stores/s1/Page Builder";
   const refused = new Error("Refused by the platform");
+  // A failed useAsync action toasts on a later task, so a count taken before then misses it.
+  const toastsShown = () => new Promise((resolve) => setTimeout(resolve));
 
   function assetLibrary() {
     let library!: ReturnType<typeof useAssetsLibrary>;
@@ -324,6 +326,7 @@ describe("a failed asset library action", () => {
     const { actions } = assetLibrary();
 
     await actions.uploadAssets([new File(["x"], "b.txt")]);
+    await toastsShown();
 
     expect(notification.error).toHaveBeenCalledTimes(1);
     expect(notification.error).toHaveBeenCalledWith(refused.message);
@@ -336,6 +339,7 @@ describe("a failed asset library action", () => {
 
     const batch = ["a.txt", "b.txt", "c.txt"].map((name) => new File(["x"], name));
     await expect(actions.uploadAssets(batch)).resolves.toBe(false);
+    await toastsShown();
 
     expect(api.uploadAsset).toHaveBeenCalledTimes(2);
     expect(api.searchAssets).toHaveBeenLastCalledWith(ROOT, undefined, expect.objectContaining({ preferredAssetUrl: stored.relativeUrl }));
@@ -349,6 +353,7 @@ describe("a failed asset library action", () => {
     library.selectedAsset.value = BLOB;
 
     await actions.replaceAsset(new File(["x"], "other.txt"));
+    await toastsShown();
 
     expect(notification.error).toHaveBeenCalledTimes(1);
   });
@@ -358,6 +363,7 @@ describe("a failed asset library action", () => {
     const { actions } = assetLibrary();
 
     await actions.confirmDelete(BLOB);
+    await toastsShown();
 
     expect(notification.error).toHaveBeenCalledTimes(1);
   });
@@ -367,6 +373,7 @@ describe("a failed asset library action", () => {
     const { actions } = assetLibrary();
 
     const result = await actions.createAssetFolder("photos");
+    await toastsShown();
 
     expect(result).toEqual({ succeeded: false, errorMessage: refused.message });
     expect(notification.error).not.toHaveBeenCalled();

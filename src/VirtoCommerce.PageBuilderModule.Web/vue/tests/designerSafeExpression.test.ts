@@ -31,6 +31,7 @@ test("arithmetic, logic and conditionals are evaluated", () => {
 
 test("the built-in helpers and plain string and array methods can be called", () => {
   assert.equal(evaluate("(this.permissions || []).indexOf('builder:theme') === -1", { permissions: ["builder:theme"] }), false);
+  assert.equal(evaluate("this.url.startsWith('/catalog')", { url: "/catalog/printers" }), true);
   assert.equal(evaluate("encodeURIComponent(this.folder)", { folder: "a b" }), "a%20b");
   assert.equal(evaluate("JSON.stringify(this.content, null, 2)", { content: { a: 1 } }), '{\n  "a": 1\n}');
 });
@@ -40,10 +41,11 @@ for (const expression of [
   'this.constructor.constructor("alert(1)")()',
   "this.__proto__",
   "this['constructor']",
+  "this['__proto__']",
   "alert(1)",
   "window.location",
   'fetch("https://elsewhere.example")',
-  "this.items.map(x => x)",
+  "this.items.push(1)",
   'new Function("return 1")()',
   "this.a = 1",
   "'abc'.constructor",

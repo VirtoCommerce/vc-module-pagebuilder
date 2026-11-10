@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import Fields from "../../src/modules/designer/components/Fields.vue";
 import type { Field } from "../../src/modules/designer/types";
@@ -19,6 +19,8 @@ describe("a search field's request", () => {
     platform = fakePlatform().install();
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
   });
+
+  afterEach(() => vi.mocked(console.warn).mockRestore());
 
   it("sends a GraphQL read to the platform", async () => {
     platform.on("POST", "/graphql", { data: { a: 1 } });
@@ -56,12 +58,16 @@ describe("a search field's request", () => {
     expect(platform.fetch).not.toHaveBeenCalled();
   });
 
-  it("goes to another origin without the token", async () => {
-    platform.on("GET", "/schema.json", { a: 1 });
+  it("goes to another origin without the platform's credentials", async () => {
+    const schema = "https://elsewhere.example/schema.json";
+    platform.on("GET", schema, { a: 1 });
 
-    const wrapper = await pressSearch(searchField({ url: "https://elsewhere.example/schema.json" }));
+    const wrapper = await pressSearch(searchField({ url: schema }));
 
     await vi.waitFor(() => expect(wrapper.emitted("update")?.length).toBe(1));
-    expect(platform.to("/schema.json")[0].headers.authorization).toBeUndefined();
+    const sent = platform.to(schema);
+    expect(sent).toHaveLength(1);
+    expect(sent[0].headers.authorization).toBeUndefined();
+    expect(sent[0].credentials).not.toBe("include");
   });
 });

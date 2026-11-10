@@ -10,7 +10,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests;
 internal sealed class InProcessDistributedLock : IDistributedLock
 {
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphores = new(StringComparer.Ordinal);
-    private readonly CancellationTokenSource _lost = new();
+    private CancellationTokenSource _lost = new();
     private TaskCompletionSource _gate;
 
     /// <summary>Makes callers wait as if another holder had the lock, until <see cref="Release"/>.</summary>
@@ -29,7 +29,8 @@ internal sealed class InProcessDistributedLock : IDistributedLock
 
     public bool LoseLocks { get; set; }
 
-    public void LoseHeldLocks() => _lost.Cancel();
+    // Only the handles held now are lost: the platform lock hands a later caller a live handle.
+    public void LoseHeldLocks() => Interlocked.Exchange(ref _lost, new CancellationTokenSource()).Cancel();
 
     public TaskCompletionSource<string> Blocked { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -56,7 +57,7 @@ internal sealed class InProcessDistributedLock : IDistributedLock
         return await semaphore.WaitAsync(timeout, cancellationToken) ? new Handle(resource, semaphore, LostToken) : null;
     }
 
-    private CancellationToken LostToken => LoseLocks ? new CancellationToken(true) : _lost.Token;
+    private CancellationToken LostToken => LoseLocks ? new CancellationToken(true) : Volatile.Read(ref _lost).Token;
 
     private sealed class Handle(string resource, SemaphoreSlim semaphore, CancellationToken lost) : IDistributedLockHandle
     {

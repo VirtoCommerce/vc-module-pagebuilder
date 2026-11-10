@@ -101,7 +101,7 @@ public class HistoryControllerTests
         var result = await controller.GetHistory("s1", ["page:g1"], cancellationToken: Ct);
 
         Assert.Contains("abc", PlatformJson.ParseBody(Assert.IsType<BadRequestObjectResult>(result.Result)).Value<string>("error"));
-        Assert.Empty(_history.Records);
+        Assert.Empty(_history.Listed);
     }
 
     [Fact]
@@ -155,7 +155,7 @@ public class HistoryControllerTests
     [Fact]
     public async Task Restore_PageAndThemeFiles_WritesTheirDraftsAndRecordsOneVersion()
     {
-        _live.Files[$"{Header}-draft"] = "current";
+        _live.Files[$"themes/s1/{Header}-draft"] = "current";
         _history.Versions[(VersionId, "page:g1")] = OldPage;
         _history.Versions[(VersionId, $"theme:{Header}")] = "{ \"content\": [] }";
         _history.Versions[(VersionId, $"theme:{Rules}")] = "{ \"version\": 2 }";
@@ -165,8 +165,8 @@ public class HistoryControllerTests
         var result = await controller.Restore(VersionId, "s1", ["page:g1", $"theme:{Header}", $"theme:{Rules}"], Ct);
 
         Assert.Equal("""{"saveId":"restore-0001"}""", PlatformJson.SerializeBody(result.Result));
-        Assert.Equal("{ \"content\": [] }", _live.Files[$"{Header}-draft"]);
-        Assert.Equal("{ \"version\": 2 }", _live.Files[$"{Rules}-draft"]);
+        Assert.Equal("{ \"content\": [] }", _live.Files[$"themes/s1/{Header}-draft"]);
+        Assert.Equal("{ \"version\": 2 }", _live.Files[$"themes/s1/{Rules}-draft"]);
         Assert.Equal(OldPage, await DraftOfAsync("g1"));
         var (storeId, record) = Assert.Single(_history.Records);
         Assert.Equal("s1", storeId);
@@ -213,7 +213,7 @@ public class HistoryControllerTests
     [Fact]
     public async Task Restore_PageFailsAfterTheThemeFiles_PutsTheirDraftsBack()
     {
-        _live.Files[$"{Header}-draft"] = "current";
+        _live.Files[$"themes/s1/{Header}-draft"] = "current";
         _history.Versions[(VersionId, "page:g1")] = OldPage;
         _history.Versions[(VersionId, $"theme:{Header}")] = "{}";
         _history.Versions[(VersionId, $"theme:{Rules}")] = "{}";
@@ -222,8 +222,8 @@ public class HistoryControllerTests
         var result = await Controller().Restore(VersionId, "s1", [$"theme:{Header}", $"theme:{Rules}", "page:g1"], Ct);
 
         Assert.IsType<NotFoundResult>(result.Result);
-        Assert.Equal("current", _live.Files[$"{Header}-draft"]);
-        Assert.False(_live.Files.ContainsKey($"{Rules}-draft"));
+        Assert.Equal("current", _live.Files[$"themes/s1/{Header}-draft"]);
+        Assert.False(_live.Files.ContainsKey($"themes/s1/{Rules}-draft"));
         Assert.Empty(_history.Records);
     }
 

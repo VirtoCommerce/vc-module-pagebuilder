@@ -41,10 +41,10 @@ public class ThemeWriteLockTests
         var save = Builder().SaveTemplates("s1", "default", Files("themes", Path), draft: true);
 
         Assert.Equal(ThemeStorage.GetLockResource("s1"), await _lock.Blocked.Task.WaitAsync(Patience, Ct));
-        Assert.False(_live.Files.ContainsKey($"{Path}-draft"));
+        Assert.False(_live.Files.ContainsKey(Theme($"{Path}-draft")));
         await publication.DisposeAsync();
         await save;
-        Assert.True(_live.Files.ContainsKey($"{Path}-draft"));
+        Assert.True(_live.Files.ContainsKey(Theme($"{Path}-draft")));
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public class ThemeWriteLockTests
 
         await Builder().SaveTemplates("s1", "default", Files("pages", "home.page"), draft: true).WaitAsync(Patience, Ct);
 
-        Assert.True(_live.Files.ContainsKey("home.page-draft"));
+        Assert.True(_live.Files.ContainsKey(Page("home.page-draft")));
     }
 
     [Fact]
@@ -65,24 +65,24 @@ public class ThemeWriteLockTests
 
         await Builder().SaveDesignerChanges("s1", new DesignerSaveRequest { Page = page }).WaitAsync(Patience, Ct);
 
-        Assert.True(_live.Files.ContainsKey("home.page-draft"));
+        Assert.True(_live.Files.ContainsKey(Page("home.page-draft")));
     }
 
     [Fact]
     public async Task DiscardDraft_ThemePublicationRunning_WaitsForStoreLock()
     {
         // A publication reads a draft in two steps, and a delete between them must not fail it.
-        _live.Files[Path] = "{}";
-        _live.Files[$"{Path}-draft"] = "{}";
+        _live.Files[Theme(Path)] = "{}";
+        _live.Files[Theme($"{Path}-draft")] = "{}";
         var publication = await _lock.AcquireAsync(ThemeStorage.GetLockResource("s1"), cancellationToken: Ct);
 
         var discard = Builder().DiscardDraft("s1", Path, "themes", "default");
 
         Assert.Equal(ThemeStorage.GetLockResource("s1"), await _lock.Blocked.Task.WaitAsync(Patience, Ct));
-        Assert.True(_live.Files.ContainsKey($"{Path}-draft"));
+        Assert.True(_live.Files.ContainsKey(Theme($"{Path}-draft")));
         await publication.DisposeAsync();
         Assert.IsType<NoContentResult>(await discard);
-        Assert.False(_live.Files.ContainsKey($"{Path}-draft"));
+        Assert.False(_live.Files.ContainsKey(Theme($"{Path}-draft")));
     }
 
     [Fact]
@@ -95,17 +95,17 @@ public class ThemeWriteLockTests
         var restore = HistoryController(history).Restore(VersionId, "s1", [$"theme:{Path}"], Ct);
 
         Assert.Equal(ThemeStorage.GetLockResource("s1"), await _lock.Blocked.Task.WaitAsync(Patience, Ct));
-        Assert.False(_live.Files.ContainsKey($"{Path}-draft"));
+        Assert.False(_live.Files.ContainsKey(Theme($"{Path}-draft")));
         await publication.DisposeAsync();
         Assert.IsType<OkObjectResult>((await restore).Result);
-        Assert.Equal("{\"content\":[]}", _live.Files[$"{Path}-draft"]);
+        Assert.Equal("{\"content\":[]}", _live.Files[Theme($"{Path}-draft")]);
         Assert.Single(history.Records);
     }
 
     [Fact]
     public async Task SaveDrafts_LockLostAndThePageFails_LeavesTheDraftsAsTheyAre()
     {
-        _live.Files[$"{Path}-draft"] = "{\"old\":true}";
+        _live.Files[Theme($"{Path}-draft")] = "{\"old\":true}";
 
         await Assert.ThrowsAnyAsync<Exception>(() => ThemeDrafts().SaveDraftsAsync<bool>("s1", new Dictionary<string, string> { [Path] = "{\"new\":true}" }, eTags: null, _ =>
         {
@@ -113,14 +113,14 @@ public class ThemeWriteLockTests
             throw new IOException("the page could not be saved");
         }, Ct));
 
-        Assert.Equal("{\"new\":true}", _live.Files[$"{Path}-draft"]);
+        Assert.Equal("{\"new\":true}", _live.Files[Theme($"{Path}-draft")]);
     }
 
     [Fact]
     public async Task DiscardDrafts_LockLostAndThePageFails_LeavesTheDraftsAsTheyAre()
     {
-        _live.Files[Path] = "{}";
-        _live.Files[$"{Path}-draft"] = "{\"old\":true}";
+        _live.Files[Theme(Path)] = "{}";
+        _live.Files[Theme($"{Path}-draft")] = "{\"old\":true}";
 
         await Assert.ThrowsAnyAsync<Exception>(() => ThemeDrafts().DiscardDraftsAsync("s1", [Path], _ =>
         {
@@ -128,8 +128,12 @@ public class ThemeWriteLockTests
             throw new IOException("the page could not be discarded");
         }, Ct));
 
-        Assert.False(_live.Files.ContainsKey($"{Path}-draft"));
+        Assert.False(_live.Files.ContainsKey(Theme($"{Path}-draft")));
     }
+
+    private static string Theme(string path) => $"themes/s1/{path}";
+
+    private static string Page(string path) => $"pages/s1/{path}";
 
     private static PageBuilderController.SaveFilesModel Files(string type, string path) =>
         new() { Files = JsonConvert.SerializeObject(new[] { new { path, type, content = new { settings = new { type = "settings" }, content = Array.Empty<object>() } } }) };

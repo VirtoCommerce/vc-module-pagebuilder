@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Options;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
@@ -80,7 +79,7 @@ public class RepositoryOwnershipConflictAttributeTests
     {
         var provisioner = new FakeGitContentProvisioner { ConnectFailure = new GitRepositoryOwnershipException("acme/site-s1", "S1") };
         var connection = GitHubConnections.CreateService(new FakeSettingsManager());
-        var controller = new GitContentSetupController(new GitContentSetupService(connection, provisioner, Policy(), new EphemeralDataProtectionProvider()),
+        var controller = new GitContentSetupController(new GitContentSetupService(connection, provisioner, new FakeGitContentPolicy(), new EphemeralDataProtectionProvider()),
             provisioner, connection, new FakeAuthorizationService(true), null, RequestValidators.Stores("s1"), RequestValidators.AppSetup)
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
@@ -91,15 +90,4 @@ public class RepositoryOwnershipConflictAttributeTests
 
     private static ExceptionContext Context(Exception exception) =>
         new(new ActionContext(new DefaultHttpContext(), new RouteData(), new ActionDescriptor()), []) { Exception = exception };
-
-    private static IOptions<GitContentOptions> Options() => Microsoft.Extensions.Options.Options.Create(new GitContentOptions
-    {
-        Enabled = true,
-        Organization = "acme",
-        Token = "t0ken",
-        BaseBranch = "main",
-        GraphQlUrl = new Uri("https://api.github.test/graphql"),
-    });
-
-    private static GitContentPolicy Policy() => GitHubConnections.CreatePolicy(Options(), new FakeSettingsManager(true), new FakeGitContentOwnership("another-store"));
 }

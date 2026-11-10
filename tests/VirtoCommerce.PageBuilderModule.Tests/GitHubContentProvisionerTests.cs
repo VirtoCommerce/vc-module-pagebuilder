@@ -291,9 +291,7 @@ public class GitHubContentProvisionerTests
     [Fact]
     public async Task GetStatusAsync_RepositoryOfAnotherStore_ReportsOwner()
     {
-        var github = new GitHubScript(
-            ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Json(RepoJson(GitHubContentOwnership.DescriptionPrefix + "S1"))),
-            ("GET", "repos/acme/site-s1/git/ref/heads/main", (_, _) => Branch()));
+        var github = new GitHubScript(("GET", $"repos/{Repo}", (_, _) => GitHubScript.Json(RepoJson(GitHubContentOwnership.DescriptionPrefix + "S1"))));
 
         var status = await Provisioner(github, new FakeSettingsManager(value: true)).GetStatusAsync("s1", TestContext.Current.CancellationToken);
 

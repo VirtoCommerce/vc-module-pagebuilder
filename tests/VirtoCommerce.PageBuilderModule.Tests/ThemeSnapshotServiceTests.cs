@@ -25,6 +25,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests;
 
 public sealed class ThemeSnapshotServiceTests : IDisposable
 {
+    // The snapshot cache region is static and keyed by store id, and other classes publish for "s1" in parallel.
+    private const string StoreId = "theme-snapshots";
     private const string Product = "default/templates/product.json";
     private const string Header = "default/sections/header-group.json";
     private const string Pointer = "default/snapshots/current.json";
@@ -36,7 +38,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     private readonly TestThemeSnapshotService _snapshots;
     private readonly ThemePublisher _publisher;
     private readonly SchemaCatalogService _catalogs;
-    private readonly Store _store = new() { Id = "s1", DefaultLanguage = "en-US", Languages = ["en-US", "de-DE"], DynamicProperties = [] };
+    private readonly Store _store = new() { Id = StoreId, DefaultLanguage = "en-US", Languages = ["en-US", "de-DE"], DynamicProperties = [] };
     private readonly FakeStoreService _stores;
     private readonly ThemeStorageFactory _storageFactory;
 
@@ -58,74 +60,76 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     public async Task GetPublishedAsync_NewPageBuilderOff_ReturnsNull()
     {
         _settings.Values[ModuleConstants.Settings.StoreLevelSettings.NewPageBuilder.Name] = false;
-        _storage.Files[Product] = Template("product-info");
+        _storage.Files[Theme(Product)] = Template("product-info");
 
-        Assert.Null(await _snapshots.GetPublishedAsync("s1", "en-US", Ct));
+        Assert.Null(await _snapshots.GetPublishedAsync(StoreId, "en-US", Ct));
+        Assert.Equal((ModuleConstants.Settings.StoreSettingsObjectType, StoreId), (_settings.AskedObjectType, _settings.AskedObjectId));
         Assert.Empty(_storage.Written);
     }
 
     [Fact]
     public async Task GetPublishedAsync_FirstRead_PublishesLiveThemeAndKeepsDrafts()
     {
-        _storage.Files[Product] = Template("product-info");
-        _storage.Files[Product + "-draft"] = Template("product-info", "draft-only");
+        _storage.Files[Theme(Product)] = Template("product-info");
+        _storage.Files[Theme(Product + "-draft")] = Template("product-info", "draft-only");
 
-        var snapshot = await _snapshots.GetPublishedAsync("s1", null, Ct);
+        var snapshot = await _snapshots.GetPublishedAsync(StoreId, null, Ct);
 
+        Assert.Equal((ModuleConstants.Settings.StoreSettingsObjectType, StoreId), (_settings.AskedObjectType, _settings.AskedObjectId));
         Assert.Equal((1, "en-US"), (snapshot.Publication, snapshot.CultureName));
         Assert.Equal(["product-info"], Sections(snapshot, "product"));
-        Assert.True(_storage.Files.ContainsKey(Product + "-draft"));
+        Assert.True(_storage.Files.ContainsKey(Theme(Product + "-draft")));
     }
 
     [Fact]
     public async Task PublishAsync_Drafts_WritesLanguagesLiveFilesRecordPointerThenRemovesDrafts()
     {
-        _storage.Files[Product] = Template("product-info");
-        _storage.Files[Product + "-draft"] = Template("product-info", "related-products");
-        await _snapshots.GetPublishedAsync("s1", null, Ct);
+        _storage.Files[Theme(Product)] = Template("product-info");
+        _storage.Files[Theme(Product + "-draft")] = Template("product-info", "related-products");
+        await _snapshots.GetPublishedAsync(StoreId, null, Ct);
         var catalog = await SaveCatalogAsync("product-info", "related-products");
         _storage.Written.Clear();
         string pointerAtRemoval = null;
-        _storage.BeforeRemove = _ => pointerAtRemoval = _storage.Files[Pointer];
+        _storage.BeforeRemove = _ => pointerAtRemoval = _storage.Files[Theme(Pointer)];
 
-        var publication = await _publisher.PublishAsync("s1", catalog, null, Ct);
+        var publication = await _publisher.PublishAsync(StoreId, catalog, null, Ct);
 
         Assert.Equal(2, publication);
-        Assert.Equal(["default/snapshots/2/de-DE.json", "default/snapshots/2/en-US.json"], _storage.Written.Take(2).Order());
+        Assert.Equal([Theme("default/snapshots/2/de-DE.json"), Theme("default/snapshots/2/en-US.json")], _storage.Written.Take(2).Order());
         // A cut-off pointer falls back on the record, which marks a complete publication, so it is written after the live files.
-        Assert.Equal([Product, Record(2), Pointer], _storage.Written.Skip(2));
+        Assert.Equal([Theme(Product), Theme(Record(2)), Theme(Pointer)], _storage.Written.Skip(2));
         Assert.Equal("""{"publication":2}""", pointerAtRemoval);
-        Assert.Equal("en-US", (await (await _storageFactory.OpenAsync("s1")).GetPublicationRecordAsync(2)).DefaultLanguage);
-        Assert.False(_storage.Files.ContainsKey(Product + "-draft"));
-        Assert.Equal(["product-info", "related-products"], Sections(await _snapshots.GetPublishedAsync("s1", "de", Ct), "product"));
+        Assert.Equal("en-US", (await (await _storageFactory.OpenAsync(StoreId)).GetPublicationRecordAsync(2)).DefaultLanguage);
+        Assert.False(_storage.Files.ContainsKey(Theme(Product + "-draft")));
+        Assert.Equal(["product-info", "related-products"], Sections(await _snapshots.GetPublishedAsync(StoreId, "de", Ct), "product"));
     }
 
     [Fact]
     public async Task PublishAsync_Published_WritesThePointerAndTheRecordInTheirStorageFormat()
     {
-        _storage.Files[Product + "-draft"] = Template("product-info");
-        await _catalogs.SaveAsync("s1", """{ "hash": "abc12345", "sections": { "product-info": {} } }""", Ct);
+        _storage.Files[Theme(Product + "-draft")] = Template("product-info");
+        await _catalogs.SaveAsync(StoreId, """{ "hash": "abc12345", "sections": { "product-info": {} } }""", Ct);
 
-        await _publisher.PublishAsync("s1", "abc12345", null, Ct);
+        await _publisher.PublishAsync(StoreId, "abc12345", null, Ct);
 
-        Assert.Equal("""{"publication":1}""", _storage.Files[Pointer]);
-        Assert.Equal("""{"defaultLanguage":"en-US"}""", _storage.Files[Record(1)]);
-        Assert.Equal("""{"hash":"abc12345"}""", _storage.Files["default/catalogs/current.json"]);
-        Assert.Equal("""{"hash":"abc12345","sections":{"product-info":{}}}""", _storage.Files["default/catalogs/abc12345.json"]);
+        Assert.Equal("""{"publication":1}""", _storage.Files[Theme(Pointer)]);
+        Assert.Equal("""{"defaultLanguage":"en-US"}""", _storage.Files[Theme(Record(1))]);
+        Assert.Equal("""{"hash":"abc12345"}""", _storage.Files[Theme("default/catalogs/current.json")]);
+        Assert.Equal("""{"hash":"abc12345","sections":{"product-info":{}}}""", _storage.Files[Theme("default/catalogs/abc12345.json")]);
     }
 
     [Fact]
     public async Task PublishAsync_Published_RecordsHistoryAfterStoreLockIsReleased()
     {
         // GitHub may answer slowly, and the store's theme saves must not wait for it.
-        _storage.Files[Product] = Template("product-info");
-        await _snapshots.GetPublishedAsync("s1", null, Ct);
-        _storage.Files[Product + "-draft"] = Template("product-info", "related-products");
+        _storage.Files[Theme(Product)] = Template("product-info");
+        await _snapshots.GetPublishedAsync(StoreId, null, Ct);
+        _storage.Files[Theme(Product + "-draft")] = Template("product-info", "related-products");
         var catalog = await SaveCatalogAsync("product-info", "related-products");
         var history = new LockProbingHistory(_lock);
         var publisher = Publisher(history);
 
-        await publisher.PublishAsync("s1", catalog, null, Ct);
+        await publisher.PublishAsync(StoreId, catalog, null, Ct);
 
         var (record, lockFree) = Assert.Single(history.Recorded);
         Assert.True(lockFree);
@@ -135,18 +139,18 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     [Fact]
     public async Task PublishAsync_SeveralDrafts_RecordsThemAsOneVersion()
     {
-        _storage.Files[Product] = Template("product-info");
-        await _snapshots.GetPublishedAsync("s1", null, Ct);
+        _storage.Files[Theme(Product)] = Template("product-info");
+        await _snapshots.GetPublishedAsync(StoreId, null, Ct);
         var header = Template("product-info");
-        _storage.Files[Product + "-draft"] = Template("product-info", "related-products");
-        _storage.Files["default/sections/header-group.json-draft"] = header;
+        _storage.Files[Theme(Product + "-draft")] = Template("product-info", "related-products");
+        _storage.Files[Theme("default/sections/header-group.json-draft")] = header;
         var catalog = await SaveCatalogAsync("product-info", "related-products");
         var history = new RecordingContentHistory();
 
-        await Publisher(history).PublishAsync("s1", catalog, null, Ct);
+        await Publisher(history).PublishAsync(StoreId, catalog, null, Ct);
 
         var (storeId, record) = Assert.Single(history.Records);
-        Assert.Equal("s1", storeId);
+        Assert.Equal(StoreId, storeId);
         Assert.Equal(ModuleConstants.GitHistory.PublishedSummary, record.Description);
         Assert.Equal(["theme:default/sections/header-group.json", $"theme:{Product}"], record.Entries.Select(x => x.Item.ToString()).Order());
         Assert.Equal(header, record.Entries.Single(x => x.Item.Key == "default/sections/header-group.json").Content);
@@ -165,26 +169,26 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         var publisher = Publisher(history);
         _storage.BeforeWrite = x => ThrowOn(x, failingFile);
 
-        await Assert.ThrowsAsync<IOException>(() => publisher.PublishAsync("s1", catalog, null, Ct));
+        await Assert.ThrowsAsync<IOException>(() => publisher.PublishAsync(StoreId, catalog, null, Ct));
 
-        var status = await publisher.GetStatusAsync("s1", Ct);
+        var status = await publisher.GetStatusAsync(StoreId, Ct);
         Assert.Equal(1, status.Publication);
         Assert.Equal(["sections/header-group.json", "templates/product.json"], status.Drafts.Order());
-        Assert.Equal(Template("product-info"), _storage.Files[Header]);
-        Assert.Equal(Template("product-info"), _storage.Files[Product]);
+        Assert.Equal(Template("product-info"), _storage.Files[Theme(Header)]);
+        Assert.Equal(Template("product-info"), _storage.Files[Theme(Product)]);
         Assert.Empty(history.Records);
         Assert.Empty(_storage.Events);
         Assert.Equal(versions, await ReadVersionsAsync());
-        Assert.DoesNotContain(_storage.Files.Keys, x => x.StartsWith("default/snapshots/2/", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(_storage.Files.Keys, x => x.StartsWith(Theme("default/snapshots/2/"), StringComparison.OrdinalIgnoreCase));
 
         _storage.BeforeWrite = null;
-        var publication = await publisher.PublishAsync("s1", catalog, null, Ct);
+        var publication = await publisher.PublishAsync(StoreId, catalog, null, Ct);
 
-        status = await publisher.GetStatusAsync("s1", Ct);
+        status = await publisher.GetStatusAsync(StoreId, Ct);
         Assert.Equal(publication, status.Publication);
         Assert.Empty(status.Drafts);
-        Assert.Equal(Template("related-products"), _storage.Files[Header]);
-        Assert.Equal(Template("product-info", "related-products"), _storage.Files[Product]);
+        Assert.Equal(Template("related-products"), _storage.Files[Theme(Header)]);
+        Assert.Equal(Template("product-info", "related-products"), _storage.Files[Theme(Product)]);
         Assert.Equal(2, Assert.Single(history.Records).Record.Entries.Count);
         Assert.Equal(versions, await ReadVersionsAsync());
     }
@@ -194,12 +198,12 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     {
         var catalog = await PublishedWithDraftsAsync();
         _storage.BeforeWrite = x => ThrowOn(x, Pointer);
-        await Assert.ThrowsAsync<IOException>(() => Publisher(new NoContentHistory()).PublishAsync("s1", catalog, null, Ct));
+        await Assert.ThrowsAsync<IOException>(() => Publisher(new NoContentHistory()).PublishAsync(StoreId, catalog, null, Ct));
         _storage.BeforeWrite = null;
 
-        _storage.Files[Pointer] = "{";
+        _storage.Files[Theme(Pointer)] = "{";
 
-        Assert.Equal(1, await (await _storageFactory.OpenAsync("s1")).GetCurrentPublicationAsync());
+        Assert.Equal(1, await (await _storageFactory.OpenAsync(StoreId)).GetCurrentPublicationAsync());
     }
 
     [Fact]
@@ -209,10 +213,10 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         _storage.BeforeWrite = x => ThrowOn(x, Pointer);
         _storage.BeforeRemove = x => ThrowOn(x, Record(2));
 
-        var exception = await Assert.ThrowsAsync<IOException>(() => Publisher(new NoContentHistory()).PublishAsync("s1", catalog, null, Ct));
+        var exception = await Assert.ThrowsAsync<IOException>(() => Publisher(new NoContentHistory()).PublishAsync(StoreId, catalog, null, Ct));
 
         Assert.Contains(Pointer, exception.Message);
-        Assert.Equal(1, (await Publisher(new NoContentHistory()).GetStatusAsync("s1", Ct)).Publication);
+        Assert.Equal(1, (await Publisher(new NoContentHistory()).GetStatusAsync(StoreId, Ct)).Publication);
     }
 
     [Fact]
@@ -226,18 +230,18 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
             writes[file] = writes.GetValueOrDefault(file) + 1;
             ThrowOn(file, Pointer);
             // The second write of this file is the put-back.
-            if (string.Equals(file, Product, StringComparison.OrdinalIgnoreCase) && writes[file] == 2)
+            if (string.Equals(file, Theme(Product), StringComparison.OrdinalIgnoreCase) && writes[file] == 2)
             {
                 throw new IOException("the put-back is refused too");
             }
         };
 
-        var exception = await Assert.ThrowsAsync<IOException>(() => publisher.PublishAsync("s1", catalog, null, Ct));
+        var exception = await Assert.ThrowsAsync<IOException>(() => publisher.PublishAsync(StoreId, catalog, null, Ct));
 
         Assert.Contains(Pointer, exception.Message);
-        Assert.Equal(Template("product-info"), _storage.Files[Header]);
-        Assert.Equal(Template("product-info", "related-products"), _storage.Files[Product]);
-        Assert.Equal(1, (await publisher.GetStatusAsync("s1", Ct)).Publication);
+        Assert.Equal(Template("product-info"), _storage.Files[Theme(Header)]);
+        Assert.Equal(Template("product-info", "related-products"), _storage.Files[Theme(Product)]);
+        Assert.Equal(1, (await publisher.GetStatusAsync(StoreId, Ct)).Publication);
     }
 
     [Fact]
@@ -248,13 +252,13 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         var publisher = Publisher(history);
         _lock.LoseLocks = true;
 
-        await Assert.ThrowsAsync<DistributedLockLostException>(() => publisher.PublishAsync("s1", catalog, null, Ct));
+        await Assert.ThrowsAsync<DistributedLockLostException>(() => publisher.PublishAsync(StoreId, catalog, null, Ct));
 
-        var status = await publisher.GetStatusAsync("s1", Ct);
+        var status = await publisher.GetStatusAsync(StoreId, Ct);
         Assert.Equal(1, status.Publication);
         Assert.Equal(["sections/header-group.json", "templates/product.json"], status.Drafts.Order());
-        Assert.Equal(Template("product-info"), _storage.Files[Header]);
-        Assert.Equal(Template("product-info"), _storage.Files[Product]);
+        Assert.Equal(Template("product-info"), _storage.Files[Theme(Header)]);
+        Assert.Equal(Template("product-info"), _storage.Files[Theme(Product)]);
         Assert.Empty(history.Records);
     }
 
@@ -267,32 +271,32 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         var publisher = Publisher(history);
         _storage.BeforeRemove = x => ThrowOn(x, Product + "-draft");
 
-        var publication = await publisher.PublishAsync("s1", catalog, null, Ct);
+        var publication = await publisher.PublishAsync(StoreId, catalog, null, Ct);
 
-        var status = await publisher.GetStatusAsync("s1", Ct);
+        var status = await publisher.GetStatusAsync(StoreId, Ct);
         Assert.Equal((2, 2), (publication, status.Publication));
         Assert.Equal(["templates/product.json"], status.Drafts);
-        Assert.Equal(_storage.Files[Product], _storage.Files[Product + "-draft"]);
+        Assert.Equal(_storage.Files[Theme(Product)], _storage.Files[Theme(Product + "-draft")]);
         Assert.Equal([$"theme:{Header}", $"theme:{Product}"], Assert.Single(history.Records).Record.Entries.Select(x => x.Item.ToString()).Order());
         Assert.Single(_storage.Events);
         Assert.Equal(versions, await ReadVersionsAsync());
 
         _storage.BeforeRemove = null;
-        Assert.Equal(3, await publisher.PublishAsync("s1", catalog, null, Ct));
-        Assert.Empty((await publisher.GetStatusAsync("s1", Ct)).Drafts);
-        Assert.Equal(Template("product-info", "related-products"), _storage.Files[Product]);
+        Assert.Equal(3, await publisher.PublishAsync(StoreId, catalog, null, Ct));
+        Assert.Empty((await publisher.GetStatusAsync(StoreId, Ct)).Drafts);
+        Assert.Equal(Template("product-info", "related-products"), _storage.Files[Theme(Product)]);
         Assert.Equal(versions, await ReadVersionsAsync());
     }
 
     [Fact]
     public async Task GetStatusAsync_BeforeFirstPublication_ListsDraftsWithoutPublication()
     {
-        _storage.Files[Product] = Template("product-info");
-        _storage.Files["default/templates/product.b2c.json-draft"] = Template("product-info");
-        _storage.Files["default/sections/header-group.json-draft"] = """{ "content": [] }""";
-        _storage.Files["default/config/settings_data.json"] = "{}";
+        _storage.Files[Theme(Product)] = Template("product-info");
+        _storage.Files[Theme("default/templates/product.b2c.json-draft")] = Template("product-info");
+        _storage.Files[Theme("default/sections/header-group.json-draft")] = """{ "content": [] }""";
+        _storage.Files[Theme("default/config/settings_data.json")] = "{}";
 
-        var status = await _publisher.GetStatusAsync("s1", Ct);
+        var status = await _publisher.GetStatusAsync(StoreId, Ct);
 
         Assert.Null(status.Publication);
         Assert.Equal(["sections/header-group.json", "templates/product.b2c.json"], status.Drafts.Order());
@@ -301,14 +305,14 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     [Fact]
     public async Task GetStatusAsync_AfterPublication_ReturnsPublicationAndNoDrafts()
     {
-        _storage.Files[Product + "-draft"] = Template("product-info");
-        _storage.Files["default/config/template_rules.json-draft"] = """{ "version": 1 }""";
+        _storage.Files[Theme(Product + "-draft")] = Template("product-info");
+        _storage.Files[Theme("default/config/template_rules.json-draft")] = """{ "version": 1 }""";
         var catalog = await SaveCatalogAsync("product-info");
-        Assert.Equal(["config/template_rules.json", "templates/product.json"], (await _publisher.GetStatusAsync("s1", Ct)).Drafts.Order());
+        Assert.Equal(["config/template_rules.json", "templates/product.json"], (await _publisher.GetStatusAsync(StoreId, Ct)).Drafts.Order());
 
-        var publication = await _publisher.PublishAsync("s1", catalog, null, Ct);
+        var publication = await _publisher.PublishAsync(StoreId, catalog, null, Ct);
 
-        var status = await _publisher.GetStatusAsync("s1", Ct);
+        var status = await _publisher.GetStatusAsync(StoreId, Ct);
         Assert.Equal(publication, status.Publication);
         Assert.Empty(status.Drafts);
     }
@@ -318,7 +322,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     {
         var catalog = await SaveCatalogAsync("product-info", "site-header");
 
-        await _publisher.ValidateFilesAsync("s1", catalog, new Dictionary<string, JToken>
+        await _publisher.ValidateFilesAsync(StoreId, catalog, new Dictionary<string, JToken>
         {
             ["templates/product.json"] = JToken.Parse(Template("product-info")),
             ["sections/header-group.json"] = JToken.Parse(Template("site-header")),
@@ -335,8 +339,9 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         var catalog = await SaveCatalogAsync("product-info");
 
         var failure = await Assert.ThrowsAsync<ThemeValidationException>(() =>
-            _publisher.ValidateFilesAsync("s1", catalog, new Dictionary<string, JToken> { [file] = JToken.Parse(Template("product-info", "carousel")) }, Ct));
+            _publisher.ValidateFilesAsync(StoreId, catalog, new Dictionary<string, JToken> { [file] = JToken.Parse(Template("product-info", "carousel")) }, Ct));
 
+        Assert.StartsWith($"{file}:", failure.Errors.Single());
         Assert.Contains("'carousel'", failure.Errors.Single());
     }
 
@@ -344,7 +349,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     public async Task ValidateFilesAsync_UnknownCatalogHash_Throws()
     {
         var failure = await Assert.ThrowsAsync<ThemeValidationException>(() =>
-            _publisher.ValidateFilesAsync("s1", "missing123", new Dictionary<string, JToken> { ["templates/product.json"] = JToken.Parse(Template("product-info")) }, Ct));
+            _publisher.ValidateFilesAsync(StoreId, "missing123", new Dictionary<string, JToken> { ["templates/product.json"] = JToken.Parse(Template("product-info")) }, Ct));
 
         Assert.Contains("missing123", failure.Errors.Single());
     }
@@ -352,43 +357,43 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     [Fact]
     public async Task PublishAsync_CatalogRefusesDraft_WritesNothing()
     {
-        await _catalogs.SaveAsync("s1", """{ "hash": "abc12345", "sections": { "product-info": {} }, "blocks": {}, "shared": {} }""", Ct);
-        _storage.Files[Product + "-draft"] = Template("product-info", "carousel");
+        await _catalogs.SaveAsync(StoreId, """{ "hash": "abc12345", "sections": { "product-info": {} }, "blocks": {}, "shared": {} }""", Ct);
+        _storage.Files[Theme(Product + "-draft")] = Template("product-info", "carousel");
         _storage.Written.Clear();
 
-        var failure = await Assert.ThrowsAsync<ThemeValidationException>(() => _publisher.PublishAsync("s1", "abc12345", null, Ct));
+        var failure = await Assert.ThrowsAsync<ThemeValidationException>(() => _publisher.PublishAsync(StoreId, "abc12345", null, Ct));
 
         Assert.Contains("'carousel'", failure.Errors.Single());
         Assert.Empty(_storage.Written);
-        Assert.True(_storage.Files.ContainsKey(Product + "-draft"));
+        Assert.True(_storage.Files.ContainsKey(Theme(Product + "-draft")));
     }
 
     [Fact]
     public async Task PublishAsync_DraftWithValueTheCatalogLacks_ThrowsAndWritesNothing()
     {
-        await _catalogs.SaveAsync("s1", """
+        await _catalogs.SaveAsync(StoreId, """
             {
               "hash": "abc12345",
               "sections": { "product-info": { "settings": [ { "id": "background", "type": "color-token" } ] } },
               "paletteTokens": { "light": [ "color_primary_500" ], "dark": [] }
             }
             """, Ct);
-        _storage.Files[Product + "-draft"] = """{ "content": [ { "id": "s0", "type": "product-info", "background": "#ff0000" } ] }""";
+        _storage.Files[Theme(Product + "-draft")] = """{ "content": [ { "id": "s0", "type": "product-info", "background": "#ff0000" } ] }""";
         _storage.Written.Clear();
 
-        var failure = await Assert.ThrowsAsync<ThemeValidationException>(() => _publisher.PublishAsync("s1", "abc12345", null, Ct));
+        var failure = await Assert.ThrowsAsync<ThemeValidationException>(() => _publisher.PublishAsync(StoreId, "abc12345", null, Ct));
 
         Assert.Equal("templates/product.json: 's0' has a value in 'background' the storefront does not have, '#ff0000'", failure.Errors.Single());
         Assert.Empty(_storage.Written);
-        Assert.True(_storage.Files.ContainsKey(Product + "-draft"));
+        Assert.True(_storage.Files.ContainsKey(Theme(Product + "-draft")));
     }
 
     [Fact]
     public async Task PublishAsync_NoCatalogHash_ThrowsAndWritesNothing()
     {
-        _storage.Files[Product + "-draft"] = Template("product-info");
+        _storage.Files[Theme(Product + "-draft")] = Template("product-info");
 
-        var failure = await Assert.ThrowsAsync<ThemeValidationException>(() => _publisher.PublishAsync("s1", null, null, Ct));
+        var failure = await Assert.ThrowsAsync<ThemeValidationException>(() => _publisher.PublishAsync(StoreId, null, null, Ct));
 
         Assert.Contains("catalog", failure.Errors.Single());
         Assert.Empty(_storage.Written);
@@ -397,14 +402,14 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     [Fact]
     public async Task GetPublishedAsync_FirstPublication_FindsMenusThroughCurrentCatalog()
     {
-        await _catalogs.SaveAsync("s1", """
+        await _catalogs.SaveAsync(StoreId, """
             { "hash": "abc12345", "sections": { "site-header": { "settings": [ { "id": "menu", "type": "menu" } ] } } }
             """, Ct);
-        _storage.Files["default/sections/header-group.json"] = """
+        _storage.Files[Theme("default/sections/header-group.json")] = """
             { "content": [ { "id": "h", "type": "site-header", "menu": "main-menu" } ] }
             """;
 
-        var snapshot = await _snapshots.GetPublishedAsync("s1", null, Ct);
+        var snapshot = await _snapshots.GetPublishedAsync(StoreId, null, Ct);
 
         Assert.Equal(["main-menu"], snapshot.Menus);
         // Validated against no catalog because the live files may predate the storefront's schemas.
@@ -414,7 +419,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     [Fact]
     public async Task PublishAsync_UnknownCatalogHash_Throws()
     {
-        var failure = await Assert.ThrowsAsync<ThemeValidationException>(() => _publisher.PublishAsync("s1", "missing123", null, Ct));
+        var failure = await Assert.ThrowsAsync<ThemeValidationException>(() => _publisher.PublishAsync(StoreId, "missing123", null, Ct));
 
         Assert.Contains("missing123", failure.Errors.Single());
     }
@@ -422,26 +427,26 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     [Fact]
     public async Task GetPublishedAsync_AfterPublication_ReturnsNewPublication()
     {
-        _storage.Files[Product] = Template("product-info");
-        Assert.Equal(1, (await _snapshots.GetPublishedAsync("s1", "en-US", Ct)).Publication);
+        _storage.Files[Theme(Product)] = Template("product-info");
+        Assert.Equal(1, (await _snapshots.GetPublishedAsync(StoreId, "en-US", Ct)).Publication);
 
-        _storage.Files[Product + "-draft"] = Template("product-info", "related-products");
-        await _publisher.PublishAsync("s1", await SaveCatalogAsync("product-info", "related-products"), null, Ct);
+        _storage.Files[Theme(Product + "-draft")] = Template("product-info", "related-products");
+        await _publisher.PublishAsync(StoreId, await SaveCatalogAsync("product-info", "related-products"), null, Ct);
 
-        Assert.Equal(2, (await _snapshots.GetPublishedAsync("s1", "en-US", Ct)).Publication);
+        Assert.Equal(2, (await _snapshots.GetPublishedAsync(StoreId, "en-US", Ct)).Publication);
     }
 
     [Fact]
     public async Task PublishAsync_ThemeSaveRunning_WaitsForStoreLock()
     {
-        _storage.Files[Product + "-draft"] = Template("product-info");
+        _storage.Files[Theme(Product + "-draft")] = Template("product-info");
         var catalog = await SaveCatalogAsync("product-info");
-        var save = await _lock.AcquireAsync(ThemeStorage.GetLockResource("s1"), cancellationToken: Ct);
+        var save = await _lock.AcquireAsync(ThemeStorage.GetLockResource(StoreId), cancellationToken: Ct);
 
-        var publication = _publisher.PublishAsync("s1", catalog, null, Ct);
+        var publication = _publisher.PublishAsync(StoreId, catalog, null, Ct);
 
-        Assert.Equal(ThemeStorage.GetLockResource("s1"), await _lock.Blocked.Task.WaitAsync(TimeSpan.FromSeconds(5), Ct));
-        Assert.DoesNotContain(_storage.Written, x => x.StartsWith("default/snapshots/", StringComparison.Ordinal));
+        Assert.Equal(ThemeStorage.GetLockResource(StoreId), await _lock.Blocked.Task.WaitAsync(TimeSpan.FromSeconds(5), Ct));
+        Assert.DoesNotContain(_storage.Written, x => x.StartsWith(Theme("default/snapshots/"), StringComparison.Ordinal));
 
         save.Dispose();
         Assert.Equal(1, await publication);
@@ -452,43 +457,43 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     {
         using var uncached = new TestPlatformMemoryCache(() => new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromTicks(1) });
         var snapshots = Snapshots(uncached);
-        _storage.Files[Product] = Template("product-info");
-        await snapshots.GetPublishedAsync("s1", "en-US", Ct);
+        _storage.Files[Theme(Product)] = Template("product-info");
+        await snapshots.GetPublishedAsync(StoreId, "en-US", Ct);
         // Read once more, because the first read published, which resets what it would have kept.
-        var read = await snapshots.GetPublishedAsync("s1", "en-US", Ct);
+        var read = await snapshots.GetPublishedAsync(StoreId, "en-US", Ct);
 
-        _storage.Files["default/snapshots/1/en-US.json"] = read.Content.Replace("product-info", "related-products");
+        _storage.Files[Theme("default/snapshots/1/en-US.json")] = read.Content.Replace("product-info", "related-products");
 
-        Assert.Contains("related-products", (await snapshots.GetPublishedAsync("s1", "en-US", Ct)).Content);
+        Assert.Contains("related-products", (await snapshots.GetPublishedAsync(StoreId, "en-US", Ct)).Content);
     }
 
     [Fact]
     public async Task GetPublishedAsync_UnpublishableLiveFiles_CachesFailureUntilReset()
     {
         const string header = "default/sections/header-group.json";
-        _storage.Files[header] = """{ "content": [ { "type": "banner" } ] }""";
-        await Assert.ThrowsAsync<ThemeValidationException>(() => _snapshots.GetPublishedAsync("s1", "en-US", Ct));
+        _storage.Files[Theme(header)] = """{ "content": [ { "type": "banner" } ] }""";
+        await Assert.ThrowsAsync<ThemeValidationException>(() => _snapshots.GetPublishedAsync(StoreId, "en-US", Ct));
 
         _lock.Hold();
-        await Assert.ThrowsAsync<ThemeValidationException>(() => _snapshots.GetPublishedAsync("s1", "de-DE", Ct).WaitAsync(TimeSpan.FromSeconds(5), Ct));
+        await Assert.ThrowsAsync<ThemeValidationException>(() => _snapshots.GetPublishedAsync(StoreId, "de-DE", Ct).WaitAsync(TimeSpan.FromSeconds(5), Ct));
         _lock.Release();
 
-        _storage.Files[header] = """{ "content": [ { "id": "h", "type": "banner" } ] }""";
-        ThemeSnapshotCacheRegion.ExpireTokenForKey("s1");
-        Assert.Equal(1, (await _snapshots.GetPublishedAsync("s1", "en-US", Ct)).Publication);
+        _storage.Files[Theme(header)] = """{ "content": [ { "id": "h", "type": "banner" } ] }""";
+        ThemeSnapshotCacheRegion.ExpireTokenForKey(StoreId);
+        Assert.Equal(1, (await _snapshots.GetPublishedAsync(StoreId, "en-US", Ct)).Publication);
     }
 
     [Fact]
     public async Task GetPublishedAsync_TruncatedPointer_ReturnsHighestCompletePublication()
     {
-        _storage.Files[Product] = Template("product-info");
-        await _snapshots.GetPublishedAsync("s1", null, Ct);
-        _storage.Files[Product + "-draft"] = Template("product-info", "related-products");
-        await _publisher.PublishAsync("s1", await SaveCatalogAsync("product-info", "related-products"), null, Ct);
-        _storage.Files[Pointer] = "{ \"publicat";
+        _storage.Files[Theme(Product)] = Template("product-info");
+        await _snapshots.GetPublishedAsync(StoreId, null, Ct);
+        _storage.Files[Theme(Product + "-draft")] = Template("product-info", "related-products");
+        await _publisher.PublishAsync(StoreId, await SaveCatalogAsync("product-info", "related-products"), null, Ct);
+        _storage.Files[Theme(Pointer)] = "{ \"publicat";
         using var emptyCache = new TestPlatformMemoryCache();
 
-        var snapshot = await Snapshots(emptyCache).GetPublishedAsync("s1", null, Ct);
+        var snapshot = await Snapshots(emptyCache).GetPublishedAsync(StoreId, null, Ct);
 
         Assert.Equal(2, snapshot.Publication);
     }
@@ -496,15 +501,15 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     [Fact]
     public async Task GetPublishedAsync_TruncatedPointerAndRecord_SkipsIncompletePublication()
     {
-        _storage.Files[Product] = Template("product-info");
-        await _snapshots.GetPublishedAsync("s1", null, Ct);
-        _storage.Files["default/snapshots/2/de-DE.json"] = "{}";
-        _storage.Files["default/snapshots/2/en-US.json"] = "{}";
-        _storage.Files[Record(2)] = "{\"defaultLangu";
-        _storage.Files[Pointer] = "{ \"publicat";
+        _storage.Files[Theme(Product)] = Template("product-info");
+        await _snapshots.GetPublishedAsync(StoreId, null, Ct);
+        _storage.Files[Theme("default/snapshots/2/de-DE.json")] = "{}";
+        _storage.Files[Theme("default/snapshots/2/en-US.json")] = "{}";
+        _storage.Files[Theme(Record(2))] = "{\"defaultLangu";
+        _storage.Files[Theme(Pointer)] = "{ \"publicat";
         using var emptyCache = new TestPlatformMemoryCache();
 
-        var snapshot = await Snapshots(emptyCache).GetPublishedAsync("s1", null, Ct);
+        var snapshot = await Snapshots(emptyCache).GetPublishedAsync(StoreId, null, Ct);
 
         Assert.Equal(1, snapshot.Publication);
     }
@@ -512,12 +517,12 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     [Fact]
     public async Task GetPublishedAsync_StoreDefaultWithoutFile_ReturnsPublicationDefault()
     {
-        _storage.Files[Product] = Template("product-info");
-        await _snapshots.GetPublishedAsync("s1", null, Ct);
+        _storage.Files[Theme(Product)] = Template("product-info");
+        await _snapshots.GetPublishedAsync(StoreId, null, Ct);
         _store.Languages = ["en-US", "de-DE", "fr-FR"];
         _store.DefaultLanguage = "fr-FR";
 
-        var snapshot = await _snapshots.GetPublishedAsync("s1", null, Ct);
+        var snapshot = await _snapshots.GetPublishedAsync(StoreId, null, Ct);
 
         Assert.Equal((1, "en-US"), (snapshot.Publication, snapshot.CultureName));
     }
@@ -525,13 +530,13 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     [Fact]
     public async Task GetPublishedAsync_TruncatedPointerAfterDefaultLanguageChanged_ReturnsCompletePublication()
     {
-        _storage.Files[Product] = Template("product-info");
-        await _snapshots.GetPublishedAsync("s1", null, Ct);
+        _storage.Files[Theme(Product)] = Template("product-info");
+        await _snapshots.GetPublishedAsync(StoreId, null, Ct);
         _store.Languages = ["en-US", "de-DE", "fr-FR"];
         _store.DefaultLanguage = "fr-FR";
-        _storage.Files[Pointer] = "{ \"publicat";
+        _storage.Files[Theme(Pointer)] = "{ \"publicat";
 
-        var snapshot = await _snapshots.GetPublishedAsync("s1", null, Ct);
+        var snapshot = await _snapshots.GetPublishedAsync(StoreId, null, Ct);
 
         Assert.Equal((1, "en-US"), (snapshot.Publication, snapshot.CultureName));
     }
@@ -539,11 +544,11 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     [Fact]
     public async Task GetPublishedAsync_TruncatedPointerWithoutCompletePublication_PublishesLiveThemeAgain()
     {
-        _storage.Files[Product] = Template("product-info");
-        _storage.Files["default/snapshots/1/de-DE.json"] = "{}";
-        _storage.Files[Pointer] = "{ \"publicat";
+        _storage.Files[Theme(Product)] = Template("product-info");
+        _storage.Files[Theme("default/snapshots/1/de-DE.json")] = "{}";
+        _storage.Files[Theme(Pointer)] = "{ \"publicat";
 
-        var snapshot = await _snapshots.GetPublishedAsync("s1", null, Ct);
+        var snapshot = await _snapshots.GetPublishedAsync(StoreId, null, Ct);
 
         Assert.Equal((2, "en-US"), (snapshot.Publication, snapshot.CultureName));
         Assert.Equal(["product-info"], Sections(snapshot, "product"));
@@ -568,32 +573,8 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         Assert.Equal("de-AT", _snapshots.ResolveLanguagePublic(["de-DE", "de-AT"], "de-AT", "de"));
     }
 
-    [Fact]
-    public async Task SaveAsync_SameHashTwice_KeepsFirstContentAndMakesItCurrent()
-    {
-        await _catalogs.SaveAsync("s1", """{ "hash": "abc12345", "sections": { "a": {} } }""", Ct);
-        await _catalogs.SaveAsync("s1", """{ "hash": "abc12345", "sections": { "b": {} } }""", Ct);
-
-        Assert.NotNull(JObject.Parse(await _catalogs.GetAsync("s1", "abc12345", Ct))["sections"]!["a"]);
-        Assert.Equal(await _catalogs.GetAsync("s1", "abc12345", Ct), await _catalogs.GetAsync("s1", null, Ct));
-        await Assert.ThrowsAsync<ArgumentException>(() => _catalogs.SaveAsync("s1", """{ "hash": "../x" }""", Ct));
-    }
-
-    [Theory]
-    [InlineData("""{ "hash": {} }""")]
-    [InlineData("""{ "hash": ["abc12345"] }""")]
-    [InlineData("""{ "hash": "abc12345", "sections": [] }""")]
-    [InlineData("""{ "hash": "abc12345", "blocks": "banner" }""")]
-    [InlineData("""{ "hash": "abc12345", "shared": { "_sections": [] } }""")]
-    public async Task SaveAsync_UnreadableCatalog_ThrowsAndKeepsNothing(string catalog)
-    {
-        await Assert.ThrowsAsync<ArgumentException>(() => _catalogs.SaveAsync("s1", catalog, Ct));
-
-        Assert.Null(await _catalogs.GetAsync("s1", null, Ct));
-    }
-
     private Task<string> SaveCatalogAsync(params string[] sections) =>
-        _catalogs.SaveAsync("s1", new JObject
+        _catalogs.SaveAsync(StoreId, new JObject
         {
             ["hash"] = "catalog-" + string.Join('-', sections),
             ["sections"] = new JObject(sections.Select(x => new JProperty(x, new JObject()))),
@@ -614,11 +595,11 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
             }
         };
 
-        await Assert.ThrowsAnyAsync<Exception>(() => publisher.PublishAsync("s1", catalog, null, Ct));
+        await Assert.ThrowsAnyAsync<Exception>(() => publisher.PublishAsync(StoreId, catalog, null, Ct));
 
         var written = Assert.Single(liveWrites);
         Assert.Equal(_storage.Files[written + "-draft"], _storage.Files[written]);
-        var status = await publisher.GetStatusAsync("s1", Ct);
+        var status = await publisher.GetStatusAsync(StoreId, Ct);
         Assert.Equal(1, status.Publication);
         Assert.Equal(2, status.Drafts.Count);
     }
@@ -637,19 +618,19 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
             }
         };
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => publisher.PublishAsync("s1", catalog, null, request.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => publisher.PublishAsync(StoreId, catalog, null, request.Token));
 
-        Assert.Equal(Template("product-info"), _storage.Files[Header]);
-        Assert.Equal(Template("product-info"), _storage.Files[Product]);
+        Assert.Equal(Template("product-info"), _storage.Files[Theme(Header)]);
+        Assert.Equal(Template("product-info"), _storage.Files[Theme(Product)]);
     }
 
     [Fact]
     public async Task GetStatusAsync_DraftWithNothingLive_IsListedAsNew()
     {
         await PublishedWithDraftsAsync();
-        _storage.Files["default/templates/product.sale.json-draft"] = Template("product-info");
+        _storage.Files[Theme("default/templates/product.sale.json-draft")] = Template("product-info");
 
-        var status = await _publisher.GetStatusAsync("s1", Ct);
+        var status = await _publisher.GetStatusAsync(StoreId, Ct);
 
         Assert.Equal(3, status.Drafts.Count);
         Assert.Equal(["templates/product.sale.json"], status.NewDrafts);
@@ -658,23 +639,23 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     [Fact]
     public async Task GetPublishedAsync_CacheLifetimeZero_StillAnswers()
     {
-        _storage.Files[Product] = Template("product-info");
+        _storage.Files[Theme(Product)] = Template("product-info");
         var snapshots = new TestThemeSnapshotService(_stores, _settings, _storageFactory, _publisher, _cache,
             Options.Create(new ThemeSnapshotOptions { CacheAbsoluteExpiration = TimeSpan.Zero }));
 
-        Assert.NotNull(await snapshots.GetPublishedAsync("s1", null, Ct));
+        Assert.NotNull(await snapshots.GetPublishedAsync(StoreId, null, Ct));
     }
 
     private static bool IsLiveFile(string file) =>
-        string.Equals(file, Header, StringComparison.OrdinalIgnoreCase) || string.Equals(file, Product, StringComparison.OrdinalIgnoreCase);
+        string.Equals(file, Theme(Header), StringComparison.OrdinalIgnoreCase) || string.Equals(file, Theme(Product), StringComparison.OrdinalIgnoreCase);
 
     private async Task<string> PublishedWithDraftsAsync()
     {
-        _storage.Files[Product] = Template("product-info");
-        _storage.Files[Header] = Template("product-info");
-        await _snapshots.GetPublishedAsync("s1", null, Ct);
-        _storage.Files[Product + "-draft"] = Template("product-info", "related-products");
-        _storage.Files[Header + "-draft"] = Template("related-products");
+        _storage.Files[Theme(Product)] = Template("product-info");
+        _storage.Files[Theme(Header)] = Template("product-info");
+        await _snapshots.GetPublishedAsync(StoreId, null, Ct);
+        _storage.Files[Theme(Product + "-draft")] = Template("product-info", "related-products");
+        _storage.Files[Theme(Header + "-draft")] = Template("related-products");
         var catalog = await SaveCatalogAsync("product-info", "related-products");
         _storage.Events.Clear();
 
@@ -685,12 +666,12 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     {
         var drafts = new ThemeDraftService(_storageFactory, _lock, _storage, NullLogger<ThemeDraftService>.Instance);
 
-        return [(await drafts.ReadAsync("s1", Product, Ct)).ETag, (await drafts.ReadAsync("s1", Header, Ct)).ETag];
+        return [(await drafts.ReadAsync(StoreId, Product, Ct)).ETag, (await drafts.ReadAsync(StoreId, Header, Ct)).ETag];
     }
 
     private static void ThrowOn(string file, string failingFile)
     {
-        if (string.Equals(file, failingFile, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(file, Theme(failingFile), StringComparison.OrdinalIgnoreCase))
         {
             throw new IOException($"{file} cannot be changed");
         }
@@ -702,6 +683,8 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
 
     private TestThemeSnapshotService Snapshots(TestPlatformMemoryCache cache) =>
         new(_stores, _settings, _storageFactory, _publisher, cache, Options.Create(new ThemeSnapshotOptions()));
+
+    private static string Theme(string path) => $"themes/{StoreId}/{path}";
 
     private static string Record(int publication) => $"default/snapshots/{publication}/publication.json";
 

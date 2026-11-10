@@ -14,6 +14,7 @@ internal static class PlatformJson
     {
         ContractResolver = new PolymorphJsonContractResolver(),
         Converters = [new StringEnumConverter()],
+        DateTimeZoneHandling = DateTimeZoneHandling.Utc,
         NullValueHandling = NullValueHandling.Ignore,
         Formatting = Formatting.None,
     };
@@ -28,6 +29,7 @@ internal static class PlatformJson
         {
             ContractResolver = Settings.ContractResolver,
             Converters = Settings.Converters,
+            DateTimeZoneHandling = Settings.DateTimeZoneHandling,
             NullValueHandling = NullValueHandling.Include,
         };
         return JsonConvert.SerializeObject(Assert.IsAssignableFrom<ObjectResult>(actionResult).Value, settings);

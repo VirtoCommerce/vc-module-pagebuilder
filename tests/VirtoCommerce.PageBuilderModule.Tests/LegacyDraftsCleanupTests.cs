@@ -34,6 +34,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
     public class LegacyDraftsCleanupTests
     {
         private const string Base = "Pages/vccom/";
+        private const string StoreRepository = "acme/site-vccom";
         private const string OnGit = """{ "settings": { "type": "settings", "name": "About" }, "content": [] }""";
 
         // The same document as OnGit, written the way the pre-git flow wrote it: four-space indent, CRLF.
@@ -399,7 +400,9 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 PagesRoot = "pages",
             });
 
-            var filePageDrafts = TestServices.FilePageDrafts(options, GitHubConnections.CreateService(options.Value), new FakeGitContentPolicy(gitFlow), git ?? new FakeGitRepository(), null, new FakeGitContentProvisioner(), new FakeStoreService(new Store { Id = "vccom" }), new FakePathResolver(), new FakeStorageFactory(storage), null, null);
+            // The store's own repository, not the shared one configured above, so a read from the wrong one finds nothing.
+            var policy = new FakeGitContentPolicy(gitFlow, repositoryFormat: "acme/site-{0}");
+            var filePageDrafts = TestServices.FilePageDrafts(options, GitHubConnections.CreateService(options.Value), policy, git ?? new FakeGitRepository(), null, new FakeGitContentProvisioner(), new FakeStoreService(new Store { Id = "vccom" }), new FakePathResolver(), new FakeStorageFactory(storage), null, null);
             var controller = new PageBuilderController(
                 storeService: new FakeStoreService(new Store { Id = "vccom" }),
                 pathResolver: new FakePathResolver(),
@@ -408,7 +411,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 eventPublisher: null,
                 gitContentOptions: options,
                 gitHubConnectionService: GitHubConnections.CreateService(options.Value),
-                gitContentPolicy: new FakeGitContentPolicy(gitFlow),
+                gitContentPolicy: policy,
                 gitContentRepository: git ?? new FakeGitRepository(),
                 gitContentHistory: null,
                 gitContentPublisher: null,
@@ -519,7 +522,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             public Dictionary<string, string> Files { get; } = [];
 
             public Task<string> ReadFileAsync(string repository, string path, string gitRef, CancellationToken cancellationToken = default) =>
-                Task.FromResult(Files.GetValueOrDefault(path));
+                Task.FromResult(repository == StoreRepository ? Files.GetValueOrDefault(path) : null);
 
             public Task<string> GetBranchHeadShaAsync(string repository, string branch, CancellationToken cancellationToken = default) =>
                 throw new NotSupportedException();

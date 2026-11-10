@@ -40,24 +40,28 @@ public class PageBuilderControllerThemeFilesTests
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
+    private static string Theme(string path) => $"themes/s1/{path}";
+
+    private static string Page(string path) => $"pages/s1/{path}";
+
     [Fact]
     public async Task SaveTemplates_ThemeFileOfGitStore_DoesNotCallGitHub()
     {
         Assert.IsType<OkObjectResult>(await Builder().SaveTemplates("s1", "default", HeaderGroup(), draft: true));
 
-        Assert.True(_live.Files.ContainsKey($"{Path}-draft"));
+        Assert.True(_live.Files.ContainsKey(Theme($"{Path}-draft")));
         Assert.Empty(_ownership.Asked);
     }
 
     [Fact]
     public async Task DiscardDraft_ThemeFileOfGitStore_DoesNotCallGitHub()
     {
-        _live.Files[Path] = "{}";
-        _live.Files[$"{Path}-draft"] = "{}";
+        _live.Files[Theme(Path)] = "{}";
+        _live.Files[Theme($"{Path}-draft")] = "{}";
 
         Assert.IsType<NoContentResult>(await Builder().DiscardDraft("s1", Path, "themes", "default"));
 
-        Assert.False(_live.Files.ContainsKey($"{Path}-draft"));
+        Assert.False(_live.Files.ContainsKey(Theme($"{Path}-draft")));
         Assert.Empty(_ownership.Asked);
     }
 
@@ -67,7 +71,7 @@ public class PageBuilderControllerThemeFilesTests
         var publisher = new GatedEventPublisher();
         var save = Builder(eventPublisher: publisher).SaveTemplates("s1", "default", HeaderGroup(), draft: true);
 
-        await publisher.Handling.Task.WaitAsync(TestContext.Current.CancellationToken);
+        await publisher.Handling.Task.WaitAsync(TimeSpan.FromSeconds(5), Ct);
         Assert.False(save.IsCompleted);
 
         publisher.Handled.SetResult();
@@ -77,12 +81,12 @@ public class PageBuilderControllerThemeFilesTests
     [Fact]
     public async Task DiscardDraft_StoreUserDoesNotWorkIn_ReturnsForbidAndKeepsDraft()
     {
-        _live.Files[Path] = "{}";
-        _live.Files[$"{Path}-draft"] = "{}";
+        _live.Files[Theme(Path)] = "{}";
+        _live.Files[Theme($"{Path}-draft")] = "{}";
 
-        Assert.IsType<ForbidResult>(await Builder(new FakeAuthorizationService(false)).DiscardDraft("s1", Path, "themes", "default"));
+        Assert.IsType<ForbidResult>(await Builder(new FakeAuthorizationService("s2", Permissions.Update, Permissions.Theme)).DiscardDraft("s1", Path, "themes", "default"));
 
-        Assert.True(_live.Files.ContainsKey($"{Path}-draft"));
+        Assert.True(_live.Files.ContainsKey(Theme($"{Path}-draft")));
     }
 
     [Theory]
@@ -98,19 +102,19 @@ public class PageBuilderControllerThemeFilesTests
 
         var saved = await Builder(new FakeAuthorizationService("s1", Permissions.Update, required)).SaveTemplates("s1", "default", ThemeFile(path), draft: true);
         Assert.IsType<OkObjectResult>(saved);
-        Assert.True(_live.Files.ContainsKey($"{path}-draft"));
+        Assert.True(_live.Files.ContainsKey(Theme($"{path}-draft")));
     }
 
     [Fact]
     public async Task DiscardDraft_ThemeFileWithoutThemePermission_ReturnsForbidAndKeepsDraft()
     {
-        _live.Files[Path] = "{}";
-        _live.Files[$"{Path}-draft"] = "{}";
+        _live.Files[Theme(Path)] = "{}";
+        _live.Files[Theme($"{Path}-draft")] = "{}";
 
         var result = await Builder(new FakeAuthorizationService("s1", Permissions.Update, Permissions.Templates)).DiscardDraft("s1", Path, "themes", "default");
 
         Assert.IsType<ForbidResult>(result);
-        Assert.True(_live.Files.ContainsKey($"{Path}-draft"));
+        Assert.True(_live.Files.ContainsKey(Theme($"{Path}-draft")));
     }
 
     [Fact]
@@ -123,7 +127,7 @@ public class PageBuilderControllerThemeFilesTests
         var body = PlatformJson.ParseBody(Assert.IsType<BadRequestObjectResult>(result));
         Assert.Contains("'carousel'", (string)body["errors"]!.Single());
         Assert.Contains("'carousel'", (string)body["error"]);
-        Assert.False(_live.Files.ContainsKey($"{Path}-draft"));
+        Assert.False(_live.Files.ContainsKey(Theme($"{Path}-draft")));
     }
 
     [Fact]
@@ -135,7 +139,7 @@ public class PageBuilderControllerThemeFilesTests
 
         var body = PlatformJson.ParseBody(Assert.IsType<BadRequestObjectResult>(result));
         Assert.Contains("missing123", (string)body["errors"]!.Single());
-        Assert.False(_live.Files.ContainsKey($"{Path}-draft"));
+        Assert.False(_live.Files.ContainsKey(Theme($"{Path}-draft")));
     }
 
     [Fact]
@@ -154,9 +158,9 @@ public class PageBuilderControllerThemeFilesTests
 
         Assert.IsType<OkObjectResult>(await Builder().SaveTemplates("s1", "default", files, draft: true, catalogHash: Catalog));
 
-        Assert.True(_live.Files.ContainsKey($"{Path}-draft"));
-        Assert.True(_live.Files.ContainsKey("default/templates/product.json-draft"));
-        Assert.True(_live.Files.ContainsKey("default/config/template_rules.json-draft"));
+        Assert.True(_live.Files.ContainsKey(Theme($"{Path}-draft")));
+        Assert.True(_live.Files.ContainsKey(Theme("default/templates/product.json-draft")));
+        Assert.True(_live.Files.ContainsKey(Theme("default/config/template_rules.json-draft")));
     }
 
     [Fact]
@@ -181,7 +185,7 @@ public class PageBuilderControllerThemeFilesTests
     {
         Assert.IsType<OkObjectResult>(await Builder().SaveTemplates("s1", "default", HeaderGroup("carousel"), draft: true));
 
-        Assert.True(_live.Files.ContainsKey($"{Path}-draft"));
+        Assert.True(_live.Files.ContainsKey(Theme($"{Path}-draft")));
     }
 
     [Fact]
@@ -193,6 +197,7 @@ public class PageBuilderControllerThemeFilesTests
 
         Assert.Contains("theme/publish", (string)PlatformJson.ParseBody(Assert.IsType<BadRequestObjectResult>(result))["error"]);
         Assert.Empty(_live.Files);
+        Assert.Equal((ModuleConstants.Settings.StoreSettingsObjectType, "s1"), (_settings.AskedObjectType, _settings.AskedObjectId));
     }
 
     [Fact]
@@ -202,8 +207,8 @@ public class PageBuilderControllerThemeFilesTests
 
         Assert.IsType<OkObjectResult>(await Builder().SaveTemplates("s1", "default", HeaderGroup("site-header"), draft: true));
 
-        Assert.True(_live.Files.ContainsKey($"{Path}-draft"));
-        Assert.False(_live.Files.ContainsKey(Path));
+        Assert.True(_live.Files.ContainsKey(Theme($"{Path}-draft")));
+        Assert.False(_live.Files.ContainsKey(Theme(Path)));
     }
 
     [Fact]
@@ -213,7 +218,8 @@ public class PageBuilderControllerThemeFilesTests
 
         Assert.IsType<OkResult>(await Builder().SaveTemplates("s1", "default", HeaderGroup("site-header"), draft: false));
 
-        Assert.True(_live.Files.ContainsKey(Path));
+        Assert.True(_live.Files.ContainsKey(Theme(Path)));
+        Assert.Equal((ModuleConstants.Settings.StoreSettingsObjectType, "s1"), (_settings.AskedObjectType, _settings.AskedObjectId));
     }
 
     [Fact]
@@ -227,7 +233,7 @@ public class PageBuilderControllerThemeFilesTests
 
         Assert.IsType<OkResult>(await Builder().SaveTemplates("s1", "default", page, draft: false));
 
-        Assert.True(_live.Files.ContainsKey("home.page"));
+        Assert.True(_live.Files.ContainsKey(Page("home.page")));
     }
 
     [Fact]
@@ -263,7 +269,7 @@ public class PageBuilderControllerThemeFilesTests
         Assert.Equal(ModuleConstants.GitHistory.SavedSummary, record.Description);
         Assert.Equal([$"theme:{Path}", "theme:default/config/template_rules.json"], record.Entries.Select(x => x.Item.ToString()));
         // The history tells the published version by these bytes.
-        Assert.Equal(_live.Files[$"{Path}-draft"], record.Entries[0].Content);
+        Assert.Equal(_live.Files[Theme($"{Path}-draft")], record.Entries[0].Content);
     }
 
     [Fact]
@@ -285,8 +291,8 @@ public class PageBuilderControllerThemeFilesTests
     public async Task DiscardDraft_ThemeFile_RecordsThePublishedFile()
     {
         var history = new RecordingContentHistory();
-        _live.Files[Path] = "published";
-        _live.Files[$"{Path}-draft"] = "{}";
+        _live.Files[Theme(Path)] = "published";
+        _live.Files[Theme($"{Path}-draft")] = "{}";
 
         await Builder(history: history).DiscardDraft("s1", Path, "themes", "default");
 
@@ -299,12 +305,12 @@ public class PageBuilderControllerThemeFilesTests
     public async Task DiscardDraft_ThemeFileNeverPublished_ReturnsConflictAndKeepsTheDraft()
     {
         var history = new RecordingContentHistory();
-        _live.Files[$"{Path}-draft"] = "{}";
+        _live.Files[Theme($"{Path}-draft")] = "{}";
 
         var result = await Builder(history: history).DiscardDraft("s1", Path, "themes", "default");
 
         Assert.IsType<ConflictObjectResult>(result);
-        Assert.True(_live.Files.ContainsKey($"{Path}-draft"));
+        Assert.True(_live.Files.ContainsKey(Theme($"{Path}-draft")));
         Assert.Empty(history.Records);
     }
 
@@ -312,7 +318,7 @@ public class PageBuilderControllerThemeFilesTests
     public async Task DiscardDraft_ThemeFileWithoutDraft_ReturnsNoContentAndRecordsNothing()
     {
         var history = new RecordingContentHistory();
-        _live.Files[Path] = "published";
+        _live.Files[Theme(Path)] = "published";
 
         var result = await Builder(history: history).DiscardDraft("s1", Path, "themes", "default");
 

@@ -11,6 +11,8 @@ internal sealed class RecordingContentHistory : IContentHistory
 
     public Dictionary<(string VersionId, string Item), string> Versions { get; } = [];
 
+    public List<string> Listed { get; } = [];
+
     public Task<ContentHistoryStatus> GetStatusAsync(string storeId, CancellationToken cancellationToken = default) =>
         Task.FromResult(ContentHistoryStatus.Enabled);
 
@@ -20,8 +22,11 @@ internal sealed class RecordingContentHistory : IContentHistory
         return Task.CompletedTask;
     }
 
-    public Task<ContentVersionPage> ListAsync(string storeId, IList<HistoryItem> items, string cursor, int take, CancellationToken cancellationToken = default) =>
-        Task.FromResult(new ContentVersionPage { Status = ContentHistoryStatus.Enabled });
+    public Task<ContentVersionPage> ListAsync(string storeId, IList<HistoryItem> items, string cursor, int take, CancellationToken cancellationToken = default)
+    {
+        Listed.Add(storeId);
+        return Task.FromResult(new ContentVersionPage { Status = ContentHistoryStatus.Enabled });
+    }
 
     public Task<string> ReadAsync(string storeId, HistoryItem item, string versionId, CancellationToken cancellationToken = default) =>
         Task.FromResult(Versions.GetValueOrDefault((versionId, item.ToString())));

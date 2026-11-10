@@ -34,7 +34,7 @@ public class GitHubSiteHistoryTests
     {
         _pages.SeedGroup(new GroupedPageBuilderPage { Id = "g1", StoreId = "s1", Pages = [new PageBuilderPage { Id = "p1", Status = Published }] });
         _pages.SeedContent("p1", LivePage);
-        _live.Files[Header] = LiveHeader;
+        _live.Files[$"themes/s1/{Header}"] = LiveHeader;
     }
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
@@ -156,7 +156,7 @@ public class GitHubSiteHistoryTests
 
         await History(github).RecordAsync("s1", Record((item, "{}")), Ct);
 
-        Assert.Equal(0, github.Requests);
+        github.AssertDone();
     }
 
     [Fact]
@@ -346,8 +346,9 @@ public class GitHubSiteHistoryTests
         var items = Enumerable.Range(0, 20)
             .Select(i => new HistoryItem(HistoryItemType.Theme, $"b2b-storefront-theme/templates/{new string('p', 250)}-{i:D2}.json"))
             .ToList();
+        // One commit changed every item, so each history is read to the end of its page and the cursor keeps GitHub's cursor for all of them.
         var github = new GitHubScript(("POST", "graphql", (_, _) => Answer(items
-            .Select((_, i) => (true, $"{HexSha(i, 1)} 0", new[] { (HexSha(i, 1), 50 - i, "{}"), (HexSha(i, 2), 10, "{}") }))
+            .Select(_ => (true, $"{FirstPageHead} 0", new[] { (FirstPageHead, 50, "{}") }))
             .ToArray())));
 
         var page = await History(github).ListAsync("s1", items, null, 1, Ct);
@@ -356,8 +357,6 @@ public class GitHubSiteHistoryTests
         var result = await RequestValidators.History("s1").ValidateAsync(request, Ct);
         Assert.True(result.IsValid, $"a cursor of {page.Cursor.Length} characters: {result}");
     }
-
-    private static string HexSha(int item, int commit) => $"{item:x2}{commit:x2}".PadRight(40, '0');
 
     [Fact]
     public async Task ListAsync_GitHubFails_ThrowsGitContentException()

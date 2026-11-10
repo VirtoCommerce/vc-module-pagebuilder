@@ -100,11 +100,13 @@ describe("loading more versions", () => {
 
 describe("a row's Preview and Restore", () => {
   it("stay in the tab order while the row is neither hovered nor focused", async () => {
-    // jsdom has no layout and skips the @media (hover: hover) block that clips them, so this checks the rest of the sheet.
     const file = resolve(dirname(fileURLToPath(import.meta.url)), "../../src/modules/designer/components/VersionHistory.vue");
     const { descriptor } = parse(readFileSync(file, "utf8"));
+    const css = compileStyle({ source: descriptor.styles[0].content, filename: file, id: "vh", preprocessLang: "scss" }).code;
+    expect(css).toMatch(/@media \(hover: ?hover\)/);
     const sheet = document.createElement("style");
-    sheet.textContent = compileStyle({ source: descriptor.styles[0].content, filename: file, id: "vh", preprocessLang: "scss" }).code;
+    // jsdom's cascade applies only `screen` media blocks, so the hover-only block that clips them is rewritten to one.
+    sheet.textContent = css.replace(/@media \(hover: ?hover\)/g, "@media screen");
     document.head.append(sheet);
     try {
       const wrapper = mount(VersionHistory, {
@@ -115,7 +117,12 @@ describe("a row's Preview and Restore", () => {
 
       const actions = wrapper.findAll("button.vh__action");
       expect(actions.map((x) => x.text())).toEqual(["Preview", "Preview", "Restore"]);
-      for (const action of actions) expect(getComputedStyle(action.element).display).not.toBe("none");
+      for (const action of actions) {
+        const style = getComputedStyle(action.element);
+        expect(style.display).not.toBe("none");
+        expect(style.visibility).not.toBe("hidden");
+      }
+      expect(getComputedStyle(actions[0].element).position).toBe("absolute");
     } finally {
       sheet.remove();
     }

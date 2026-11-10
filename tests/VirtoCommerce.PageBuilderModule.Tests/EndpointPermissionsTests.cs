@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using Xunit;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.Security;
+using CustomerPermissions = VirtoCommerce.CustomerModule.Core.ModuleConstants.Security.Permissions;
 using PlatformPermissions = VirtoCommerce.Platform.Core.PlatformConstants.Security.Permissions;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
@@ -19,40 +20,34 @@ public class EndpointPermissionsTests
 {
     private const string Anonymous = "anonymous";
 
-    private const string InTheAction = "in the action";
+    private const string NoPolicy = "no policy";
 
-    private static readonly Type[] Controllers =
-    [
-        typeof(GitContentSetupController),
-        typeof(HistoryController),
-        typeof(MultilanguagePageController),
-        typeof(PageBuilderAssetsController),
-        typeof(PageBuilderPageController),
-        typeof(PageBuilderSharedComponentsController),
-        typeof(ThemeController),
-    ];
+    // PageBuilderControllerPermissionsTests covers PageBuilderController.
+    private static readonly Type[] Controllers = typeof(GitContentSetupController).Assembly.GetTypes()
+        .Where(type => typeof(ControllerBase).IsAssignableFrom(type) && !type.IsAbstract && type != typeof(PageBuilderController))
+        .ToArray();
 
     private static readonly Dictionary<(Type Controller, string Action), string> Expected = new()
     {
-        [(typeof(GitContentSetupController), nameof(GitContentSetupController.GetSite))] = InTheAction,
+        [(typeof(GitContentSetupController), nameof(GitContentSetupController.GetSite))] = NoPolicy,
         // store:update is checked in the action because its scope can limit it to the store.
-        [(typeof(GitContentSetupController), nameof(GitContentSetupController.ConnectSite))] = InTheAction,
-        [(typeof(GitContentSetupController), nameof(GitContentSetupController.DisconnectSite))] = InTheAction,
-        [(typeof(GitContentSetupController), nameof(GitContentSetupController.GetConnection))] = InTheAction,
+        [(typeof(GitContentSetupController), nameof(GitContentSetupController.ConnectSite))] = NoPolicy,
+        [(typeof(GitContentSetupController), nameof(GitContentSetupController.DisconnectSite))] = NoPolicy,
+        [(typeof(GitContentSetupController), nameof(GitContentSetupController.GetConnection))] = NoPolicy,
         [(typeof(GitContentSetupController), nameof(GitContentSetupController.StartAppSetup))] = PlatformPermissions.SettingUpdate,
         [(typeof(GitContentSetupController), nameof(GitContentSetupController.AppNew))] = Anonymous,
         [(typeof(GitContentSetupController), nameof(GitContentSetupController.AppCreated))] = Anonymous,
         [(typeof(GitContentSetupController), nameof(GitContentSetupController.AppInstalled))] = Anonymous,
-        [(typeof(HistoryController), nameof(HistoryController.GetStatus))] = InTheAction,
-        [(typeof(HistoryController), nameof(HistoryController.GetHistory))] = InTheAction,
-        [(typeof(HistoryController), nameof(HistoryController.GetVersion))] = InTheAction,
+        [(typeof(HistoryController), nameof(HistoryController.GetStatus))] = NoPolicy,
+        [(typeof(HistoryController), nameof(HistoryController.GetHistory))] = NoPolicy,
+        [(typeof(HistoryController), nameof(HistoryController.GetVersion))] = NoPolicy,
         [(typeof(HistoryController), nameof(HistoryController.Restore))] = Permissions.Update,
-        [(typeof(MultilanguagePageController), nameof(MultilanguagePageController.Search))] = InTheAction,
-        [(typeof(MultilanguagePageController), nameof(MultilanguagePageController.Get))] = InTheAction,
+        [(typeof(MultilanguagePageController), nameof(MultilanguagePageController.Search))] = NoPolicy,
+        [(typeof(MultilanguagePageController), nameof(MultilanguagePageController.Get))] = NoPolicy,
         [(typeof(MultilanguagePageController), nameof(MultilanguagePageController.Create))] = Permissions.Create,
         [(typeof(MultilanguagePageController), nameof(MultilanguagePageController.Update))] = Permissions.Update,
         [(typeof(MultilanguagePageController), nameof(MultilanguagePageController.Delete))] = Permissions.Delete,
-        [(typeof(MultilanguagePageController), nameof(MultilanguagePageController.GetLanguages))] = InTheAction,
+        [(typeof(MultilanguagePageController), nameof(MultilanguagePageController.GetLanguages))] = NoPolicy,
         [(typeof(MultilanguagePageController), nameof(MultilanguagePageController.CreateLanguage))] = Permissions.Create,
         [(typeof(MultilanguagePageController), nameof(MultilanguagePageController.Link))] = Permissions.Update,
         [(typeof(MultilanguagePageController), nameof(MultilanguagePageController.Convert))] = $"{Permissions.Create} + {Permissions.Update}",
@@ -63,13 +58,12 @@ public class EndpointPermissionsTests
         [(typeof(MultilanguagePageController), nameof(MultilanguagePageController.PublishAll))] = Permissions.Publish,
         [(typeof(MultilanguagePageController), nameof(MultilanguagePageController.ArchiveAll))] = Permissions.Delete,
         [(typeof(PageBuilderAssetsController), nameof(PageBuilderAssetsController.Search))] = PlatformPermissions.AssetRead,
-        [(typeof(PageBuilderAssetsController), nameof(PageBuilderAssetsController.SearchReferences))] = InTheAction,
-        [(typeof(PageBuilderController), nameof(PageBuilderController.GetDesignerStorefront))] = InTheAction,
-        [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.SearchGroups))] = InTheAction,
-        [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.SearchList))] = InTheAction,
-        [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.FindPermalinkUsage))] = InTheAction,
-        [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.GetCopyName))] = InTheAction,
-        [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.GetGroup))] = InTheAction,
+        [(typeof(PageBuilderAssetsController), nameof(PageBuilderAssetsController.SearchReferences))] = NoPolicy,
+        [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.SearchGroups))] = NoPolicy,
+        [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.SearchList))] = NoPolicy,
+        [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.FindPermalinkUsage))] = NoPolicy,
+        [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.GetCopyName))] = NoPolicy,
+        [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.GetGroup))] = NoPolicy,
         [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.UpdateGroup))] = Permissions.Update,
         [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.CreateGroup))] = Permissions.Create,
         [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.CreateGroupPage))] = Permissions.Create,
@@ -77,22 +71,26 @@ public class EndpointPermissionsTests
         [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.PublishGroup))] = Permissions.Publish,
         [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.DiscardGroupDraft))] = Permissions.Update,
         [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.DeleteGroup))] = Permissions.Delete,
-        [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.PublishStatus))] = InTheAction,
-        [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.GetPageContent))] = InTheAction,
+        [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.PublishStatus))] = NoPolicy,
+        [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.GetPageContent))] = NoPolicy,
         [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.SavePageContent))] = Permissions.Update,
         [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.SavePageContentJson))] = Permissions.Update,
         [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.CopyPageContent))] = Permissions.Update,
-        [(typeof(PageBuilderSharedComponentsController), nameof(PageBuilderSharedComponentsController.Search))] = InTheAction,
-        [(typeof(PageBuilderSharedComponentsController), nameof(PageBuilderSharedComponentsController.Get))] = InTheAction,
+        [(typeof(PageBuilderPageSettingsController), nameof(PageBuilderPageSettingsController.GetAvailableLanguages))] = PlatformPermissions.SettingQuery,
+        [(typeof(PageBuilderPageSettingsController), nameof(PageBuilderPageSettingsController.GetUserGroups))] = PlatformPermissions.SettingQuery,
+        [(typeof(PageBuilderPageSettingsController), nameof(PageBuilderPageSettingsController.GetOrganizations))] = CustomerPermissions.Read,
+        [(typeof(PageBuilderPageSettingsController), nameof(PageBuilderPageSettingsController.GetOrganization))] = CustomerPermissions.Read,
+        [(typeof(PageBuilderSharedComponentsController), nameof(PageBuilderSharedComponentsController.Search))] = NoPolicy,
+        [(typeof(PageBuilderSharedComponentsController), nameof(PageBuilderSharedComponentsController.Get))] = NoPolicy,
         [(typeof(PageBuilderSharedComponentsController), nameof(PageBuilderSharedComponentsController.Create))] = Permissions.SharedComponentsCreate,
         [(typeof(PageBuilderSharedComponentsController), nameof(PageBuilderSharedComponentsController.Update))] = Permissions.SharedComponentsUpdate,
         [(typeof(PageBuilderSharedComponentsController), nameof(PageBuilderSharedComponentsController.Delete))] = Permissions.SharedComponentsDelete,
-        [(typeof(PageBuilderSharedComponentsController), nameof(PageBuilderSharedComponentsController.GetContent))] = InTheAction,
+        [(typeof(PageBuilderSharedComponentsController), nameof(PageBuilderSharedComponentsController.GetContent))] = NoPolicy,
         [(typeof(PageBuilderSharedComponentsController), nameof(PageBuilderSharedComponentsController.SaveContent))] = Permissions.SharedComponentsUpdate,
         [(typeof(ThemeController), nameof(ThemeController.Publish))] = Permissions.Publish,
-        [(typeof(ThemeController), nameof(ThemeController.GetStatus))] = InTheAction,
+        [(typeof(ThemeController), nameof(ThemeController.GetStatus))] = NoPolicy,
         [(typeof(ThemeController), nameof(ThemeController.SaveCatalog))] = Permissions.Update,
-        [(typeof(ThemeController), nameof(ThemeController.GetCatalog))] = InTheAction,
+        [(typeof(ThemeController), nameof(ThemeController.GetCatalog))] = NoPolicy,
         [(typeof(ThemeController), nameof(ThemeController.GeneratePalette))] = Permissions.Theme,
         [(typeof(ThemeController), nameof(ThemeController.CheckPalette))] = Permissions.Theme,
     };
@@ -135,12 +133,13 @@ public class EndpointPermissionsTests
     [Fact]
     public void Controllers_OnlyTheGitHubAppCallbacks_AreOpenToAnonymousCallers()
     {
+        Assert.All(Controllers, controller => Assert.True(controller.IsDefined(typeof(AuthorizeAttribute), inherit: true)));
         Assert.All(Controllers, controller => Assert.Empty(controller.GetCustomAttributes(inherit: true).OfType<IAllowAnonymous>()));
 
         var anonymous = Controllers.SelectMany(controller => ActionsOf(controller)
             .Where(method => method.GetCustomAttributes(inherit: true).OfType<IAllowAnonymous>().Any())
             .Select(method => (controller, method.Name)));
-        Assert.Equal(AnonymousCallbacks.Order(), anonymous.Order());
+        Assert.Equal(AnonymousCallbacks, anonymous.ToHashSet());
     }
 
     // MVC routes a public method that has no HTTP method attribute under the controller's route, so those count too.
@@ -157,6 +156,6 @@ public class EndpointPermissionsTests
         }
 
         var policies = method.GetCustomAttributes<AuthorizeAttribute>().Select(x => x.Policy).Where(x => x != null).ToList();
-        return policies.Count == 0 ? InTheAction : string.Join(" + ", policies);
+        return policies.Count == 0 ? NoPolicy : string.Join(" + ", policies);
     }
 }

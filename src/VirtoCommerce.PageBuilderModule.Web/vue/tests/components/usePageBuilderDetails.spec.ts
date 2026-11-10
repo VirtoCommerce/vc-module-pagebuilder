@@ -1,11 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { defineComponent } from "vue";
 import { mount } from "@vue/test-utils";
 import { usePageBuilderDetails, type IUsePageBuilderDetails } from "../../src/modules/page-builder/composables/usePageBuilderDetails";
-import { fakePlatform, status, type FakePlatform } from "./support/fakePlatform";
-import { apiClient } from "./support/vcShell";
+import { fakePlatform, status, type FakePlatform, type Request } from "./support/fakePlatform";
 
-const CONTENT = "/api/page-builder-pages/grouped/g1/content";
+const GROUP = "/api/page-builder-pages/grouped/g1";
+const CONTENT = `${GROUP}/content`;
+const PUBLISH_STATUS = "/api/page-builder-pages/grouped/publish-status/g1";
 const SEO = { pageTitle: "Title", metaDescription: "Description", metaKeywords: "Keywords" };
 const stored = { content: JSON.stringify({ settings: { type: "settings", seoInfo: SEO }, content: [] }), eTag: '"e1"' };
 
@@ -26,12 +27,11 @@ describe("the SEO of a page's details", () => {
   let platform: FakePlatform;
 
   beforeEach(() => {
-    platform = fakePlatform().install();
-    Object.assign(apiClient, {
-      getGroup: vi.fn(async () => ({ id: "g1", name: "Page", storeId: "s1" })),
-      publishStatus: vi.fn(async () => ({ hasChanges: true })),
-      updateGroup: vi.fn(async (group: unknown) => group),
-    });
+    platform = fakePlatform()
+      .on("GET", GROUP, { id: "g1", name: "Page", storeId: "s1" })
+      .on("GET", PUBLISH_STATUS, { hasChanges: true })
+      .on("PUT", "/api/page-builder-pages/grouped", (request: Request) => request.body)
+      .install();
   });
 
   it("fails to load when the page content cannot be read, instead of showing it empty", async () => {
@@ -61,22 +61,22 @@ describe("the SEO of a page's details", () => {
 });
 
 describe("saving a page's details", () => {
-  const publishStatus = vi.fn();
+  let publishStatus: { hasChanges: boolean };
 
   beforeEach(() => {
-    fakePlatform().install().on("GET", CONTENT, stored);
-    publishStatus.mockResolvedValue({ hasChanges: false });
-    Object.assign(apiClient, {
-      getGroup: vi.fn(async () => ({ id: "g1", name: "Page", storeId: "s1" })),
-      publishStatus,
-      updateGroup: vi.fn(async (group: unknown) => group),
-    });
+    publishStatus = { hasChanges: false };
+    fakePlatform()
+      .install()
+      .on("GET", CONTENT, stored)
+      .on("GET", GROUP, { id: "g1", name: "Page", storeId: "s1" })
+      .on("GET", PUBLISH_STATUS, () => publishStatus)
+      .on("PUT", "/api/page-builder-pages/grouped", (request: Request) => request.body);
   });
 
   it("reads the publish status again when only the name changed, since the server keeps the new name in a draft", async () => {
     const page = details();
     await page.loadGroup();
-    publishStatus.mockResolvedValue({ hasChanges: true });
+    publishStatus = { hasChanges: true };
 
     page.item.value.name = "Renamed";
     await page.saveGroup();

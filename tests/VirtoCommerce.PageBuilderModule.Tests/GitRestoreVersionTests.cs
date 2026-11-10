@@ -34,6 +34,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         private const string Login = "john";
         private const string Page = "/about-us.page";
         private const string RepoPath = "pages/about-us.page";
+        private const string StoreRepository = "acme/site-vccom";
         private const string Sha = "70a3c34b5c6d7e8f90a1b2c3d4e5f60718293a4b";
         private const string OtherBranch = "content/hero-copy";
         private const string ValidPage = """{ "settings": { "type": "settings", "name": "About" }, "content": [] }""";
@@ -136,7 +137,17 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             await Controller(repository, history).GitRestoreVersion("vccom", Page, "pages", Sha);
 
-            Assert.Equal([RepoPath], history.Invalidated);
+            Assert.Equal([(StoreRepository, RepoPath)], history.Invalidated);
+        }
+
+        [Fact]
+        public async Task Restore_WorksInTheStoresRepository_NotTheSharedOne()
+        {
+            var repository = Repository(ValidPage);
+
+            await Controller(repository, new RecordingHistory()).GitRestoreVersion("vccom", Page, "pages", Sha);
+
+            Assert.Equal([StoreRepository], repository.Repositories);
         }
 
         [Fact]
@@ -356,9 +367,12 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 BaseBranch = "master",
             });
 
+            // The store's own repository, not the shared one configured above, so a call to the wrong one shows.
+            var policy = new FakeGitContentPolicy(gitFlow, repositoryFormat: "acme/site-{0}");
+
             // Only the git dependencies take part in these paths; the rest are left null on purpose, so a
             // change that starts reaching for blob storage or the publisher fails loudly here.
-            var filePageDrafts = TestServices.FilePageDrafts(options, GitHubConnections.CreateService(options.Value), new FakeGitContentPolicy(gitFlow), repository, history, new FakeGitContentProvisioner(), new FakeStoreService(store ?? new Store { Id = "vccom" }), null, null, null, null);
+            var filePageDrafts = TestServices.FilePageDrafts(options, GitHubConnections.CreateService(options.Value), policy, repository, history, new FakeGitContentProvisioner(), new FakeStoreService(store ?? new Store { Id = "vccom" }), null, null, null, null);
             var controller = new PageBuilderController(
                 storeService: new FakeStoreService(store ?? new Store { Id = "vccom" }),
                 pathResolver: null,
@@ -367,7 +381,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 eventPublisher: null,
                 gitContentOptions: options,
                 gitHubConnectionService: GitHubConnections.CreateService(options.Value),
-                gitContentPolicy: new FakeGitContentPolicy(gitFlow),
+                gitContentPolicy: policy,
                 gitContentRepository: repository,
                 gitContentHistory: history,
                 gitContentPublisher: null,
@@ -398,12 +412,12 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
         private sealed class RecordingHistory : IGitContentHistory
         {
-            public List<string> Invalidated { get; } = [];
+            public List<(string Repository, string RepoPath)> Invalidated { get; } = [];
 
             public Task<GitPageHistory> GetHistoryAsync(string repository, string repoPath, GitHistoryQuery query, CancellationToken cancellationToken = default) =>
                 Task.FromResult(new GitPageHistory());
 
-            public void Invalidate(string repository, string repoPath) => Invalidated.Add(repoPath);
+            public void Invalidate(string repository, string repoPath) => Invalidated.Add((repository, repoPath));
         }
 
         private sealed class RecordingRepository : IGitContentRepository
@@ -418,18 +432,24 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             public List<(string Branch, string FromRef)> CreatedBranches { get; } = [];
             public List<string> DeletedBranches { get; } = [];
             public List<(string Path, string Branch)> DeletedFiles { get; } = [];
+            public HashSet<string> Repositories { get; } = [];
 
             public Task<string> ReadFileAsync(string repository, string path, string gitRef, CancellationToken cancellationToken = default)
             {
+                Repositories.Add(repository);
                 Reads.Add((path, gitRef));
                 return Task.FromResult(Files.GetValueOrDefault((path, gitRef)));
             }
 
-            public Task<string> GetBranchHeadShaAsync(string repository, string branch, CancellationToken cancellationToken = default) =>
-                Task.FromResult(BranchHeads.GetValueOrDefault(branch));
+            public Task<string> GetBranchHeadShaAsync(string repository, string branch, CancellationToken cancellationToken = default)
+            {
+                Repositories.Add(repository);
+                return Task.FromResult(BranchHeads.GetValueOrDefault(branch));
+            }
 
             public Task CreateBranchAsync(string repository, string branch, string fromRef, CancellationToken cancellationToken = default)
             {
+                Repositories.Add(repository);
                 CreatedBranches.Add((branch, fromRef));
                 BranchHeads[branch] = BranchHeads.GetValueOrDefault(fromRef, NewCommitSha);
                 return Task.CompletedTask;
@@ -437,26 +457,30 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             public Task SetBranchAsync(string repository, string branch, string sha, string pagePath, CancellationToken cancellationToken = default)
             {
+                Repositories.Add(repository);
                 BranchHeads[branch] = sha;
                 return Task.CompletedTask;
             }
 
             public Task DeleteBranchAsync(string repository, string branch, string pagePath, CancellationToken cancellationToken = default)
             {
+                Repositories.Add(repository);
                 DeletedBranches.Add(branch);
                 return Task.CompletedTask;
             }
 
-            public void InvalidateRead(string repository, string path, string gitRef) { }
+            public void InvalidateRead(string repository, string path, string gitRef) => Repositories.Add(repository);
 
             public Task<string> CommitFileAsync(string repository, string path, string content, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default)
             {
+                Repositories.Add(repository);
                 Commits.Add((path, content, branch, message, author));
                 return Task.FromResult(NewCommitSha);
             }
 
             public Task<string> DeleteFileAsync(string repository, string path, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default)
             {
+                Repositories.Add(repository);
                 DeletedFiles.Add((path, branch));
                 return Task.FromResult(NewCommitSha);
             }
@@ -469,7 +493,9 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         {
             public Task<ObjectSettingEntry> GetObjectSettingAsync(string name, string objectType = null, string objectId = null)
             {
-                var value = name == ModuleConstants.Settings.General.StoreUrl.Name ? storeUrl : previewPath;
+                var value = name == ModuleConstants.Settings.General.StoreUrl.Name ? storeUrl
+                    : name == ModuleConstants.Settings.General.StorePreviewPath.Name ? previewPath
+                    : null;
                 return Task.FromResult(new ObjectSettingEntry { Name = name, Value = value });
             }
 

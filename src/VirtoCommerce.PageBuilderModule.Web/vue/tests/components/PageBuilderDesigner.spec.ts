@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, shallowMount, type VueWrapper } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
 import type { IBladeToolbar } from "@vc-shell/framework";
@@ -6,13 +6,15 @@ import { VcBlade } from "@vc-shell/framework/ui";
 import PageBuilderDesigner from "../../src/modules/pages/PageBuilderDesigner.vue";
 import AssetsLibraryContent from "../../src/modules/asset-library/components/AssetsLibraryContent.vue";
 import DiscardDialog from "../../src/modules/designer/components/DiscardDialog.vue";
+import SectionTree from "../../src/modules/designer/components/SectionTree.vue";
 import VersionHistory from "../../src/modules/designer/components/VersionHistory.vue";
 import { pagesChanged } from "../../src/modules/page-builder/composables";
 import { PickAssetKey } from "../../src/modules/designer/types";
-import { BladeStackKey, apiClient, blade } from "./support/vcShell";
-import { fakePlatform, themeFileAnswer, type FakePlatform } from "./support/fakePlatform";
+import { BladeStackKey, blade } from "./support/vcShell";
+import { fakePlatform, status, themeFileAnswer, type FakePlatform } from "./support/fakePlatform";
 
 const STORE = "B2B-store";
+const GROUP = "/api/page-builder-pages/grouped/g1";
 const PAGE = { settings: { type: "settings" }, content: [{ id: "hero-1", type: "hero", title: "Welcome" }] };
 
 beforeEach(() => {
@@ -32,15 +34,13 @@ const toolbarItem = (wrapper: VueWrapper, id: string) =>
 describe("opening the designer", () => {
   it("says the page could not be loaded when its group cannot be read, and stops loading", async () => {
     blade.param.value = "g1";
-    apiClient.getGroup = vi.fn(async () => {
-      throw new Error("403");
-    });
+    fakePlatform().on("GET", GROUP, status(403)).install();
 
     const wrapper = shallowMount(PageBuilderDesigner, { global: { stubs: { VcBlade: false } } });
     await flushPromises();
 
     expect(wrapper.find(".pd-message").text()).toContain("couldn't be loaded");
-    expect(wrapper.find("[data-loading]").attributes("data-loading")).toBe("false");
+    expect(wrapper.findComponent(VcBlade).props("loading")).toBe(false);
   });
 });
 
@@ -86,13 +86,13 @@ describe("reloading a designer opened by query", () => {
 });
 
 describe("full view", () => {
-  afterEach(() => localStorage.clear());
-
   it("lets go of the window and gives the blade its header back when the page turns out not to be designable", async () => {
     localStorage.setItem("vc-page-designer-full-view", "true");
     blade.param.value = "g1";
     let readGroup!: (group: unknown) => void;
-    apiClient.getGroup = vi.fn(() => new Promise((resolve) => (readGroup = resolve)));
+    fakePlatform()
+      .on("GET", GROUP, () => new Promise((resolve) => (readGroup = resolve)))
+      .install();
 
     const wrapper = shallowMount(PageBuilderDesigner, { global: { stubs: { VcBlade: false } } });
     await flushPromises();
@@ -117,15 +117,16 @@ describe("telling open lists the page changed", () => {
   async function openPage() {
     platform = fakePlatform()
       .on("GET", `/api/stores/${STORE}`, { id: STORE, dynamicProperties: [{ name: "DefaultThemeName", values: [{ value: "default" }] }] })
-      .on("GET", "/api/page-builder-pages/grouped/g1/content", { content: JSON.stringify(PAGE), eTag: '"v1"' })
+      .on("GET", GROUP, { id: "g1", storeId: STORE, name: "About", status: "Published" })
+      .on("GET", `${GROUP}/content`, { content: JSON.stringify(PAGE), eTag: '"v1"' })
       .on("GET", "/api/page-builder-pages/grouped/publish-status/g1", { published: true, hasChanges: true })
       .on("GET", "/api/pagebuilder/designer/theme-file", themeFileAnswer({}))
       .on("GET", "/api/pagebuilder/theme/status", { publication: 3, drafts: [] })
       .on("POST", "/api/pagebuilder/designer/discard", {})
+      .on("GET", "/api/pagebuilder/history/status", { status: "enabled" })
       .on("POST", "/api/pagebuilder/history/v7/restore", "")
       .install();
     blade.param.value = "g1";
-    apiClient.getGroup = vi.fn(async () => ({ id: "g1", storeId: STORE, name: "About", status: "Published" }));
     const wrapper = shallowMount(PageBuilderDesigner, { global: { plugins: [await routerAt("/")], stubs: { VcBlade: false } } });
     await flushPromises();
     return wrapper;
@@ -135,7 +136,7 @@ describe("telling open lists the page changed", () => {
     const wrapper = await openPage();
     const before = pagesChanged.value;
 
-    await toolbarItem(wrapper, "discard").clickHandler!();
+    await wrapper.find('[role="toolbar"] [data-test-id="discard"]').trigger("click");
     await flushPromises();
     wrapper.findComponent(DiscardDialog).vm.$emit("discard", { page: true, theme: [] });
     await flushPromises();
@@ -148,7 +149,7 @@ describe("telling open lists the page changed", () => {
     const wrapper = await openPage();
     const before = pagesChanged.value;
 
-    await toolbarItem(wrapper, "history").clickHandler!();
+    await wrapper.find('[role="toolbar"] [data-test-id="history"]').trigger("click");
     await flushPromises();
     wrapper.findComponent(VersionHistory).vm.$emit("restore", { id: "v7", label: "7", items: ["page:g1"] });
     await flushPromises();
@@ -163,22 +164,27 @@ describe("saving sections as a shared component", () => {
     let created!: (component: unknown) => void;
     const platform = fakePlatform()
       .on("GET", `/api/stores/${STORE}`, { id: STORE, dynamicProperties: [{ name: "DefaultThemeName", values: [{ value: "default" }] }] })
-      .on("GET", "/api/page-builder-pages/grouped/g1/content", { content: JSON.stringify(PAGE), eTag: '"v1"' })
+      .on("GET", GROUP, { id: "g1", storeId: STORE, name: "About", status: "Published" })
+      .on("GET", `${GROUP}/content`, { content: JSON.stringify(PAGE), eTag: '"v1"' })
       .on("GET", "/api/page-builder-pages/grouped/publish-status/g1", { published: true, hasChanges: true })
       .on("GET", "/api/pagebuilder/designer/theme-file", themeFileAnswer({}))
       .on("GET", "/api/pagebuilder/theme/status", { publication: 3, drafts: [] })
       .on("POST", "/api/page-builder-shared-components", () => new Promise((resolve) => (created = resolve)))
       .install();
     blade.param.value = "g1";
-    apiClient.getGroup = vi.fn(async () => ({ id: "g1", storeId: STORE, name: "About", status: "Published" }));
-    const wrapper = shallowMount(PageBuilderDesigner, { global: { plugins: [await routerAt("/")], stubs: { VcBlade: false } } });
+    const wrapper = shallowMount(PageBuilderDesigner, {
+      global: { plugins: [await routerAt("/")], stubs: { VcBlade: false, VcPopup: false, VcInput: false, VcButton: false } },
+    });
     await flushPromises();
-    const page = wrapper.vm as unknown as { designer: { checked: { value: string[] } }; sharedName: string; saveShared: () => Promise<void> };
-    page.designer.checked.value = ["hero-1"];
-    page.sharedName = "Promo";
+    (wrapper.vm as unknown as { designer: { checked: { value: string[] } } }).designer.checked.value = ["hero-1"];
+    wrapper.findComponent(SectionTree).vm.$emit("save-shared");
+    await flushPromises();
+    const dialog = wrapper.find('[role="dialog"]');
+    await dialog.find("input").setValue("Promo");
+    const save = dialog.findAll("button").find((x) => x.text() === "Save")!;
 
-    void page.saveShared();
-    void page.saveShared();
+    await save.trigger("click");
+    await save.trigger("click");
     created({ id: "c1", storeId: STORE, name: "Promo" });
     await flushPromises();
 
@@ -189,9 +195,7 @@ describe("saving sections as a shared component", () => {
 describe("picking an asset", () => {
   it("opens the asset library on the types the field asked for", async () => {
     blade.param.value = "g1";
-    apiClient.getGroup = vi.fn(async () => {
-      throw new Error("403");
-    });
+    fakePlatform().on("GET", GROUP, status(403)).install();
     const wrapper = shallowMount(PageBuilderDesigner, { global: { stubs: { VcBlade: false, VcPopup: false } } });
     await flushPromises();
     // Fields reach the picker only through this injection.
