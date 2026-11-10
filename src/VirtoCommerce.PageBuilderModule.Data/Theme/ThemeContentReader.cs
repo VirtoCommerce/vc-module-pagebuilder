@@ -94,7 +94,6 @@ public abstract class ThemeContentReader
         }
     }
 
-    // A value of an unexpected type is treated as missing.
     protected static string GetString(JObject item, string name) => item[name] is JValue { Type: JTokenType.String } value ? (string)value : null;
 
     protected static IEnumerable<string> GetStrings(JToken list) =>

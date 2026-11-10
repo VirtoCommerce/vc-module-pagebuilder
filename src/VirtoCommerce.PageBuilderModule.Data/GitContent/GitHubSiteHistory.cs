@@ -54,7 +54,7 @@ public class GitHubSiteHistory(
 
     public virtual async Task<ContentHistoryStatus> GetStatusAsync(string storeId, CancellationToken cancellationToken = default)
     {
-        // a saved App this server cannot read is set up again, whatever the store's settings
+        // before the settings read: an unreadable App fails it, and that would answer unavailable
         if (!string.IsNullOrEmpty((await gitHubConnectionService.GetConnectionAsync(cancellationToken)).Error))
         {
             return ContentHistoryStatus.SetupRequired;

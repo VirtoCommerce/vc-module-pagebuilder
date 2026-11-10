@@ -95,8 +95,8 @@ interface ContentVersion {
 ```
 
 - `enabled`: history is kept; `versions` may still be empty.
-- `setupRequired`: the GitHub App is not connected, or it has not created the store's repository yet. `versions` is
-  empty; the designer offers to set up history (the `PageBuilderGit` blade).
+- `setupRequired`: the GitHub App is not connected, this server cannot read the saved one, or it has not created the
+  store's repository yet. `versions` is empty; the designer offers to set up history (the `PageBuilderGit` blade).
 - `unavailable`: the store's repository was assigned by hand. `versions` is empty and the designer offers nothing.
 
 | Status | When |
