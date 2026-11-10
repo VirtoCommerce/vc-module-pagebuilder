@@ -75,6 +75,9 @@ export function useSharedComponentActions(options: UseSharedComponentActionsOpti
         onConflict: () => {
           notification.warning(t("SHARED_COMPONENTS.NOTIFICATIONS.DELETE_CONFLICT"));
         },
+        onMissing: () => {
+          notification.warning(t("SHARED_COMPONENTS.NOTIFICATIONS.DELETE_MISSING"));
+        },
         onError: notifyError,
       });
     } finally {

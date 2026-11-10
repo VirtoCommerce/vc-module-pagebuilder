@@ -233,75 +233,87 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
     });
   }
 
-  const { action: createFolderAction, loading: loadingCreateFolder } = useAsync<string>(async (name) => {
-    if (!name || !currentFolderUrl.value) {
-      return;
-    }
+  const { action: createFolderAction, loading: loadingCreateFolder } = useAsync<string>(
+    async (name) => {
+      if (!name || !currentFolderUrl.value) {
+        return;
+      }
 
-    await createAssetFolder({
-      name,
-      parentUrl: currentFolderUrl.value,
-    });
+      await createAssetFolder({
+        name,
+        parentUrl: currentFolderUrl.value,
+      });
 
-    await reload();
-  });
-
-  const { action: uploadFilesAction, loading: loadingUpload } = useAsync<UploadAssetsPayload>(async (payload) => {
-    const files = payload?.files ?? [];
-    const folderUrl = payload?.folderUrl;
-    const targetFolderUrl = folderUrl || currentFolderUrl.value;
-
-    if (!files?.length || !targetFolderUrl) {
-      return;
-    }
-
-    let uploaded: AssetEntry | undefined;
-    for (const file of files) {
-      uploaded = await uploadAsset(targetFolderUrl, file);
-    }
-
-    if (targetFolderUrl === currentFolderUrl.value && uploaded) {
-      searchValue.value = undefined;
-      pagination.reset();
-      await reload(getAssetKey(uploaded));
-    } else {
       await reload();
-    }
-  });
+    },
+    { notify: false },
+  );
 
-  const { action: replaceSelectedAssetAction, loading: loadingReplace } = useAsync<File>(async (replacement) => {
-    if (!replacement || !selectedAsset.value) {
-      return;
-    }
+  const { action: uploadFilesAction, loading: loadingUpload } = useAsync<UploadAssetsPayload>(
+    async (payload) => {
+      const files = payload?.files ?? [];
+      const folderUrl = payload?.folderUrl;
+      const targetFolderUrl = folderUrl || currentFolderUrl.value;
 
-    const renamedFile = new File([replacement], selectedAsset.value.name, {
-      type: replacement.type,
-      lastModified: replacement.lastModified,
-    });
+      if (!files?.length || !targetFolderUrl) {
+        return;
+      }
 
-    await uploadAsset(getFolderUrl(selectedAsset.value, currentFolderUrl.value), renamedFile);
-    await reload(getAssetKey(selectedAsset.value));
-  });
+      let uploaded: AssetEntry | undefined;
+      for (const file of files) {
+        uploaded = await uploadAsset(targetFolderUrl, file);
+      }
 
-  const { action: deleteEntryAction, loading: loadingDelete } = useAsync<AssetEntry>(async (entry) => {
-    if (!entry) {
-      return;
-    }
+      if (targetFolderUrl === currentFolderUrl.value && uploaded) {
+        searchValue.value = undefined;
+        pagination.reset();
+        await reload(getAssetKey(uploaded));
+      } else {
+        await reload();
+      }
+    },
+    { notify: false },
+  );
 
-    const target = entry.relativeUrl || entry.url;
+  const { action: replaceSelectedAssetAction, loading: loadingReplace } = useAsync<File>(
+    async (replacement) => {
+      if (!replacement || !selectedAsset.value) {
+        return;
+      }
 
-    if (!target) {
-      return;
-    }
+      const renamedFile = new File([replacement], selectedAsset.value.name, {
+        type: replacement.type,
+        lastModified: replacement.lastModified,
+      });
 
-    await deleteAssets([target]);
+      await uploadAsset(getFolderUrl(selectedAsset.value, currentFolderUrl.value), renamedFile);
+      await reload(getAssetKey(selectedAsset.value));
+    },
+    { notify: false },
+  );
 
-    if (getAssetKey(selectedAsset.value) === getAssetKey(entry)) {
-      selectedAsset.value = undefined;
-    }
+  const { action: deleteEntryAction, loading: loadingDelete } = useAsync<AssetEntry>(
+    async (entry) => {
+      if (!entry) {
+        return;
+      }
 
-    await reload();
-  });
+      const target = entry.relativeUrl || entry.url;
+
+      if (!target) {
+        return;
+      }
+
+      await deleteAssets([target]);
+
+      if (getAssetKey(selectedAsset.value) === getAssetKey(entry)) {
+        selectedAsset.value = undefined;
+      }
+
+      await reload();
+    },
+    { notify: false },
+  );
 
   function resetContent() {
     entriesLoader.invalidate();

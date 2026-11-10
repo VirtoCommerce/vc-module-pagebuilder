@@ -61,6 +61,7 @@
       "DELETE_BLOCKED_ONE": "Tätä komponenttia käytetään yhdellä sivulla eikä sitä voi poistaa.",
       "DELETE_BLOCKED_MANY": "Tätä komponenttia käytetään {count} sivulla eikä sitä voi poistaa.",
       "DELETE_CONFLICT": "Komponentti on nyt käytössä eikä sitä voi poistaa. Päivitä luettelo nähdäksesi sen käyttökohteet.",
+      "DELETE_MISSING": "Komponenttia ei ole enää olemassa. Joku muu on ehkä poistanut sen.",
       "ERROR_GENERIC": "Jaetun komponentin toiminto epäonnistui"
     }
   }

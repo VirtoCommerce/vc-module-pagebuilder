@@ -302,6 +302,7 @@ test("delete permission gate stops before refreshing or deleting", async () => {
     onBlocked: () => undefined,
     onDeleted: () => undefined,
     onConflict: () => undefined,
+    onMissing: () => undefined,
     onError: () => undefined,
   });
 
@@ -334,6 +335,7 @@ test("delete preflight stops when fresh usage cannot be loaded", async () => {
     onBlocked: () => undefined,
     onDeleted: () => undefined,
     onConflict: () => undefined,
+    onMissing: () => undefined,
     onError: (error) => {
       receivedError = error;
     },
@@ -368,6 +370,7 @@ test("delete preflight blocks deletion using fresh usage and emits one blocked n
     },
     onDeleted: () => undefined,
     onConflict: () => undefined,
+    onMissing: () => undefined,
     onError: () => undefined,
   });
 
@@ -401,6 +404,7 @@ test("delete conflict reloads stale state and emits only the conflict notificati
     onConflict: () => {
       conflictNotifications++;
     },
+    onMissing: () => undefined,
     onError: () => {
       errorNotifications++;
     },
@@ -433,6 +437,7 @@ test("delete conflict still emits only the conflict notification when its reload
     onConflict: () => {
       conflictNotifications++;
     },
+    onMissing: () => undefined,
     onError: () => {
       errorNotifications++;
     },
@@ -463,6 +468,7 @@ test("successful delete stays successful and notifies once when its best-effort 
       successNotifications++;
     },
     onConflict: () => undefined,
+    onMissing: () => undefined,
     onError: () => {
       errorNotifications++;
     },
@@ -471,5 +477,80 @@ test("successful delete stays successful and notifies once when its best-effort 
   assert.equal(deleted, true);
   assert.equal(reloads, 1);
   assert.equal(successNotifications, 1);
+  assert.equal(errorNotifications, 0);
+});
+
+// The generated client throws this for the 404 the API answers for a component that no longer exists.
+const notFound = () => Object.assign(new Error("An unexpected server error occurred."), { status: 404 });
+
+test("delete of a component another editor already deleted reloads the list and says it no longer exists", async () => {
+  const component = createComponent("a");
+  let reloads = 0;
+  let confirmations = 0;
+  let missingNotifications = 0;
+  let errorNotifications = 0;
+
+  const deleted = await deleteSharedComponentWithPreflight(component, {
+    allowed: true,
+    refreshComponent: async () => {
+      throw notFound();
+    },
+    confirm: async () => {
+      confirmations++;
+      return true;
+    },
+    deleteComponent: async () => undefined,
+    reload: async () => {
+      reloads++;
+    },
+    onBlocked: () => undefined,
+    onDeleted: () => undefined,
+    onConflict: () => undefined,
+    onMissing: () => {
+      missingNotifications++;
+    },
+    onError: () => {
+      errorNotifications++;
+    },
+  });
+
+  assert.equal(deleted, false);
+  assert.equal(confirmations, 0);
+  assert.equal(reloads, 1);
+  assert.equal(missingNotifications, 1);
+  assert.equal(errorNotifications, 0);
+});
+
+test("delete that finds the component gone says it no longer exists even when the reload fails", async () => {
+  const component = createComponent("a");
+  let reloads = 0;
+  let missingNotifications = 0;
+  let errorNotifications = 0;
+
+  const deleted = await deleteSharedComponentWithPreflight(component, {
+    allowed: true,
+    refreshComponent: async () => component,
+    confirm: async () => true,
+    deleteComponent: async () => {
+      throw notFound();
+    },
+    reload: async () => {
+      reloads++;
+      throw new Error("Reload failed");
+    },
+    onBlocked: () => undefined,
+    onDeleted: () => undefined,
+    onConflict: () => undefined,
+    onMissing: () => {
+      missingNotifications++;
+    },
+    onError: () => {
+      errorNotifications++;
+    },
+  });
+
+  assert.equal(deleted, false);
+  assert.equal(reloads, 1);
+  assert.equal(missingNotifications, 1);
   assert.equal(errorNotifications, 0);
 });

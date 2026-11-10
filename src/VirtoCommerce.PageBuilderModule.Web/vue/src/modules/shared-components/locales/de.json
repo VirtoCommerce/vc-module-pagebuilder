@@ -61,6 +61,7 @@
       "DELETE_BLOCKED_ONE": "Diese Komponente wird auf 1 Seite verwendet und kann nicht gelöscht werden.",
       "DELETE_BLOCKED_MANY": "Diese Komponente wird auf {count} Seiten verwendet und kann nicht gelöscht werden.",
       "DELETE_CONFLICT": "Die Komponente wird inzwischen verwendet und kann nicht gelöscht werden. Aktualisieren Sie die Liste, um ihre Verwendungen zu sehen.",
+      "DELETE_MISSING": "Die Komponente existiert nicht mehr. Möglicherweise hat jemand anderes sie gelöscht.",
       "ERROR_GENERIC": "Aktion für die geteilte Komponente fehlgeschlagen"
     }
   }

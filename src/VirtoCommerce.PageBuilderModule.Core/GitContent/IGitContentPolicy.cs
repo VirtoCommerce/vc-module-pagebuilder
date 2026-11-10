@@ -28,7 +28,7 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         Task<StoreRepository> GetRepositoryInfoAsync(string storeId, CancellationToken cancellationToken = default);
 
         /// <summary>Returns the repository whether or not git content is on for the store.</summary>
-        /// <exception cref="GitContentException">The store setting is not a repository in "owner/name" form, or is not allowed.</exception>
+        /// <exception cref="GitContentException">The store setting is not a repository in "owner/name" form, or is not allowed; or the store opted in and the saved GitHub App cannot be read.</exception>
         Task<StoreRepository> GetConfiguredRepositoryAsync(string storeId, CancellationToken cancellationToken = default);
 
         /// <exception cref="GitContentException">The setting is not a repository in "owner/name" form, or is not allowed.</exception>

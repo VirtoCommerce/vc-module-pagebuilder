@@ -32,7 +32,7 @@
           {{ $t("SHARED_COMPONENTS.RENAME.CANCEL") }}
         </VcButton>
         <VcButton
-          :disabled="submitting || !!nameError || !name.trim() || name.trim() === component.name"
+          :disabled="submitting || !name.trim() || name.trim() === component.name"
           @click="submit"
         >
           {{ $t("SHARED_COMPONENTS.RENAME.SAVE") }}
@@ -71,7 +71,7 @@ const nameError = computed(() => props.serverError || undefined);
 function submit() {
   const value = name.value.trim();
 
-  if (props.submitting || !value || nameError.value || value === props.component.name) {
+  if (props.submitting || !value || value === props.component.name) {
     return;
   }
 

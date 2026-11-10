@@ -118,3 +118,5 @@ export const VcPopup = defineComponent({
 });
 
 export const VcDropdown = defineComponent({ name: "VcDropdown", setup: (_, { slots }) => () => h("div", slots.default?.()) });
+
+export const VcForm = defineComponent({ name: "VcForm", setup: (_, { slots }) => () => h("form", slots.default?.()) });

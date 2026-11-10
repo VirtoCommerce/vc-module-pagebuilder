@@ -9,6 +9,7 @@ interface SharedComponentDeleteOptions {
   onBlocked: (component: SharedComponent) => void;
   onDeleted: (component: SharedComponent) => void;
   onConflict: (component: SharedComponent) => void;
+  onMissing: (component: SharedComponent) => void;
   onError: (error: unknown) => void;
 }
 
@@ -25,6 +26,12 @@ export async function deleteSharedComponentWithPreflight(
   try {
     currentComponent = await options.refreshComponent(component);
   } catch (error) {
+    if (isNotFound(error)) {
+      await reloadStaleList(options);
+      options.onMissing(component);
+      return false;
+    }
+
     options.onError(error);
     return false;
   }
@@ -51,13 +58,14 @@ export async function deleteSharedComponentWithPreflight(
     return true;
   } catch (error) {
     if (isConflict(error)) {
-      try {
-        await options.reload();
-      } catch {
-        // The conflict remains actionable even if refreshing the stale view also fails.
-      }
-
+      await reloadStaleList(options);
       options.onConflict(currentComponent);
+      return false;
+    }
+
+    if (isNotFound(error)) {
+      await reloadStaleList(options);
+      options.onMissing(currentComponent);
       return false;
     }
 
@@ -66,6 +74,23 @@ export async function deleteSharedComponentWithPreflight(
   }
 }
 
+async function reloadStaleList(options: SharedComponentDeleteOptions): Promise<void> {
+  try {
+    await options.reload();
+  } catch {
+    // The message about the stale row stays actionable even if refreshing the list also fails.
+  }
+}
+
 function isConflict(error: unknown): boolean {
-  return typeof error === "object" && error !== null && "status" in error && error.status === 409;
+  return hasStatus(error, 409);
+}
+
+// Another editor deleted the component after this list was loaded.
+function isNotFound(error: unknown): boolean {
+  return hasStatus(error, 404);
+}
+
+function hasStatus(error: unknown, status: number): boolean {
+  return typeof error === "object" && error !== null && "status" in error && error.status === status;
 }

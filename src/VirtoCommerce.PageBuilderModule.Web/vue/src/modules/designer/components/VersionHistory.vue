@@ -189,19 +189,23 @@ const who = (v: HistoryVersion) => v.author?.name || v.author?.login || "";
 const when = (date?: string) =>
   date ? new Date(date).toLocaleString(locale.value, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
 
+// A reload after a save shifts the pages, so a page asked for before it no longer continues the list.
+let loadRun = 0;
 async function load(after?: string) {
+  const run = ++loadRun;
   loading.value = true;
   failed.value = false;
   try {
     const page = await props.source(after);
+    if (run !== loadRun) return;
     const known = new Set(after ? versions.value.map((x) => x.id) : []);
     versions.value = [...(after ? versions.value : []), ...page.versions.filter((x) => !known.has(x.id))];
     hasMore.value = !!page.hasMore && !!page.endCursor;
     cursor.value = page.endCursor;
   } catch {
-    failed.value = true;
+    if (run === loadRun) failed.value = true;
   } finally {
-    loading.value = false;
+    if (run === loadRun) loading.value = false;
   }
 }
 

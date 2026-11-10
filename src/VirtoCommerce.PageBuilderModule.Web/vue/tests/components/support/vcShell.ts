@@ -1,7 +1,30 @@
 import { vi } from "vitest";
-import { ref } from "vue";
+import { computed, ref } from "vue";
 
 export const notification = { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() };
+
+export const parseError = (error: unknown) => ({ message: error instanceof Error ? error.message : String(error) });
+
+// As in the framework, a failed action shows its own error toast unless `notify: false`, and still rethrows.
+export function useAsync<Payload = void, Result = void>(action: (payload?: Payload) => Promise<Result>, options?: { notify?: boolean }) {
+  const loading = ref(false);
+  return {
+    loading: computed(() => loading.value),
+    action: async (payload?: Payload) => {
+      loading.value = true;
+      try {
+        return await action(payload);
+      } catch (error) {
+        const { message } = parseError(error);
+        if (options?.notify !== false) notification.error(message, { notificationId: `async-error-${message}` });
+        throw error;
+      } finally {
+        loading.value = false;
+      }
+    },
+  };
+}
+export const useLoading = (...flags: { readonly value: boolean }[]) => computed(() => flags.some((x) => x.value));
 
 export const popup = { confirm: true, showConfirmation: vi.fn(async (_message: string) => popup.confirm) };
 export const usePopup = () => ({ showConfirmation: popup.showConfirmation });

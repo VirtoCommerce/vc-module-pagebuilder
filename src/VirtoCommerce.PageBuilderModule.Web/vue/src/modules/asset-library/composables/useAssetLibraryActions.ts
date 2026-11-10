@@ -45,14 +45,23 @@ export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
     notification.error(getErrorMessage(error));
   }
 
-  async function uploadAssets(files: FileList | File[] | undefined, folderUrl?: string): Promise<boolean> {
+  // The library asks about one name conflict at a time, and a batch checks names against the uploads before it.
+  let uploadQueue: Promise<boolean> = Promise.resolve(true);
+
+  function uploadAssets(files: FileList | File[] | undefined, folderUrl?: string): Promise<boolean> {
     if (!options.canCreate.value || !files?.length) {
-      return false;
+      return Promise.resolve(false);
     }
 
+    const batch = Array.from(files);
+    const targetFolderUrl = folderUrl || options.currentFolderUrl.value;
+    uploadQueue = uploadQueue.then(() => uploadBatch(batch, targetFolderUrl));
+    return uploadQueue;
+  }
+
+  async function uploadBatch(files: File[], targetFolderUrl: string): Promise<boolean> {
     try {
-      const targetFolderUrl = folderUrl || options.currentFolderUrl.value;
-      const preparedFiles = await prepareAssetUploadFiles(Array.from(files), targetFolderUrl, {
+      const preparedFiles = await prepareAssetUploadFiles(files, targetFolderUrl, {
         findAssetByName: options.findAssetByName,
         getReferences: options.getDeleteReferences,
         requestDecision: options.requestUploadConflictDecision,

@@ -1,15 +1,43 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { computed, ref } from "vue";
-import { mount } from "@vue/test-utils";
+import { computed, defineComponent, ref } from "vue";
+import { flushPromises, mount } from "@vue/test-utils";
 import AssetLibraryGrid from "../../src/modules/asset-library/components/AssetLibraryGrid.vue";
-import { useAssetLibraryActions } from "../../src/modules/asset-library/composables/useAssetLibraryActions";
+import { useAssetLibraryActions, type AssetUploadConflictDecision } from "../../src/modules/asset-library/composables/useAssetLibraryActions";
 import { useAssetReferences } from "../../src/modules/asset-library/composables/useAssetReferences";
+import { useAssetsLibrary } from "../../src/modules/asset-library/composables/useAssetsLibrary";
 import type { AssetEntry, AssetLibraryEntryViewModel } from "../../src/modules/asset-library/types";
+import { createAssetReferenceDetails } from "../../src/modules/asset-library/utilities/assetReferences";
+import { notification } from "./support/vcShell";
 
-const api = vi.hoisted(() => ({ searchAssetReferences: vi.fn() }));
-vi.mock("../../src/modules/asset-library/composables/useAssetsLibraryApi", () => ({
-  useAssetsLibraryApi: () => ({ searchAssetReferences: api.searchAssetReferences, searchFolderReferences: vi.fn() }),
+const api = vi.hoisted(() => ({
+  searchAssetReferences: vi.fn(),
+  searchAssets: vi.fn(),
+  uploadAsset: vi.fn(),
+  createAssetFolder: vi.fn(),
+  deleteAssets: vi.fn(),
 }));
+vi.mock("../../src/modules/asset-library/composables/useAssetsLibraryApi", () => ({
+  useAssetsLibraryApi: () => ({ ...api, searchFolderReferences: vi.fn() }),
+}));
+
+vi.mock("@vc-shell/framework", async (importOriginal) => {
+  const shell = await importOriginal<typeof import("./support/vcShell")>();
+  const { computed: vueComputed } = await import("vue");
+  return {
+    ...shell,
+    isImage: (name: string) => /\.(png|jpe?g|gif|webp|svg)$/i.test(name),
+    readableSize: (size: number) => `${size} B`,
+    useBreadcrumbs: () => ({ breadcrumbs: vueComputed(() => []), push: vi.fn(), remove: vi.fn() }),
+    useDataTablePagination: () => ({ skip: 0, pageSize: 20, currentPage: 1, pages: 1, setPage: vi.fn(), reset: vi.fn(), goToPage: vi.fn() }),
+  };
+});
+
+vi.mock("../../src/modules/page-builder/composables", async () => {
+  const { ref: vueRef } = await import("vue");
+  return {
+    useUrlParams: () => ({ storeId: vueRef("s1"), storeContextStatus: vueRef("ready"), initUrlParams: vi.fn(), validateStoreContext: async () => true }),
+  };
+});
 
 const FOLDER: AssetEntry = { type: "folder", name: "images", relativeUrl: "/images" };
 const BLOB: AssetEntry = { type: "blob", name: "a.txt", relativeUrl: "/a.txt", url: "https://cdn.test/a.txt" };
@@ -86,6 +114,42 @@ describe("uploading assets", () => {
 
     expect(uploadFiles).toHaveBeenCalledWith([expect.any(File)], "/first");
   });
+
+  it("asks about a second batch's name conflict only once the first batch is decided, and uploads both", async () => {
+    // One pending decision at a time, as the library's overwrite dialog holds it.
+    let decide: ((decision: AssetUploadConflictDecision) => void) | undefined;
+    const requestUploadConflictDecision = vi.fn(() => new Promise<AssetUploadConflictDecision>((resolve) => (decide = resolve)));
+    const uploadFiles = vi.fn(async (_files: FileList | File[], _folderUrl?: string) => undefined);
+    const { uploadAssets } = useAssetLibraryActions({
+      t: (key) => key,
+      canCreate: computed(() => true),
+      currentFolderUrl: ref("/folder"),
+      uploadFiles,
+      createFolder: vi.fn(),
+      replaceSelectedAsset: vi.fn(),
+      deleteEntry: vi.fn(),
+      getDeleteReferences: async () => ({ ...createAssetReferenceDetails([]), usageKnown: true }),
+      findAssetByName: async (folderUrl, name) => ({ type: "blob", name, relativeUrl: `${folderUrl}/${name}` }),
+      requestUploadConflictDecision,
+      getAssetPublicUrl: () => undefined,
+    });
+
+    const first = uploadAssets([new File(["1"], "a.png")]);
+    const second = uploadAssets([new File(["2"], "b.png")]);
+    await flushPromises();
+
+    expect(requestUploadConflictDecision).toHaveBeenCalledTimes(1);
+
+    decide!({ action: "replace" });
+    await flushPromises();
+
+    expect(requestUploadConflictDecision).toHaveBeenCalledTimes(2);
+
+    decide!({ action: "replace" });
+
+    await expect(Promise.all([first, second])).resolves.toEqual([true, true]);
+    expect(uploadFiles.mock.calls.map(([files]) => Array.from(files, (x) => x.name))).toEqual([["a.png"], ["b.png"]]);
+  });
 });
 
 describe("loading an asset's reference details", () => {
@@ -119,5 +183,83 @@ describe("loading an asset's reference details", () => {
     await references.loadAssetReferenceDetails(BLOB);
 
     expect(references.areReferencesAvailable(BLOB)).toBe(true);
+  });
+});
+
+describe("a failed asset library action", () => {
+  const ROOT = "/stores/s1/Page Builder";
+  const refused = new Error("Refused by the platform");
+
+  function assetLibrary() {
+    let library!: ReturnType<typeof useAssetsLibrary>;
+    let actions!: ReturnType<typeof useAssetLibraryActions>;
+    mount(
+      defineComponent({
+        setup() {
+          library = useAssetsLibrary();
+          actions = useAssetLibraryActions({
+            t: (key) => key,
+            canCreate: computed(() => true),
+            currentFolderUrl: library.currentFolderUrl,
+            uploadFiles: library.uploadFiles,
+            createFolder: library.createFolder,
+            replaceSelectedAsset: library.replaceSelectedAsset,
+            deleteEntry: library.deleteEntry,
+            getDeleteReferences: library.getDeleteReferences,
+            findAssetByName: library.findAssetByName,
+            requestUploadConflictDecision: vi.fn(),
+            getAssetPublicUrl: () => undefined,
+          });
+          return () => null;
+        },
+      }),
+    );
+    library.currentFolderUrl.value = ROOT;
+    return { library, actions };
+  }
+
+  beforeEach(() => {
+    for (const fn of Object.values(api)) fn.mockReset();
+    api.searchAssets.mockResolvedValue({ results: [], totalCount: 0 });
+    api.searchAssetReferences.mockResolvedValue([]);
+  });
+
+  it("shows one error toast when an upload fails", async () => {
+    api.uploadAsset.mockRejectedValue(refused);
+    const { actions } = assetLibrary();
+
+    await actions.uploadAssets([new File(["x"], "b.txt")]);
+
+    expect(notification.error).toHaveBeenCalledTimes(1);
+    expect(notification.error).toHaveBeenCalledWith(refused.message);
+  });
+
+  it("shows one error toast when a replace fails", async () => {
+    api.uploadAsset.mockRejectedValue(refused);
+    const { library, actions } = assetLibrary();
+    library.selectedAsset.value = BLOB;
+
+    await actions.replaceAsset(new File(["x"], "other.txt"));
+
+    expect(notification.error).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows one error toast when a delete fails", async () => {
+    api.deleteAssets.mockRejectedValue(refused);
+    const { actions } = assetLibrary();
+
+    await actions.confirmDelete(BLOB);
+
+    expect(notification.error).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports a failed new folder only in the folder dialog", async () => {
+    api.createAssetFolder.mockRejectedValue(refused);
+    const { actions } = assetLibrary();
+
+    const result = await actions.createAssetFolder("photos");
+
+    expect(result).toEqual({ succeeded: false, errorMessage: refused.message });
+    expect(notification.error).not.toHaveBeenCalled();
   });
 });

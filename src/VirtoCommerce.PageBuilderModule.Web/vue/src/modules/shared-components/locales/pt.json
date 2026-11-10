@@ -61,6 +61,7 @@
       "DELETE_BLOCKED_ONE": "Este componente é usado em 1 página e não pode ser excluído.",
       "DELETE_BLOCKED_MANY": "Este componente é usado em {count} páginas e não pode ser excluído.",
       "DELETE_CONFLICT": "O componente agora está em uso e não pode ser excluído. Atualize a lista para ver onde ele é usado.",
+      "DELETE_MISSING": "O componente não existe mais. Outra pessoa pode tê-lo excluído.",
       "ERROR_GENERIC": "Falha na operação do componente compartilhado"
     }
   }

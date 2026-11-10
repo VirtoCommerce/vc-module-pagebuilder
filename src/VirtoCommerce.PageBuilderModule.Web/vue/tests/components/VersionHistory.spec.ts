@@ -35,3 +35,61 @@ describe("restoring a version", () => {
     expect(restore(wrapper).attributes("title")).toBe("No access to the header");
   });
 });
+
+describe("loading more versions", () => {
+  type Page = { versions: HistoryVersion[]; hasMore?: boolean; endCursor?: string };
+  const listed = (wrapper: VueWrapper) => wrapper.findAll(".vh__sha").map((x) => x.text());
+
+  it("drops a page asked for before a reload, so the reloaded list does not skip a version", async () => {
+    const answers: ((page: Page) => void)[] = [];
+    const wrapper = mount(VersionHistory, {
+      props: {
+        source: () => new Promise<Page>((resolve) => answers.push(resolve)),
+        dirty: false,
+        busy: false,
+        canDiscard: false,
+      },
+    });
+    answers.shift()!({ versions: [version("v3"), version("v2")], hasMore: true, endCursor: "after-v2" });
+    await flushPromises();
+
+    await wrapper.find("button.vh__wide").trigger("click");
+    const reloaded = (wrapper.vm as unknown as { reload: () => Promise<void> }).reload();
+    const [more, reload] = answers.splice(0);
+    reload({ versions: [version("v4"), version("v3")], hasMore: true, endCursor: "after-v3" });
+    await reloaded;
+    more({ versions: [version("v1")] });
+    await flushPromises();
+
+    expect(listed(wrapper)).toEqual(["v4", "v3"]);
+    expect(wrapper.find("button.vh__wide").exists()).toBe(true);
+  });
+
+  it("keeps showing that it loads until the latest request answers", async () => {
+    const answers: ((page: Page) => void)[] = [];
+    const wrapper = mount(VersionHistory, {
+      props: {
+        source: () => new Promise<Page>((resolve) => answers.push(resolve)),
+        dirty: false,
+        busy: false,
+        canDiscard: false,
+      },
+    });
+    answers.shift()!({ versions: [version("v2")], hasMore: true, endCursor: "after-v2" });
+    await flushPromises();
+
+    await wrapper.find("button.vh__wide").trigger("click");
+    void (wrapper.vm as unknown as { reload: () => Promise<void> }).reload();
+    const [more, reload] = answers.splice(0);
+    more({ versions: [version("v1")] });
+    await flushPromises();
+
+    expect(wrapper.find(".vh__spin").exists()).toBe(true);
+
+    reload({ versions: [version("v3"), version("v2")] });
+    await flushPromises();
+
+    expect(wrapper.find(".vh__spin").exists()).toBe(false);
+    expect(listed(wrapper)).toEqual(["v3", "v2"]);
+  });
+});

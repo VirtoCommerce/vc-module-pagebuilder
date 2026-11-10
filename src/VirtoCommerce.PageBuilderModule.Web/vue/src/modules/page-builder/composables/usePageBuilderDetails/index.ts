@@ -70,10 +70,9 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
   const { action: loadGroup, loading: loadingGroup } = useAsync(async () => {
     if (options?.id) {
       const apiClient = await getApiClient();
-      // A page without content has no SEO yet, so a failed read is not an error.
-      const [result, page] = await Promise.all([apiClient.getGroup(options.id), loadPage(options.id).catch(() => undefined)]);
+      const [result, page] = await Promise.all([apiClient.getGroup(options.id), loadPage(options.id)]);
       status.value = await apiClient.publishStatus(options.id);
-      seo.value = { ...(page?.doc.settings.seoInfo as PageSeo | undefined) };
+      seo.value = { ...(page.doc.settings.seoInfo as PageSeo | undefined) };
       savedSeo = seoKey(seo.value);
       item.value = reactive(result);
     } else {

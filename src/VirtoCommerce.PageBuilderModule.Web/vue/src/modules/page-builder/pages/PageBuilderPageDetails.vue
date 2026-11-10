@@ -363,7 +363,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     icon: "lucide-file",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.UNPUBLISH"),
     isVisible: !!param.value && status.value?.hasChanges === false,
-    disabled: isReadOnly.value,
+    disabled: isReadOnly.value || isModified.value,
     clickHandler: async () => {
       await unpublishGroup();
       notification.success(t("PAGE_BUILDER.PAGES.ALERTS.UNPUBLISH_SUCCESS"));

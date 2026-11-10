@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.DataProtection;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.History;
@@ -201,6 +202,23 @@ public class GitHubSiteHistoryTests
         options.Value.Token = null;
 
         Assert.Equal(ContentHistoryStatus.SetupRequired, await History(new GitHubScript(), options: options).GetStatusAsync("s1", Ct));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task GetStatusAsync_SavedAppThisServerCannotRead_ReturnsSetupRequired(bool gitContent)
+    {
+        var options = Microsoft.Extensions.Options.Options.Create(new GitContentOptions());
+        var saved = new FakeSettingsManager();
+        await GitHubConnections.CreateService(options.Value, saved, new EphemeralDataProtectionProvider(), GitHubConnections.CreateManifestConversion("acme"))
+            .CreateAppAsync("c0de", "acme", Ct);
+        // These keys are not the ones the App was saved with, as on a server the database was restored to.
+        var connection = GitHubConnections.CreateService(options.Value, saved, new EphemeralDataProtectionProvider());
+
+        var history = History(new GitHubScript(), new FakeSettingsManager(gitContent), options, connection: connection);
+
+        Assert.Equal(ContentHistoryStatus.SetupRequired, await history.GetStatusAsync("s1", Ct));
     }
 
     [Theory]
@@ -417,8 +435,9 @@ public class GitHubSiteHistoryTests
     }
 
     private GitHubSiteHistory History(GitHubScript github, FakeSettingsManager settings = null,
-        Microsoft.Extensions.Options.IOptions<GitContentOptions> options = null, IGitContentProvisioner provisioner = null) =>
-        SiteHistories.Create(github, new ThemeStorageFactory(_live.StoreService, _live, _live, _live), _pages, settings, options: options, provisioner: provisioner);
+        Microsoft.Extensions.Options.IOptions<GitContentOptions> options = null, IGitContentProvisioner provisioner = null, IGitHubConnectionService connection = null) =>
+        SiteHistories.Create(github, new ThemeStorageFactory(_live.StoreService, _live, _live, _live), _pages, settings, options: options, provisioner: provisioner,
+            connection: connection);
 
     private static string Sha(char digit) => new(digit, 40);
 
