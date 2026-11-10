@@ -15,7 +15,9 @@ test("a site's git endpoints carry its id escaped", () => {
   assert.equal(siteGitUrl("s1", "/connect"), "/api/pagebuilder/git/site/connect?storeId=s1");
 });
 
-test("the GitHub setup is asked for the organization as typed, trimmed, and the site to come back to", () => {
-  assert.equal(gitHubAppSetupUrl(" acme ", "B2B store"), "/api/pagebuilder/git/app/setup?organization=acme&storeId=B2B+store");
-  assert.equal(gitHubAppSetupUrl("acme"), "/api/pagebuilder/git/app/setup?organization=acme");
+test("the GitHub setup is asked for the organization as typed, trimmed, and the admin page to come back to", () => {
+  assert.equal(
+    gitHubAppSetupUrl(" acme ", "/apps/page-builder-shell/?storeId=s1#/github"),
+    "/api/pagebuilder/git/app/setup?organization=acme&returnUrl=%2Fapps%2Fpage-builder-shell%2F%3FstoreId%3Ds1%23%2Fgithub",
+  );
 });

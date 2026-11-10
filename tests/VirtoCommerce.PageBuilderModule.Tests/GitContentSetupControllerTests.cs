@@ -33,7 +33,7 @@ public class GitContentSetupControllerTests
     public async Task AppNew_ValidState_ReturnsGitHubFormWithSiteRepositoryManifest()
     {
         var controller = Controller();
-        var state = await GetSetupStateAsync(controller, "acme", "B2B store");
+        var state = await GetSetupStateAsync(controller, "acme");
         var (action, manifest) = await GetSetupFormAsync(controller, state);
 
         Assert.StartsWith("https://github.com/organizations/acme/settings/apps/new?state=", action);
@@ -55,7 +55,7 @@ public class GitContentSetupControllerTests
     public async Task AppNew_LongOrganizationName_KeepsAppNameWithinGitHubLimit()
     {
         var controller = Controller();
-        var (_, manifest) = await GetSetupFormAsync(controller, await GetSetupStateAsync(controller, new string('a', 39), "s1"));
+        var (_, manifest) = await GetSetupFormAsync(controller, await GetSetupStateAsync(controller, new string('a', 39)));
 
         Assert.True(manifest["name"]!.Value<string>()!.Length <= 34);
     }
@@ -66,7 +66,7 @@ public class GitContentSetupControllerTests
     [InlineData("-acme")]
     public async Task StartAppSetup_InvalidOrganization_ReturnsBadRequest(string organization)
     {
-        Assert.IsType<BadRequestObjectResult>((await Controller().StartAppSetup(organization, "s1", Ct)).Result);
+        Assert.IsType<BadRequestObjectResult>((await Controller().StartAppSetup(organization, null, Ct)).Result);
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public class GitContentSetupControllerTests
         var github = GitHubConnections.CreateManifestConversion("acme");
         var connection = GitHubConnections.CreateService(_settings, _keys, github);
         var controller = Controller(connection);
-        var state = await GetSetupStateAsync(controller, "acme", "s1");
+        var state = await GetSetupStateAsync(controller, "acme");
 
         var result = await controller.AppCreated("c0de", state, Ct);
 
@@ -103,7 +103,7 @@ public class GitContentSetupControllerTests
         // The anonymous callbacks are bound by the state's lifetime alone.
         var github = GitHubConnections.CreateManifestConversion("acme");
         var expired = _keys.CreateProtector("VirtoCommerce.PageBuilderModule.GitHubAppSetup").ToTimeLimitedDataProtector()
-            .Protect(JsonConvert.SerializeObject(new GitHubAppSetupRequest { Organization = "acme", StoreId = "s1" }), DateTimeOffset.UtcNow.AddMinutes(-1));
+            .Protect(JsonConvert.SerializeObject(new GitHubAppSetupRequest { Organization = "acme" }), DateTimeOffset.UtcNow.AddMinutes(-1));
 
         var result = await Controller(GitHubConnections.CreateService(_settings, _keys, github)).AppCreated("c0de", expired, Ct);
 
@@ -113,22 +113,36 @@ public class GitContentSetupControllerTests
     }
 
     [Fact]
-    public async Task AppInstalled_ValidState_RedirectsToSite()
+    public async Task AppInstalled_ValidState_ReturnsToThePageThatStartedTheSetup()
     {
+        const string page = "/apps/page-builder-shell/?storeId=s1#/github";
         var controller = Controller();
-        var state = await GetSetupStateAsync(controller, "acme", "B2B store");
+        var state = await GetSetupStateAsync(controller, "acme", page);
 
-        Assert.Equal("/apps/admin-shell/#/content/site/B2B%20store", Assert.IsType<RedirectResult>(controller.AppInstalled(state)).Url);
-        Assert.Equal("/apps/admin-shell/#/content/site/B2B%20store", Assert.IsType<RedirectResult>(controller.AppInstalled($"{state}?installation_id=9")).Url);
+        Assert.Equal(page, Assert.IsType<RedirectResult>(controller.AppInstalled(state)).Url);
+        Assert.Equal(page, Assert.IsType<RedirectResult>(controller.AppInstalled($"{state}?installation_id=9")).Url);
     }
 
     [Theory]
     [InlineData(null)]
     [InlineData("B2B store")]
     [InlineData("forged")]
-    public void AppInstalled_InvalidState_RedirectsToSitesPanel(string state)
+    public async Task AppInstalled_InvalidStateOrNoPage_ReturnsToTheAdminHome(string state)
     {
-        Assert.Equal("/apps/admin-shell/#/content", Assert.IsType<RedirectResult>(Controller().AppInstalled(state)).Url);
+        var controller = Controller();
+
+        Assert.Equal("/", Assert.IsType<RedirectResult>(controller.AppInstalled(state)).Url);
+        Assert.Equal("/", Assert.IsType<RedirectResult>(controller.AppInstalled(await GetSetupStateAsync(controller, "acme"))).Url);
+    }
+
+    [Theory]
+    [InlineData("https://evil.test/")]
+    [InlineData("//evil.test/")]
+    [InlineData("/\\evil.test/")]
+    [InlineData("javascript:alert(1)")]
+    public async Task StartAppSetup_ReturnUrlOffThePlatform_ReturnsBadRequest(string returnUrl)
+    {
+        Assert.IsType<BadRequestObjectResult>((await Controller().StartAppSetup("acme", returnUrl, Ct)).Result);
     }
 
     [Fact]
@@ -270,7 +284,7 @@ public class GitContentSetupControllerTests
             options.BaseBranch = "main";
         });
 
-        Assert.IsType<BadRequestObjectResult>((await Controller(connection).StartAppSetup("acme", "s1", Ct)).Result);
+        Assert.IsType<BadRequestObjectResult>((await Controller(connection).StartAppSetup("acme", null, Ct)).Result);
     }
 
     [Fact]
@@ -301,7 +315,7 @@ public class GitContentSetupControllerTests
     [Fact]
     public async Task StartAppSetup_ValidOrganization_WritesTheSetupPageUrlJson()
     {
-        var body = PlatformJson.ParseBody(await Controller().StartAppSetup("acme", "s1", Ct));
+        var body = PlatformJson.ParseBody(await Controller().StartAppSetup("acme", null, Ct));
 
         Assert.Equal(["url"], body.Properties().Select(x => x.Name));
         Assert.StartsWith("/api/pagebuilder/git/app/new?state=", body.Value<string>("url"));
@@ -344,9 +358,9 @@ public class GitContentSetupControllerTests
             });
     }
 
-    private static async Task<string> GetSetupStateAsync(GitContentSetupController controller, string organization, string storeId)
+    private static async Task<string> GetSetupStateAsync(GitContentSetupController controller, string organization, string returnUrl = null)
     {
-        var url = Assert.IsType<GitHubAppSetupResult>(Assert.IsType<OkObjectResult>((await controller.StartAppSetup(organization, storeId, Ct)).Result).Value).Url;
+        var url = Assert.IsType<GitHubAppSetupResult>(Assert.IsType<OkObjectResult>((await controller.StartAppSetup(organization, returnUrl, Ct)).Result).Value).Url;
         Assert.StartsWith("/api/pagebuilder/git/app/new?state=", url);
         return HttpUtility.ParseQueryString(url[url.IndexOf('?')..])["state"];
     }

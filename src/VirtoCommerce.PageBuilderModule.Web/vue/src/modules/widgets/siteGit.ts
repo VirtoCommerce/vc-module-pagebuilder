@@ -42,5 +42,6 @@ export interface GitHubConnection {
 
 export const gitHubConnectionUrl = "/api/pagebuilder/git/connection";
 
-export const gitHubAppSetupUrl = (organization: string, storeId?: string) =>
-  `/api/pagebuilder/git/app/setup?${new URLSearchParams({ organization: organization.trim(), ...(storeId ? { storeId } : {}) })}`;
+/** `returnUrl` is the admin page GitHub sends the browser back to once the app is installed. */
+export const gitHubAppSetupUrl = (organization: string, returnUrl: string) =>
+  `/api/pagebuilder/git/app/setup?${new URLSearchParams({ organization: organization.trim(), returnUrl })}`;

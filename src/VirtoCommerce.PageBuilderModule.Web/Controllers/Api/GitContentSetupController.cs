@@ -41,11 +41,9 @@ public class GitContentSetupController(
 
     private const int MaxSites = 100;
 
-    private const string ContentAppPath = "/apps/admin-shell/#/content";
-    private const string SiteAppPathFormat = ContentAppPath + "/site/{0}";
-
     private const string ConfigurationInChargeError = "This platform takes its GitHub connection from its configuration.";
     private const string InvalidStateError = "This setup link has expired or is not valid. Start the setup again from the site.";
+    private const string ReturnUrlError = "The setup can return only to a page of this platform.";
     private const string SetupErrorFormat = "GitHub setup did not finish: {0}";
 
     private const string AppCreationPage = """
@@ -135,14 +133,19 @@ public class GitContentSetupController(
     [HttpGet]
     [Route("app/setup")]
     [Authorize(PlatformConstants.Security.Permissions.SettingUpdate)]
-    public async Task<ActionResult<GitHubAppSetupResult>> StartAppSetup(string organization, string storeId, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<GitHubAppSetupResult>> StartAppSetup(string organization, string returnUrl, CancellationToken cancellationToken = default)
     {
         if (!await gitContentSetupService.CanSetUpAppAsync(cancellationToken))
         {
             return BadRequest(new { error = ConfigurationInChargeError });
         }
 
-        var setup = new GitHubAppSetupRequest { Organization = organization?.Trim(), StoreId = storeId };
+        if (!string.IsNullOrEmpty(returnUrl) && !Url.IsLocalUrl(returnUrl))
+        {
+            return BadRequest(new { error = ReturnUrlError });
+        }
+
+        var setup = new GitHubAppSetupRequest { Organization = organization?.Trim(), ReturnUrl = returnUrl };
         if (await appSetupRequestValidator.ValidateRequestAsync(setup, ModelState, cancellationToken) is { } invalid)
         {
             return invalid;
@@ -223,11 +226,10 @@ public class GitContentSetupController(
     public ActionResult AppInstalled(string state)
     {
         // GitHub may append "?installation_id=..." to the state value
-        var storeId = gitContentSetupService.ReadSetupState(state?.Split('?')[0])?.StoreId;
+        var returnUrl = gitContentSetupService.ReadSetupState(state?.Split('?')[0])?.ReturnUrl;
 
-        return Redirect(Request.PathBase + (storeId.IsNullOrEmpty()
-            ? ContentAppPath
-            : string.Format(CultureInfo.InvariantCulture, SiteAppPathFormat, Uri.EscapeDataString(storeId))));
+        // an expired or forged state still lands in the admin, at its home page
+        return Redirect(Url.IsLocalUrl(returnUrl) ? returnUrl : $"{Request.PathBase}/");
     }
 
     private async Task<IList<Store>> GetAccessibleStoresAsync()

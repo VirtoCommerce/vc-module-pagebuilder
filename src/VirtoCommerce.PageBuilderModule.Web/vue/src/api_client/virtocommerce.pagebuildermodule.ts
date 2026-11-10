@@ -273,19 +273,19 @@ export class GitContentSetupClient extends AuthApiBase {
 
     /**
      * @param organization (optional) 
-     * @param storeId (optional) 
+     * @param returnUrl (optional) 
      * @return OK
      */
-    startAppSetup(organization?: string | undefined, storeId?: string | undefined): Promise<GitHubAppSetupResult> {
+    startAppSetup(organization?: string | undefined, returnUrl?: string | undefined): Promise<GitHubAppSetupResult> {
         let url_ = this.baseUrl + "/api/pagebuilder/git/app/setup?";
         if (organization === null)
             throw new globalThis.Error("The parameter 'organization' cannot be null.");
         else if (organization !== undefined)
             url_ += "organization=" + encodeURIComponent("" + organization) + "&";
-        if (storeId === null)
-            throw new globalThis.Error("The parameter 'storeId' cannot be null.");
-        else if (storeId !== undefined)
-            url_ += "storeId=" + encodeURIComponent("" + storeId) + "&";
+        if (returnUrl === null)
+            throw new globalThis.Error("The parameter 'returnUrl' cannot be null.");
+        else if (returnUrl !== undefined)
+            url_ += "returnUrl=" + encodeURIComponent("" + returnUrl) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -2173,6 +2173,61 @@ export class PageBuilderClient extends AuthApiBase {
         return Promise.resolve<void>(null as any);
     }
 
+    /**
+     * @param storeId (optional) 
+     * @return OK
+     */
+    getDesignerStorefront(storeId?: string | undefined): Promise<DesignerStorefront> {
+        let url_ = this.baseUrl + "/api/pagebuilder/designer/storefront?";
+        if (storeId === null)
+            throw new globalThis.Error("The parameter 'storeId' cannot be null.");
+        else if (storeId !== undefined)
+            url_ += "storeId=" + encodeURIComponent("" + storeId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processGetDesignerStorefront(_response);
+        });
+    }
+
+    protected processGetDesignerStorefront(response: Response): Promise<DesignerStorefront> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as DesignerStorefront;
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            return throwException("Bad Request", status, _responseText, _headers);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DesignerStorefront>(null as any);
+    }
+
     saveDesignerChanges(storeId?: string | undefined, catalogHash?: string | undefined, body?: DesignerSaveRequest | undefined): Promise<void> {
         let url_ = this.baseUrl + "/api/pagebuilder/designer/save?";
         if (storeId === null)
@@ -3813,7 +3868,7 @@ export class PageBuilderPageClient extends AuthApiBase {
      * @param includeVersion (optional) 
      * @return OK
      */
-    savePageContent(groupId: string, if_Match?: string | undefined, includeVersion?: boolean | undefined): Promise<void> {
+    savePageContent(groupId: string, if_Match?: string | undefined, includeVersion?: boolean | undefined): Promise<UpdatePageContentResult> {
         let url_ = this.baseUrl + "/api/page-builder-pages/grouped/{groupId}/content?";
         if (groupId === undefined || groupId === null)
             throw new globalThis.Error("The parameter 'groupId' must be defined.");
@@ -3828,6 +3883,7 @@ export class PageBuilderPageClient extends AuthApiBase {
             method: "POST",
             headers: {
                 "If-Match": if_Match !== undefined && if_Match !== null ? "" + if_Match : "",
+                "Accept": "application/json"
             }
         };
 
@@ -3838,12 +3894,18 @@ export class PageBuilderPageClient extends AuthApiBase {
         });
     }
 
-    protected processSavePageContent(response: Response): Promise<void> {
+    protected processSavePageContent(response: Response): Promise<UpdatePageContentResult> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
-            return;
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as UpdatePageContentResult;
+            return result200;
+            });
+        } else if (status === 204) {
+            return response.text().then((_responseText) => {
+            return throwException("No Content", status, _responseText, _headers);
             });
         } else if (status === 401) {
             return response.text().then((_responseText) => {
@@ -3858,7 +3920,7 @@ export class PageBuilderPageClient extends AuthApiBase {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<UpdatePageContentResult>(null as any);
     }
 
     /**
@@ -3867,7 +3929,7 @@ export class PageBuilderPageClient extends AuthApiBase {
      * @param body (optional) 
      * @return OK
      */
-    savePageContentJson(groupId: string, if_Match?: string | undefined, includeVersion?: boolean | undefined, body?: UpdatePageContentRequest | undefined): Promise<void> {
+    savePageContentJson(groupId: string, if_Match?: string | undefined, includeVersion?: boolean | undefined, body?: UpdatePageContentRequest | undefined): Promise<UpdatePageContentResult> {
         let url_ = this.baseUrl + "/api/page-builder-pages/grouped/{groupId}/content-json?";
         if (groupId === undefined || groupId === null)
             throw new globalThis.Error("The parameter 'groupId' must be defined.");
@@ -3886,6 +3948,7 @@ export class PageBuilderPageClient extends AuthApiBase {
             headers: {
                 "If-Match": if_Match !== undefined && if_Match !== null ? "" + if_Match : "",
                 "Content-Type": "application/json-patch+json",
+                "Accept": "application/json"
             }
         };
 
@@ -3896,12 +3959,18 @@ export class PageBuilderPageClient extends AuthApiBase {
         });
     }
 
-    protected processSavePageContentJson(response: Response): Promise<void> {
+    protected processSavePageContentJson(response: Response): Promise<UpdatePageContentResult> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
-            return;
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as UpdatePageContentResult;
+            return result200;
+            });
+        } else if (status === 204) {
+            return response.text().then((_responseText) => {
+            return throwException("No Content", status, _responseText, _headers);
             });
         } else if (status === 401) {
             return response.text().then((_responseText) => {
@@ -3916,7 +3985,7 @@ export class PageBuilderPageClient extends AuthApiBase {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<UpdatePageContentResult>(null as any);
     }
 
     /**
@@ -5014,6 +5083,11 @@ export interface DesignerSaveRequest {
     themeFiles?: DesignerSaveFile[] | undefined;
 }
 
+export interface DesignerStorefront {
+    url?: string | undefined;
+    previewPath?: string | undefined;
+}
+
 export interface DynamicObjectProperty {
     objectId?: string | undefined;
     values?: DynamicPropertyObjectValue[] | undefined;
@@ -5537,6 +5611,10 @@ export interface ThemePaletteTokens {
 export interface UpdatePageContentRequest {
     eTag?: string | undefined;
     content?: string | undefined;
+}
+
+export interface UpdatePageContentResult {
+    eTag?: string | undefined;
 }
 
 export class ApiException extends Error {

@@ -44,9 +44,9 @@ restored into staging must not create or archive repositories in production's or
    *Read and write* and no webhook. Select **Create GitHub App**. You must be an owner of the organization.
 4. GitHub hands the App's id and private key to the platform and asks you to **install** the App: install it on the
    organization with access to **all repositories**, so repositories created later are covered.
-5. GitHub brings you back to the Sites panel, where **GitHub** now shows the organization, the App and every site
-   with its repository. Open a site's **History** and select **Enable history**: the site's repository is created and
-   every later save is a version.
+5. GitHub brings you back to the admin page you started from, where **GitHub** now shows the organization, the App
+   and every site with its repository. Open a site's **History** and select **Enable history**: the site's repository
+   is created and every later save is a version.
 
 From then on, every new site gets its repository and history straight away; existing sites are turned on one by one
 from their **History** panel, or from **Enable history** in the designer.
@@ -56,9 +56,10 @@ setting, encrypted with the platform's ASP.NET data protection keys. Those keys 
 keeps them in Redis when it has Redis, else in the server's own key folder — so a database restored on another
 environment cannot use the App there (the panel says so and offers the setup again). On a server without Redis whose
 key folder is not kept across deployments (a container without a volume for it), every redeployment loses the keys and
-the setup has to be run again; give such servers Redis, or configure the connection instead (below). The callback
-addresses GitHub is given are built from the address the admin is opened on; behind a reverse proxy, make sure the
-platform sees the public scheme and host (forwarded headers).
+the setup has to be run again; give such servers Redis, or configure the connection instead (below). Moving a running
+installation to Redis starts a new key ring too, so run the setup once more after the move. The callback addresses
+GitHub is given are built from the address the admin is opened on; behind a reverse proxy, make sure the platform sees
+the public scheme and host (forwarded headers).
 
 ## Set it up in configuration
 

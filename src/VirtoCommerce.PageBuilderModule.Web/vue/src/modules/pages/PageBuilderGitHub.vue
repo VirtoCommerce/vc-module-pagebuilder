@@ -225,7 +225,8 @@ async function createApp() {
   busy.value = true;
   actionError.value = undefined;
   try {
-    const { url } = await request<{ url: string }>(gitHubAppSetupUrl(organization.value));
+    const { pathname, search, hash } = window.location;
+    const { url } = await request<{ url: string }>(gitHubAppSetupUrl(organization.value, pathname + search + hash));
     if (tab) tab.location.href = url;
     else window.open(url, "_blank", "noopener");
     appCreationOpen = true;
