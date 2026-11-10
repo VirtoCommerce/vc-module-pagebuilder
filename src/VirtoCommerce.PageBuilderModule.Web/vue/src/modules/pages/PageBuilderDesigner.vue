@@ -905,7 +905,8 @@ const bridge = usePreviewBridge({
     if (versionView) return;
     if (lockedItem(itemId)) return refuseLocked();
     const target = designer.setText(itemId, path, value, language);
-    if (!target || JSON.stringify(target) === JSON.stringify(designer.selection.value)) return;
+    if (!target) return answerRefusedEdit();
+    if (JSON.stringify(target) === JSON.stringify(designer.selection.value)) return;
     selectedInPreview = true;
     designer.selection.value = target;
   },
@@ -914,9 +915,13 @@ const bridge = usePreviewBridge({
 const lockedItem = (itemId: string) =>
   designer.doc.value.content.some((x) => (x.id === itemId || !!x.blocks?.some((b) => b.id === itemId)) && designer.isLocked(x.id));
 let lockedSaid = false;
-function refuseLocked() {
+// The preview keeps a typed text until the edit is answered: the old values tell it to take the text back.
+function answerRefusedEdit() {
   sendDraft();
   sendRender();
+}
+function refuseLocked() {
+  answerRefusedEdit();
   if (lockedSaid) return;
   lockedSaid = true;
   notification.warning(t("PAGE_BUILDER.DESIGNER.GROUPS.LOCKED"));
