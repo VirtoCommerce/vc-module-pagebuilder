@@ -6,6 +6,7 @@ import { blade } from "./support/vcShell";
 
 // Replaced by a reactive ref when the framework mock loads.
 const form = vi.hoisted(() => ({ modified: { value: false } }));
+const publishing = vi.hoisted(() => ({ hasChanges: false }));
 
 vi.mock("@vc-shell/framework", async (importOriginal) => {
   const shell = await importOriginal<typeof import("./support/vcShell")>();
@@ -37,7 +38,7 @@ vi.mock("../../src/modules/page-builder/composables/usePageBuilderDetails", asyn
     usePageBuilderDetails: () => ({
       item: vueRef({ id: "g1", name: "Page", permalink: "/page", storeId: "s1", status: "Published" }),
       seo: vueRef({}),
-      status: vueRef({ hasChanges: false }),
+      status: vueRef({ hasChanges: publishing.hasChanges }),
       isReadOnly: vueComputed(() => false),
       loading: vueComputed(() => false),
       loadGroup: vi.fn(async () => undefined),
@@ -91,6 +92,7 @@ describe("unpublishing a page from its details", () => {
   beforeEach(() => {
     vi.stubGlobal("defineBlade", () => undefined);
     form.modified.value = false;
+    publishing.hasChanges = false;
     blade.param.value = "g1";
   });
 
@@ -107,6 +109,14 @@ describe("unpublishing a page from its details", () => {
     await nextTick();
 
     expect(toolbarItem(wrapper, "unpublishPage")?.disabled).toBe(true);
+  });
+
+  it("is not offered while the page has unpublished changes, which the server refuses to take down", async () => {
+    publishing.hasChanges = true;
+
+    const wrapper = await mountPage();
+
+    expect(toolbarItem(wrapper, "unpublishPage")?.isVisible).toBe(false);
   });
 });
 

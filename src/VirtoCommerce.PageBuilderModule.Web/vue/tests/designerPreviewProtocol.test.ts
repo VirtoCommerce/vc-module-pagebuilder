@@ -243,7 +243,8 @@ test("a loaded with no capabilities and no dark tokens is a storefront's, not a 
 });
 
 test("a render's route never leaves the storefront", () => {
-  for (const path of ["//evil.example/x", "https://evil.example/x", "\\\\evil.example"]) assert.match(storefrontRoute(path) ?? "", /^\/(?![/\\])/, path);
+  for (const path of ["//evil.example/x", "https://evil.example/x", "\\\\evil.example", "/.//evil.example", "a/..//evil.example"])
+    assert.match(storefrontRoute(path) ?? "", /^\/(?![/\\])/, path);
   assert.equal(storefrontRoute("//evil.example/x"), "/evil.example/x");
 });
 

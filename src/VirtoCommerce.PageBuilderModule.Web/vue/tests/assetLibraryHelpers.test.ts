@@ -365,7 +365,8 @@ test("accepted types match as the server's asset search does", () => {
   assert.equal(matchesAcceptedTypes(png, [".png"]), true, "an extension matches the name, in any case");
   assert.equal(matchesAcceptedTypes(pdf, [".png", "application/PDF"]), true, "an exact type matches in any case");
   assert.equal(matchesAcceptedTypes({ name: "a.txt", contentType: "imagex/png" }, ["image/*"]), false, "a wildcard keeps its slash");
-  assert.equal(matchesAcceptedTypes({ name: "a.png" }, ["image/*"]), false, "no content type matches only extensions");
+  assert.equal(matchesAcceptedTypes({ name: "a.avif" }, ["image/*"]), true, "a file without a content type is left to the server, which reads it from the name");
+  assert.equal(matchesAcceptedTypes({ name: "a.avif" }, [".png"]), false, "an extension entry still checks the name");
   assert.equal(matchesAcceptedTypes(pdf, [" .pdf ", ""]), true, "entries are trimmed and blanks dropped");
   assert.equal(matchesAcceptedTypes(pdf, []), true, "no types takes every asset");
   assert.equal(matchesAcceptedTypes(pdf, [" "]), true, "only blanks takes every asset");

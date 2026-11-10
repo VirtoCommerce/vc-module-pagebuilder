@@ -195,7 +195,12 @@ export function parsePreviewMessage(message: unknown): PreviewEvent | undefined 
 }
 
 /** Only the path, query and hash are taken, so "//evil.example" or "https://evil.example" cannot change the host. */
-export const storefrontPath = (path: string): URL => new URL(`/${path.replace(/^[/\\]+/, "")}`, "https://storefront.invalid");
+export function storefrontPath(path: string): URL {
+  const url = new URL(`/${path.replace(/^[/\\]+/, "")}`, "https://storefront.invalid");
+  // dot segments the parser resolves can leave "//host" at the start
+  url.pathname = url.pathname.replace(/^\/+/, "/");
+  return url;
+}
 
 export function storefrontRoute(path: string): string | undefined {
   try {
