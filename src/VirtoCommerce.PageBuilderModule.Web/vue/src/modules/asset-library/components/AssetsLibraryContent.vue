@@ -85,7 +85,7 @@
             v-if="canCreate && storeId"
             class="assets-library__empty-upload"
             variant="file-upload"
-            accept=""
+            :accept="acceptAttribute"
             multiple
             name="assets-library-upload"
             :loading="loading"
@@ -135,11 +135,11 @@
     class="assets-library__pick"
   >
     <span class="assets-library__pick-name">{{
-      selectedAsset?.type === "blob" ? selectedAsset.name : $t("ASSET_LIBRARY.PICK.HINT")
+      canPick && selectedAsset ? selectedAsset.name : $t("ASSET_LIBRARY.PICK.HINT")
     }}</span>
     <VcButton
-      :disabled="selectedAsset?.type !== 'blob'"
-      @click="selectedAsset && emit('pick', getAssetStoredUrl(selectedAsset))"
+      :disabled="!canPick"
+      @click="canPick && selectedAsset && emit('pick', getAssetStoredUrl(selectedAsset))"
     >
       {{ $t("ASSET_LIBRARY.PICK.SELECT") }}
     </VcButton>
@@ -165,7 +165,7 @@
         <VcFileUpload
           class="assets-library__upload-popup-file"
           variant="file-upload"
-          accept=""
+          :accept="acceptAttribute"
           multiple
           name="assets-library-toolbar-upload"
           :loading="loading"
@@ -207,6 +207,7 @@ import { useI18n } from "vue-i18n";
 import { usePermissions } from "@vc-shell/framework";
 import { VcBreadcrumbs, VcButton, VcFileUpload, VcHint, VcIcon, VcPopup, VcPagination, VcSelect } from "@vc-shell/framework/ui";
 import { getAssetStoredUrl } from "../utilities/assetUrl";
+import { matchesAcceptedTypes } from "../utilities/assetAccept";
 import type { AssetEntry, AssetLibraryViewMode } from "../types";
 import { useAssetsLibrary } from "../composables/useAssetsLibrary";
 import { useAssetLibraryActions } from "../composables/useAssetLibraryActions";
@@ -228,8 +229,14 @@ export interface ExposedAssetsLibraryContent {
   reload: () => Promise<void>;
 }
 
-defineProps<{ pickable?: boolean }>();
+const props = defineProps<{
+  pickable?: boolean;
+  /** The types the picker lists, selects and uploads; folders always list. */
+  accept?: string[];
+}>();
 const emit = defineEmits<{ pick: [url: string] }>();
+const acceptedTypes = computed(() => props.accept ?? []);
+const acceptAttribute = computed(() => acceptedTypes.value.join(","));
 
 const { t } = useI18n({ useScope: "global" });
 const { hasAccess } = usePermissions();
@@ -280,7 +287,7 @@ const {
   uploadFiles,
   replaceSelectedAsset,
   deleteEntry,
-} = useAssetsLibrary();
+} = useAssetsLibrary({ acceptedTypes });
 
 const pageSizeOptions = [20, 50, 100];
 
@@ -302,6 +309,7 @@ const { notifyError, uploadAssets, createAssetFolder, replaceAsset, copyAssetUrl
     findAssetByName,
     requestUploadConflictDecision,
     getAssetPublicUrl,
+    acceptedTypes,
   });
 const {
   isDraggingOverSurface,
@@ -315,6 +323,7 @@ const {
   handleFolderDrop,
 } = useAssetLibraryDragDrop(canCreate, uploadAssets);
 const selectedEntryKey = computed(() => getAssetEntryKey(selectedAsset.value));
+const canPick = computed(() => selectedAsset.value?.type === "blob" && matchesAcceptedTypes(selectedAsset.value, acceptedTypes.value));
 const notAvailableText = computed(() => t("ASSET_LIBRARY.DETAILS.NOT_AVAILABLE"));
 const emptyTitle = computed(() => {
   if (storeContextStatus.value === "missing") {

@@ -562,6 +562,7 @@
         <div class="pd-picker__body">
           <AssetsLibraryContent
             pickable
+            :accept="pickTypes"
             @pick="picked"
           />
         </div>
@@ -1011,6 +1012,7 @@ function previewSection(type: string | null) {
 }
 
 const picking = ref(false);
+const pickTypes = ref<string[]>();
 let resolvePick: ((value: string | undefined) => void) | undefined;
 function picked(asset: string | undefined) {
   resolvePick?.(asset);
@@ -1039,8 +1041,9 @@ provide(
 );
 const whiteLabeled = computed(() => reported.value?.overriddenByWhiteLabeling ?? []);
 provide(WhiteLabelingKey, whiteLabeled);
-provide(PickAssetKey, () => {
+provide(PickAssetKey, (acceptedTypes) => {
   resolvePick?.(undefined);
+  pickTypes.value = acceptedTypes;
   picking.value = true;
   return new Promise((resolve) => (resolvePick = resolve));
 });

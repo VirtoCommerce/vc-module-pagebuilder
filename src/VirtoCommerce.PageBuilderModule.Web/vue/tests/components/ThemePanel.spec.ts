@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { effectScope } from "vue";
 import ThemePanel from "../../src/modules/designer/components/ThemePanel.vue";
+import { PickAssetKey } from "../../src/modules/designer/types";
 import { PALETTE_CHECK_DEBOUNCE_MS, type PaletteFailure } from "../../src/modules/designer/paletteContrast";
 import { useThemeLook } from "../../src/modules/designer/useThemeLook";
 import { fakePlatform, themeFileAnswer, type FakePlatform } from "./support/fakePlatform";
@@ -42,10 +43,10 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-async function mountPanel() {
+async function mountPanel(provide: Record<symbol, unknown> = {}) {
   const look = scope.run(() => useThemeLook())!;
   await look.load(STORE, "default");
-  const wrapper = mount(ThemePanel, { props: { look, storeId: STORE, paletteTokens: TOKENS } });
+  const wrapper = mount(ThemePanel, { props: { look, storeId: STORE, paletteTokens: TOKENS }, global: { provide } });
   await settle();
   return { wrapper, look };
 }
@@ -83,5 +84,17 @@ describe("ThemePanel: palette contrast", () => {
     look.setColor("light", "color_neutral_50", "#ffffff");
     await settle();
     expect(checks()).toHaveLength(3);
+  });
+});
+
+describe("ThemePanel: brand images", () => {
+  it("opens the picker on images for the logos and the favicon", async () => {
+    const pickAsset = vi.fn(async (_acceptedTypes?: string[]) => undefined);
+    const { wrapper } = await mountPanel({ [PickAssetKey as symbol]: pickAsset });
+
+    for (const select of wrapper.findAll("button").filter((x) => x.text() === "Select")) await select.trigger("click");
+    await flushPromises();
+
+    expect(pickAsset.mock.calls.map(([types]) => types)).toEqual([["image/*"], ["image/*"], ["image/*"]]);
   });
 });

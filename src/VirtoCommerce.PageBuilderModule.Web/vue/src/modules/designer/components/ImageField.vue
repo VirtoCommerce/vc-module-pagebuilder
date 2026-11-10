@@ -52,12 +52,12 @@ import { inject } from "vue";
 import { VcButton, VcIcon, VcInput } from "@vc-shell/framework/ui";
 import { PickAssetKey } from "../types";
 
-defineProps<{ modelValue?: string | null; label?: string; hint?: string; image?: boolean; noRemove?: boolean }>();
+const props = defineProps<{ modelValue?: string | null; label?: string; hint?: string; image?: boolean; noRemove?: boolean; accept?: string[] }>();
 const emit = defineEmits<{ "update:modelValue": [value: string | null] }>();
 
 const pickAsset = inject(PickAssetKey, undefined);
 async function choose() {
-  const url = await pickAsset?.();
+  const url = await pickAsset?.(props.accept);
   if (url) emit("update:modelValue", url);
 }
 </script>

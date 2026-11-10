@@ -115,6 +115,7 @@
       "FOLDER_CREATED": "文件夹创建成功",
       "UPLOADED": "资源上传成功",
       "UPLOAD_CANCELED": "上传已取消。未上传任何文件。",
+      "NOT_ACCEPTED": "未上传：{names}。此字段仅接受 {types}。",
       "REPLACED": "资源替换成功",
       "DELETED": "资源删除成功",
       "URL_COPIED": "资源 URL 已复制",

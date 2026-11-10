@@ -115,6 +115,7 @@
       "FOLDER_CREATED": "Dossier créé avec succès",
       "UPLOADED": "Ressources téléversées avec succès",
       "UPLOAD_CANCELED": "Téléversement annulé. Aucun fichier n’a été téléversé.",
+      "NOT_ACCEPTED": "Non téléversés : {names}. Ce champ n’accepte que {types}.",
       "REPLACED": "Ressource remplacée avec succès",
       "DELETED": "Ressources supprimées avec succès",
       "URL_COPIED": "URL de la ressource copiée avec succès",

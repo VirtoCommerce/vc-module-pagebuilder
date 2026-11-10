@@ -115,6 +115,7 @@
       "FOLDER_CREATED": "Pasta criada com sucesso",
       "UPLOADED": "Ativos enviados com sucesso",
       "UPLOAD_CANCELED": "Carregamento cancelado. Nenhum arquivo foi carregado.",
+      "NOT_ACCEPTED": "Não enviados: {names}. Este campo aceita apenas {types}.",
       "REPLACED": "Ativo substituído com sucesso",
       "DELETED": "Ativos excluídos com sucesso",
       "URL_COPIED": "URL do ativo copiada com sucesso",

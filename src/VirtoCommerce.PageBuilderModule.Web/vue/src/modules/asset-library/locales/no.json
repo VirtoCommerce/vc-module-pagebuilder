@@ -115,6 +115,7 @@
       "FOLDER_CREATED": "Mappe opprettet",
       "UPLOADED": "Ressurser lastet opp",
       "UPLOAD_CANCELED": "Opplastingen ble avbrutt. Ingen filer ble lastet opp.",
+      "NOT_ACCEPTED": "Ikke lastet opp: {names}. Dette feltet tar bare imot {types}.",
       "REPLACED": "Ressurs erstattet",
       "DELETED": "Ressurser slettet",
       "URL_COPIED": "Ressurs-URL kopiert",

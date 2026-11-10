@@ -8,6 +8,7 @@ export interface AssetEntriesLoadRequest {
   skip?: number;
   take?: number;
   sort?: string;
+  acceptedTypes?: readonly string[];
 }
 
 export interface AssetSearchOptions {
@@ -16,6 +17,7 @@ export interface AssetSearchOptions {
   sort?: string;
   exactName?: string;
   preferredAssetUrl?: string;
+  acceptedTypes?: string[];
 }
 
 interface AssetEntriesLoaderOptions {
@@ -55,6 +57,7 @@ export function createAssetEntriesLoader(options: AssetEntriesLoaderOptions): As
         take: loadRequest.take,
         sort: loadRequest.sort,
         ...(loadRequest.preferredSelectionUrl ? { preferredAssetUrl: loadRequest.preferredSelectionUrl } : {}),
+        ...(loadRequest.acceptedTypes?.length ? { acceptedTypes: [...loadRequest.acceptedTypes] } : {}),
       });
       if (!request.isCurrent()) {
         return;

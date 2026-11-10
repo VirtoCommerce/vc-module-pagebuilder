@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import Fields from "../../src/modules/designer/components/Fields.vue";
 import { PickAssetKey, type Field } from "../../src/modules/designer/types";
@@ -6,10 +6,10 @@ import { PickAssetKey, type Field } from "../../src/modules/designer/types";
 const LIST: Field = { id: "images", type: "images", multiple: true, label: "Images" };
 const SINGLE: Field = { id: "image", type: "images", multiple: false, label: "Image" };
 
-function mountFields(field: Field, value: unknown) {
+function mountFields(field: Field, value: unknown, pickAsset = async (_acceptedTypes?: string[]) => "new.png") {
   return mount(Fields, {
     props: { fields: [field], values: { [field.id!]: value }, context: {} },
-    global: { provide: { [PickAssetKey as symbol]: async () => "new.png" } },
+    global: { provide: { [PickAssetKey as symbol]: pickAsset } },
   });
 }
 
@@ -103,5 +103,40 @@ describe("an images field with one image", () => {
     await flushPromises();
 
     expect(lastValue(wrapper)).toBe("new.png");
+  });
+});
+
+describe("the asset types a field opens the picker on", () => {
+  async function pickedTypes(field: Field, button: string, index = 0) {
+    const pickAsset = vi.fn(async (_acceptedTypes?: string[]) => "new.png");
+    const wrapper = mountFields(field, field.multiple ? ["a.png"] : "a.png", pickAsset);
+
+    await buttonByText(wrapper, button, index).trigger("click");
+    await flushPromises();
+
+    return pickAsset.mock.calls[0][0];
+  }
+
+  it("is images for an images field without accept", async () => {
+    expect(await pickedTypes(SINGLE, "Select")).toEqual(["image/*"]);
+  });
+
+  it("is the field's accept list, trimmed", async () => {
+    expect(await pickedTypes({ ...SINGLE, accept: ".svg, image/png ," }, "Select")).toEqual([".svg", "image/png"]);
+  });
+
+  it("is any type for a files field without accept", async () => {
+    expect(await pickedTypes({ id: "file", type: "files", label: "File" }, "Select")).toEqual([]);
+  });
+
+  it("is the accept list of a files field", async () => {
+    expect(await pickedTypes({ id: "file", type: "files", label: "File", accept: ".pdf,application/pdf" }, "Select")).toEqual([".pdf", "application/pdf"]);
+  });
+
+  it("is the same when a list adds an image or replaces one", async () => {
+    const field: Field = { ...LIST, accept: "image/png" };
+
+    expect(await pickedTypes(field, "Add")).toEqual(["image/png"]);
+    expect(await pickedTypes(field, "Select")).toEqual(["image/png"]);
   });
 });

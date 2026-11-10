@@ -35,6 +35,7 @@
               :label="$t(BRAND_LABELS[field].label)"
               :hint="$t(BRAND_LABELS[field].hint)"
               image
+              :accept="BRAND_ASSET_TYPES"
               @update:model-value="look.setBrand(field, $event)"
             />
             <VcHint
@@ -228,6 +229,7 @@ import type { ThemeLookState } from "../useThemeLook";
 import { COLOR_SCHEMES, type ColorScheme, type PaletteTokens } from "../previewMessages";
 import { BRAND_FIELDS, paletteFamilies, tokenLabel, type BrandField } from "../themeLook";
 import { brandField, isOverridden } from "../whiteLabeling";
+import { assetTypes } from "../assetTypes";
 import ImageField from "./ImageField.vue";
 
 const props = defineProps<{
@@ -237,6 +239,7 @@ const props = defineProps<{
   overridden?: string[];
 }>();
 
+const BRAND_ASSET_TYPES = assetTypes({ type: "images" });
 const BRAND_LABELS: Record<BrandField, { label: string; hint: string }> = {
   logoUrl: { label: "PAGE_BUILDER.DESIGNER.THEME.LOGO", hint: "PAGE_BUILDER.DESIGNER.THEME.LOGO_HINT" },
   secondaryLogoUrl: { label: "PAGE_BUILDER.DESIGNER.THEME.SECONDARY_LOGO", hint: "PAGE_BUILDER.DESIGNER.THEME.SECONDARY_LOGO_HINT" },

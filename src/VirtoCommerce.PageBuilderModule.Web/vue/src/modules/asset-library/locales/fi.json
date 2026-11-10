@@ -115,6 +115,7 @@
       "FOLDER_CREATED": "Kansio luotu onnistuneesti",
       "UPLOADED": "Resurssit ladattu onnistuneesti",
       "UPLOAD_CANCELED": "Lataus peruutettiin. Tiedostoja ei ladattu.",
+      "NOT_ACCEPTED": "Ei ladattu: {names}. Tähän kenttään käyvät vain {types}.",
       "REPLACED": "Resurssi korvattu onnistuneesti",
       "DELETED": "Resurssit poistettu onnistuneesti",
       "URL_COPIED": "Resurssin URL kopioitu onnistuneesti",

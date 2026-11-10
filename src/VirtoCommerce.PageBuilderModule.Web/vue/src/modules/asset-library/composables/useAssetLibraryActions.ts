@@ -1,6 +1,7 @@
-import type { ComputedRef, Ref } from "vue";
+import { toValue, type ComputedRef, type MaybeRefOrGetter, type Ref } from "vue";
 import { notification, parseError, usePopup } from "@vc-shell/framework";
 import type { AssetEntry } from "../types";
+import { matchesAcceptedTypes } from "../utilities/assetAccept";
 import { getReferenceSharedComponentNames, getReferencePageNames } from "../utilities/assetReferences";
 import type { DeleteAssetReferences } from "./useAssetReferences";
 import {
@@ -26,6 +27,8 @@ interface UseAssetLibraryActionsOptions {
     validateName: (fileName: string) => Promise<string | undefined>,
   ) => Promise<AssetUploadConflictDecision>;
   getAssetPublicUrl: (entry: AssetEntry) => string | undefined;
+  /** Files of other types are not uploaded. */
+  acceptedTypes?: MaybeRefOrGetter<readonly string[]>;
 }
 
 export interface AssetActionResult {
@@ -53,10 +56,30 @@ export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
       return Promise.resolve(false);
     }
 
-    const batch = Array.from(files);
+    const batch = acceptedFiles(Array.from(files));
+    if (!batch.length) {
+      return Promise.resolve(false);
+    }
+
     const targetFolderUrl = folderUrl || options.currentFolderUrl.value;
     uploadQueue = uploadQueue.then(() => uploadBatch(batch, targetFolderUrl));
     return uploadQueue;
+  }
+
+  function acceptedFiles(files: File[]): File[] {
+    const acceptedTypes = toValue(options.acceptedTypes) ?? [];
+    const accepted = files.filter((file) => matchesAcceptedTypes({ name: file.name, contentType: file.type }, acceptedTypes));
+
+    if (accepted.length < files.length) {
+      notification.warning(
+        options.t("ASSET_LIBRARY.NOTIFICATIONS.NOT_ACCEPTED", {
+          names: files.filter((file) => !accepted.includes(file)).map((file) => file.name).join(", "),
+          types: acceptedTypes.join(", "),
+        }),
+      );
+    }
+
+    return accepted;
   }
 
   async function uploadBatch(files: File[], targetFolderUrl: string): Promise<boolean> {

@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as assetLibraryLocales from "../src/modules/asset-library/locales";
 import type { AssetEntry, AssetSearchResult } from "../src/modules/asset-library/types";
+import { matchesAcceptedTypes } from "../src/modules/asset-library/utilities/assetAccept";
+import type { AssetSearchOptions } from "../src/modules/asset-library/utilities/assetEntriesLoader";
 import { createAssetEntriesLoader } from "../src/modules/asset-library/utilities/assetEntriesLoader";
 import {
   createAssetReferenceDetails,
@@ -341,4 +343,41 @@ test("asset library locale keys and placeholders match English", () => {
       assert.deepEqual(placeholders, englishPlaceholders, `${localeCode}.${key} placeholders differ from English`);
     }
   }
+});
+
+test("accepted types match as the server's asset search does", () => {
+  const png = { name: "Photo.PNG", contentType: "image/png" };
+  const pdf = { name: "doc.pdf", contentType: "application/pdf" };
+
+  assert.equal(matchesAcceptedTypes(png, ["image/*"]), true);
+  assert.equal(matchesAcceptedTypes(pdf, ["image/*"]), false);
+  assert.equal(matchesAcceptedTypes(png, [".png"]), true, "an extension matches the name, in any case");
+  assert.equal(matchesAcceptedTypes(pdf, [".png", "application/PDF"]), true, "an exact type matches in any case");
+  assert.equal(matchesAcceptedTypes({ name: "a.txt", contentType: "imagex/png" }, ["image/*"]), false, "a wildcard keeps its slash");
+  assert.equal(matchesAcceptedTypes({ name: "a.png" }, ["image/*"]), false, "no content type matches only extensions");
+  assert.equal(matchesAcceptedTypes(pdf, [" .pdf ", ""]), true, "entries are trimmed and blanks dropped");
+  assert.equal(matchesAcceptedTypes(pdf, []), true, "no types takes every asset");
+  assert.equal(matchesAcceptedTypes(pdf, [" "]), true, "only blanks takes every asset");
+});
+
+test("asset entries loader asks the server for the accepted types only when there are some", async () => {
+  const searched: (AssetSearchOptions | undefined)[] = [];
+  const loader = createAssetEntriesLoader({
+    search: async (_folderUrl, _keyword, options) => {
+      searched.push(options);
+      return createAssetResult("a.png");
+    },
+    loadReferences: async () => true,
+    apply: () => undefined,
+    clear: () => undefined,
+    onLoadingChange: () => undefined,
+  });
+
+  await loader.load({ folderUrl: "/folder", acceptedTypes: ["image/*"] });
+  await loader.load({ folderUrl: "/folder", acceptedTypes: [] });
+  await loader.load({ folderUrl: "/folder" });
+
+  assert.deepEqual(searched[0]?.acceptedTypes, ["image/*"]);
+  assert.equal(searched[1] && "acceptedTypes" in searched[1], false);
+  assert.equal(searched[2] && "acceptedTypes" in searched[2], false);
 });

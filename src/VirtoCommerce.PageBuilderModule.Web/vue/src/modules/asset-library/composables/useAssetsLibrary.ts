@@ -1,4 +1,4 @@
-import { computed, onScopeDispose, ref, watch, type ComputedRef, type Ref } from "vue";
+import { computed, onScopeDispose, ref, toValue, watch, type ComputedRef, type MaybeRefOrGetter, type Ref } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   notification,
@@ -26,6 +26,11 @@ import { useAssetSelection } from "./useAssetSelection";
 interface UploadAssetsPayload {
   files: File[];
   folderUrl?: string;
+}
+
+export interface UseAssetsLibraryOptions {
+  /** Lists only blobs of these types, and every folder. */
+  acceptedTypes?: MaybeRefOrGetter<readonly string[]>;
 }
 
 export interface IUseAssetsLibrary {
@@ -69,7 +74,7 @@ export interface IUseAssetsLibrary {
   deleteEntry: (entry: AssetEntry) => Promise<void>;
 }
 
-export function useAssetsLibrary(): IUseAssetsLibrary {
+export function useAssetsLibrary(options: UseAssetsLibraryOptions = {}): IUseAssetsLibrary {
   const { searchAssets, createAssetFolder, deleteAssets, uploadAsset } = useAssetsLibraryApi();
   const { t } = useI18n({ useScope: "global" });
   const { storeId, storeContextStatus, initUrlParams, validateStoreContext } = useUrlParams();
@@ -230,6 +235,7 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
       skip: pagination.skip,
       take: pagination.pageSize,
       sort: sort.value,
+      acceptedTypes: toValue(options.acceptedTypes),
     });
   }
 

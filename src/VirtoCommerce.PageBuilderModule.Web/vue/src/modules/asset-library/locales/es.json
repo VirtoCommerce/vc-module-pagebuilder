@@ -115,6 +115,7 @@
       "FOLDER_CREATED": "Carpeta creada correctamente",
       "UPLOADED": "Activos subidos correctamente",
       "UPLOAD_CANCELED": "Carga cancelada. No se cargó ningún archivo.",
+      "NOT_ACCEPTED": "No se subieron: {names}. Este campo solo admite {types}.",
       "REPLACED": "Activo reemplazado correctamente",
       "DELETED": "Activos eliminados correctamente",
       "URL_COPIED": "URL del activo copiada correctamente",

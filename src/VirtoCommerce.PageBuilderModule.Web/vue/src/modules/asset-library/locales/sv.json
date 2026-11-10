@@ -115,6 +115,7 @@
       "FOLDER_CREATED": "Mappen har skapats",
       "UPLOADED": "Resurserna har laddats upp",
       "UPLOAD_CANCELED": "Uppladdningen avbröts. Inga filer laddades upp.",
+      "NOT_ACCEPTED": "Inte uppladdade: {names}. Det här fältet tar bara emot {types}.",
       "REPLACED": "Resursen har ersatts",
       "DELETED": "Resurserna har tagits bort",
       "URL_COPIED": "Resursens URL har kopierats",

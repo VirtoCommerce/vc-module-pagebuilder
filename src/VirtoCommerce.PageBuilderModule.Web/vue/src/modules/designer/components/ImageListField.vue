@@ -21,6 +21,7 @@
         class="pd-image-list__field"
         :model-value="urlOf(item)"
         :image="image"
+        :accept="accept"
         no-remove
         @update:model-value="replace(index, $event)"
       />
@@ -62,7 +63,7 @@ import { moveItem } from "../rules";
 import { PickAssetKey } from "../types";
 import ImageField from "./ImageField.vue";
 
-const props = defineProps<{ modelValue?: unknown; label?: string; hint?: string; image?: boolean }>();
+const props = defineProps<{ modelValue?: unknown; label?: string; hint?: string; image?: boolean; accept?: string[] }>();
 const emit = defineEmits<{ "update:modelValue": [value: unknown[]] }>();
 
 const pickAsset = inject(PickAssetKey, undefined);
@@ -78,7 +79,7 @@ function urlOf(item: unknown) {
 }
 
 async function add() {
-  const url = await pickAsset?.();
+  const url = await pickAsset?.(props.accept);
   if (url) emit("update:modelValue", [...items.value, url]);
 }
 

@@ -115,6 +115,7 @@
       "FOLDER_CREATED": "התיקייה נוצרה",
       "UPLOADED": "הנכסים הועלו",
       "UPLOAD_CANCELED": "ההעלאה בוטלה. לא הועלו קבצים.",
+      "NOT_ACCEPTED": "לא הועלו: {names}. שדה זה מקבל רק {types}.",
       "REPLACED": "הנכס הוחלף",
       "DELETED": "הנכסים נמחקו",
       "URL_COPIED": "כתובת ה-URL של הנכס הועתקה",

@@ -115,6 +115,7 @@
       "FOLDER_CREATED": "Ordner erfolgreich erstellt",
       "UPLOADED": "Assets erfolgreich hochgeladen",
       "UPLOAD_CANCELED": "Upload abgebrochen. Es wurden keine Dateien hochgeladen.",
+      "NOT_ACCEPTED": "Nicht hochgeladen: {names}. Dieses Feld akzeptiert nur {types}.",
       "REPLACED": "Asset erfolgreich ersetzt",
       "DELETED": "Assets erfolgreich gelöscht",
       "URL_COPIED": "Asset-URL erfolgreich kopiert",

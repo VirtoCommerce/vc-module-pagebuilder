@@ -115,6 +115,7 @@
       "FOLDER_CREATED": "Folder created successfully",
       "UPLOADED": "Assets uploaded successfully",
       "UPLOAD_CANCELED": "Upload canceled. No files were uploaded.",
+      "NOT_ACCEPTED": "Not uploaded: {names}. This field takes only {types}.",
       "REPLACED": "Asset replaced successfully",
       "DELETED": "Assets deleted successfully",
       "URL_COPIED": "Asset URL copied successfully",

@@ -144,6 +144,7 @@
         :label="field.label"
         :hint="field.info"
         :image="field.type === 'images'"
+        :accept="assetTypes(field)"
         @update:model-value="set(field, $event)"
       />
       <ImageField
@@ -152,6 +153,7 @@
         :label="field.label"
         :hint="field.info"
         :image="field.type === 'images'"
+        :accept="assetTypes(field)"
         @update:model-value="set(field, $event)"
       />
       <VcInput
@@ -331,6 +333,7 @@ import { isOverridden, itemField, menuField, type GroupItem } from "../whiteLabe
 import { fill, isVisible, pick, schemaRequest, valuesOf } from "../schema";
 import { isTranslations, translationOf, withTranslation, type Translating } from "../translatable";
 import { SEARCH_DEBOUNCE_MS, requestResult, runSearch, searchDisplayValue, type SearchField, type SearchValue } from "../search";
+import { assetTypes } from "../assetTypes";
 import ImageField from "./ImageField.vue";
 import ImageListField from "./ImageListField.vue";
 import { getAuthHeaders } from "../../page-builder/composables/usePageContentApi";

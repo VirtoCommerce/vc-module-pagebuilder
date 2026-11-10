@@ -115,6 +115,7 @@
       "FOLDER_CREATED": "Folder został utworzony",
       "UPLOADED": "Zasoby zostały przesłane",
       "UPLOAD_CANCELED": "Przesyłanie anulowane. Nie przesłano żadnych plików.",
+      "NOT_ACCEPTED": "Nie przesłano: {names}. To pole przyjmuje tylko {types}.",
       "REPLACED": "Zasób został zastąpiony",
       "DELETED": "Zasoby zostały usunięte",
       "URL_COPIED": "URL zasobu został skopiowany",

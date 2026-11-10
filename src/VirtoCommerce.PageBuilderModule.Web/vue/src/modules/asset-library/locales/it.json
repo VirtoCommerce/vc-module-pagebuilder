@@ -115,6 +115,7 @@
       "FOLDER_CREATED": "Cartella creata con successo",
       "UPLOADED": "Risorse caricate con successo",
       "UPLOAD_CANCELED": "Caricamento annullato. Nessun file è stato caricato.",
+      "NOT_ACCEPTED": "Non caricati: {names}. Questo campo accetta solo {types}.",
       "REPLACED": "Risorsa sostituita con successo",
       "DELETED": "Risorse eliminate con successo",
       "URL_COPIED": "URL risorsa copiato con successo",

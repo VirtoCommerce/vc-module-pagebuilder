@@ -99,7 +99,8 @@ export interface TemplateEntry {
   default?: unknown;
 }
 
-export const PickAssetKey: InjectionKey<() => Promise<string | undefined>> = Symbol("PickAsset");
+/** Opens the asset picker on the given types, all when none; resolves to the picked asset's URL. */
+export const PickAssetKey: InjectionKey<(acceptedTypes?: string[]) => Promise<string | undefined>> = Symbol("PickAsset");
 export const PageAnchorsKey: InjectionKey<Ref<PageAnchor[]>> = Symbol("PageAnchors");
 export const StoreMenusKey: InjectionKey<() => Promise<unknown[]>> = Symbol("StoreMenus");
 export const PaletteTokensKey: InjectionKey<Ref<{ tokens: string[]; colors: Record<string, string> }>> = Symbol("PaletteTokens");
