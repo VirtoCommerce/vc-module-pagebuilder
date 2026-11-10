@@ -174,6 +174,15 @@ public class ThemeStorage(IBlobContentStorageProvider provider, IPublishingServi
         return WriteAsync(GetSnapshotPath(publication, language), content);
     }
 
+    public virtual async Task RemovePublicationAsync(int publication)
+    {
+        var folder = GetPublicationFolder(publication);
+        var files = await ListFilesAsync(folder);
+
+        // exact files only: removing a folder by its path also takes "220" with "22" on some blob providers
+        await RemoveAsync(files.OrderBy(x => x != PublicationRecordFileName).Select(x => $"{folder}/{x}"));
+    }
+
     protected virtual string GetPublicationFolder(int publication) =>
         $"{SnapshotsFolder}/{publication.ToString(CultureInfo.InvariantCulture)}";
 

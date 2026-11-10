@@ -153,6 +153,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     }
 
     [Theory]
+    [InlineData("default/snapshots/2/de-DE.json")]
     [InlineData(Product)]
     [InlineData("default/snapshots/2/publication.json")]
     [InlineData(Pointer)]
@@ -174,6 +175,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         Assert.Empty(history.Records);
         Assert.Empty(_storage.Events);
         Assert.Equal(versions, await ReadVersionsAsync());
+        Assert.DoesNotContain(_storage.Files.Keys, x => x.StartsWith("default/snapshots/2/", StringComparison.OrdinalIgnoreCase));
 
         _storage.BeforeWrite = null;
         var publication = await publisher.PublishAsync("s1", catalog, null, Ct);
@@ -185,6 +187,32 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         Assert.Equal(Template("product-info", "related-products"), _storage.Files[Product]);
         Assert.Equal(2, Assert.Single(history.Records).Record.Entries.Count);
         Assert.Equal(versions, await ReadVersionsAsync());
+    }
+
+    [Fact]
+    public async Task PublishAsync_PointerFailsThenCannotBeRead_ServesThePreviousPublication()
+    {
+        var catalog = await PublishedWithDraftsAsync();
+        _storage.BeforeWrite = x => ThrowOn(x, Pointer);
+        await Assert.ThrowsAsync<IOException>(() => Publisher(new NoContentHistory()).PublishAsync("s1", catalog, null, Ct));
+        _storage.BeforeWrite = null;
+
+        _storage.Files[Pointer] = "{";
+
+        Assert.Equal(1, await (await _storageFactory.OpenAsync("s1")).GetCurrentPublicationAsync());
+    }
+
+    [Fact]
+    public async Task PublishAsync_FailedPublicationCannotBeRemoved_ThrowsThePublicationFailure()
+    {
+        var catalog = await PublishedWithDraftsAsync();
+        _storage.BeforeWrite = x => ThrowOn(x, Pointer);
+        _storage.BeforeRemove = x => ThrowOn(x, Record(2));
+
+        var exception = await Assert.ThrowsAsync<IOException>(() => Publisher(new NoContentHistory()).PublishAsync("s1", catalog, null, Ct));
+
+        Assert.Contains(Pointer, exception.Message);
+        Assert.Equal(1, (await Publisher(new NoContentHistory()).GetStatusAsync("s1", Ct)).Publication);
     }
 
     [Fact]

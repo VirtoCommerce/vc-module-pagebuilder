@@ -42,4 +42,7 @@ public interface IThemeStorage
     Task<string> ReadSnapshotAsync(int publication, string language);
 
     Task WriteSnapshotAsync(int publication, string language, string content);
+
+    /// <summary>Removes a publication's files, its record first, so a removal cut short never leaves it complete.</summary>
+    Task RemovePublicationAsync(int publication);
 }

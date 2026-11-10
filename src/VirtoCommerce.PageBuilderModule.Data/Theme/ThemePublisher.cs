@@ -126,12 +126,6 @@ public class ThemePublisher(
         var publication = await storage.GetNextPublicationAsync();
         var snapshots = themeSnapshotBuilder.Build(source, catalog, catalogHash, languages, defaultLanguage, publication, DateTime.UtcNow);
 
-        foreach (var (language, content) in snapshots.Files)
-        {
-            await storage.WriteSnapshotAsync(publication, language, content);
-            LogSnapshotSize(storeId, publication, language, content);
-        }
-
         var record = AbstractTypeFactory<ThemePublicationRecord>.TryCreateInstance();
         record.DefaultLanguage = defaultLanguage;
 
@@ -139,6 +133,12 @@ public class ThemePublisher(
         var replaced = new List<LiveFile>();
         try
         {
+            foreach (var (language, content) in snapshots.Files)
+            {
+                await storage.WriteSnapshotAsync(publication, language, content);
+                LogSnapshotSize(storeId, publication, language, content);
+            }
+
             cancellationToken.ThrowIfCancellationRequested();
             await WriteLiveFilesAsync(storage, source.Drafts, replaced, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
@@ -152,6 +152,7 @@ public class ThemePublisher(
             if (!ThemeStorage.IsLockLost(cancellationToken, requestToken))
             {
                 await RestoreLiveFilesAsync(storeId, storage, replaced);
+                await RemovePublicationAsync(storeId, storage, publication);
             }
 
             throw;
@@ -314,6 +315,20 @@ public class ThemePublisher(
                 logger.LogError(ex, "Could not put back the live file {File} of theme {Theme} (store {StoreId}) after a failed publication.",
                     file.File, storage.ThemeName, storeId);
             }
+        }
+    }
+
+    /// <summary>A failed publication left with its record would be served wherever the pointer cannot be read.</summary>
+    protected virtual async Task RemovePublicationAsync(string storeId, IThemeStorage storage, int publication)
+    {
+        try
+        {
+            await storage.RemovePublicationAsync(publication);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Could not remove the failed publication {Publication} of theme {Theme} (store {StoreId}).",
+                publication, storage.ThemeName, storeId);
         }
     }
 
