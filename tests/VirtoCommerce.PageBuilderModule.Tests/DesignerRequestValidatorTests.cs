@@ -16,6 +16,7 @@ public class DesignerRequestValidatorTests
         { "nothing", new DesignerSaveRequest() },
         { "a theme file left out", new DesignerSaveRequest { ThemeFiles = [null] } },
         { "a theme file named twice", new DesignerSaveRequest { ThemeFiles = [File(Header), File(Header.ToUpperInvariant())] } },
+        { "a theme file named twice, once from the root", new DesignerSaveRequest { ThemeFiles = [File(Header), File("/" + Header)] } },
         { "a theme file without a path", new DesignerSaveRequest { ThemeFiles = [File("")] } },
         { "a page by group and path", Save(new DesignerSavePage { GroupId = "g1", Path = "home.page", Type = "pages", Content = Envelope }) },
         { "a page by neither", Save(new DesignerSavePage { Content = Envelope }) },
@@ -80,6 +81,7 @@ public class DesignerRequestValidatorTests
         var twice = new DesignerDiscardRequest { ThemeFiles = [Header, Header] };
 
         Assert.False((await RequestValidators.DesignerDiscard.ValidateAsync(twice, TestContext.Current.CancellationToken)).IsValid);
+        Assert.False((await RequestValidators.DesignerDiscard.ValidateAsync(new DesignerDiscardRequest { ThemeFiles = [Header, "/" + Header] }, TestContext.Current.CancellationToken)).IsValid);
         Assert.False((await RequestValidators.DesignerDiscard.ValidateAsync(new DesignerDiscardRequest(), TestContext.Current.CancellationToken)).IsValid);
     }
 

@@ -99,6 +99,21 @@ describe("the GitHub panel", () => {
     expect(platform.to(CONNECTION).length).toBe(before + 1);
   });
 
+  it("offers setting up the GitHub App only to a user who may update the platform's settings", async () => {
+    permissions.has = (permission) => permission !== "platform:setting:update";
+    platform.on("GET", CONNECTION, { configured: false });
+    const unconnected = await mountPanel();
+
+    expect(organizationField(unconnected).exists()).toBe(false);
+    expect(createButton(unconnected).exists()).toBe(false);
+    expect(unconnected.text()).toContain("Ask the platform's administrator to connect it.");
+
+    platform.on("GET", CONNECTION, { configured: true, source: "app", sites: [] });
+    const connected = await mountPanel();
+
+    expect(connected.findAll("button").map((x) => x.text())).not.toContain("Set up again");
+  });
+
   describe("set up again", () => {
     const CONFIGURED = { configured: true, source: "app", sites: [] };
 

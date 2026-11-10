@@ -21,6 +21,15 @@ test("a refused Save names the parts the editor may not save, once each", () => 
   assert.deepEqual(refusedParts(["page"], false, only(PERMISSIONS.update)), []);
 });
 
+test("without builder:update every part is refused, since the server checks it on Save, Discard and Restore first", () => {
+  assert.deepEqual(refusedParts(["header", "brand", "palette"], false, only(PERMISSIONS.theme)), ["header", "brand", "palette"]);
+  assert.deepEqual(refusedParts(["page", "rules"], true, only(PERMISSIONS.templates)), ["page", "rules"]);
+  assert.deepEqual(discardOptions({ page: false, theme: ["header", "brand"], template: false, hasAccess: only(PERMISSIONS.theme) }), [
+    { part: "header", checked: false, allowed: false },
+    { part: "brand", checked: false, allowed: false },
+  ]);
+});
+
 test("Discard offers the page's draft ticked and each theme part's unticked; only what the editor may edit can be ticked", () => {
   const options = discardOptions({ page: true, theme: ["rules", "header", "brand"], template: false, hasAccess: only(PERMISSIONS.update, PERMISSIONS.theme) });
   assert.deepEqual(options, [

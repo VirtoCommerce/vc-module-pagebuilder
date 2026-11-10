@@ -27,6 +27,7 @@ using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Extensions;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Extensions;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.Platform.Core.Common;
@@ -34,7 +35,6 @@ using VirtoCommerce.Platform.Core.DistributedLock;
 using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.StoreModule.Core.Services;
-using StorePermissions = VirtoCommerce.StoreModule.Core.ModuleConstants.Security.Permissions;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 {
@@ -606,6 +606,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         private async Task<ActionResult> ValidateThemeFilesAsync(string storeId, List<SaveFileModel> files, bool draft, string catalogHash)
         {
+            if (!DesignerThemeFiles.AreNamedOnce(files.ConvertAll(x => x.Path)))
+            {
+                return BadRequest(new { error = DesignerThemeFiles.NamingError });
+            }
+
             var contents = new Dictionary<string, JToken>(StringComparer.OrdinalIgnoreCase);
             foreach (var file in files)
             {
@@ -1505,14 +1510,14 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         public async Task<ActionResult> DiscardDraft(string storeId, string path, string type, string theme = null)
         {
             var contentType = string.IsNullOrEmpty(type) ? PagesContentType : type.ToLowerInvariant();
-            if (contentType == Themes && !await HasPermissionsAsync([contentPermissionService.GetThemeFileEditPermission(path)]))
-            {
-                return Forbid();
-            }
-
             if (await CheckRequestAsync(storeId, contentType, theme, [path]) is { } refused)
             {
                 return refused;
+            }
+
+            if (contentType == Themes && !await HasPermissionsAsync([contentPermissionService.GetThemeFileEditPermission(path)]))
+            {
+                return Forbid();
             }
 
             if (GitPageLocation.IsPageContent(contentType) && await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))

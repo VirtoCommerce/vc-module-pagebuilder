@@ -265,6 +265,7 @@
       "SHARED_MISSING": "Denne delte komponenten finnes ikke lenger. Fjern den fra siden.",
       "DETACH": "Koble fra",
       "DETACH_HINT": "Erstatter den med en kopi av seksjonene som bare denne siden bruker.",
+      "DETACH_FAILED": "Den delte komponenten kunne ikke kobles fra.",
       "MORE": "Flere handlinger",
       "CONTENT": "Innhold",
       "NO_SETTINGS": "Ingenting å angi her.",
@@ -660,6 +661,7 @@
     },
     "GITHUB": {
       "INTRO": "Koble plattformen til en GitHub-organisasjon én gang. Hvert nettsted tar deretter vare på versjonene av sidene sine i sitt eget private repositorium der.",
+      "ASK_ADMIN": "Denne plattformen er ikke koblet til GitHub ennå. Be plattformens administrator om å koble den til.",
       "CONNECTED_HINT": "Hvert nettsted tar vare på versjonene av sidene sine i sitt eget private repositorium i {organization}. Slå på historikk for et nettsted fra Historikk-panelet.",
       "CONNECTED": "Tilkoblet",
       "FAILING": "Virker ikke",

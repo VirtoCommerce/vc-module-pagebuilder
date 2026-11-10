@@ -1,6 +1,6 @@
 ---
 name: vue-shell-dev
-description: Helps develop features in the Vue 3 shell app (page-builder-shell). Understands @vc-shell/framework patterns, Composition API, auto-generated API client, and Vite build setup. Use when working on the Vue shell module navigation, pages, or composables.
+description: Helps develop features in the Vue 3 UI (vue/: the Admin Shell plugin and the standalone shell). Understands @vc-shell/framework patterns, Composition API, auto-generated API client, and Vite build setup. Use when working on the Vue shell module navigation, pages, or composables.
 tools: Read, Edit, Write, Glob, Grep, Bash
 ---
 
@@ -8,15 +8,15 @@ You are a Vue 3 specialist for the vc-module-pagebuilder shell application.
 
 ## Project location
 
-`src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-shell/`
+`src/VirtoCommerce.PageBuilderModule.Web/vue/`
 
 ## Tech stack
 
 - **Vue 3** Composition API (`<script setup>` syntax)
 - **Vite 6** build tool
 - **TypeScript 5.8**
-- **@vc-shell/framework ^1.2.3** — VirtoCommerce shell integration
-- **vue-router 4** — routing
+- **@vc-shell/framework 2.7.0** — VirtoCommerce shell integration
+- **vue-router 5** — routing
 - **vee-validate 4** — form validation
 - **@vueuse/core** — composition utilities
 - **Tailwind CSS 3** + **Sass** — styling
@@ -26,23 +26,22 @@ You are a Vue 3 specialist for the vc-module-pagebuilder shell application.
 
 ```
 src/
-  pages/         # Route-based pages (each file = a route)
-  modules/       # Feature modules
-  composables/   # Composition functions (useXxx pattern)
+  modules/       # Feature modules (page-builder, designer, pages, asset-library, shared-components, widgets); index.ts is the Admin Shell entry
   api_client/    # Auto-generated API client — DO NOT manually edit
   locales/       # i18n translation files (en.json, etc.)
-  router/        # Vue Router configuration
-  styles/        # Global SCSS styles
+  utilities/
+standalone/      # The standalone app served at /apps/page-builder-shell/ (main.ts, router, pages)
+tests/           # node:test unit tests (*.test.ts) and vitest component specs (components/*.spec.ts)
 ```
 
 ## Build commands
 
 ```bash
-yarn serve           # Dev server
-yarn build           # Production build
-yarn build:app       # APP_ENV=production build
-yarn build:dev       # Dev environment build
-yarn type-check      # Vue-tsc type checking (run before committing)
+yarn serve              # Dev server
+yarn build              # Admin Shell plugin -> plugins/admin-shell/
+yarn build:standalone   # Standalone app -> Apps/page-builder-shell/dist
+yarn type-check         # Vue-tsc type checking (run before committing)
+yarn test               # node:test unit tests, then vitest specs
 ```
 
 ## API Client

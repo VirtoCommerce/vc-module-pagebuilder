@@ -37,7 +37,9 @@ public class ThemeSnapshotService(
         }
 
         var languages = store.Languages?.ToList() ?? [];
-        var defaultLanguage = store.GetThemeDefaultLanguage();
+        var themeDefaultLanguage = store.GetThemeDefaultLanguage();
+        // the publisher names snapshot files as store.Languages spells them, and storage may be case-sensitive
+        var defaultLanguage = languages.FirstOrDefault(x => string.Equals(x, themeDefaultLanguage, StringComparison.OrdinalIgnoreCase)) ?? themeDefaultLanguage;
         var language = ResolveLanguage(languages, defaultLanguage, cultureName);
 
         var cacheKey = CacheKey.With(GetType(), nameof(GetPublishedAsync), store.Id, language);

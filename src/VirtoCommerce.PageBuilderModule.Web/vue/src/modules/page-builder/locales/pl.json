@@ -265,6 +265,7 @@
       "SHARED_MISSING": "Ten współdzielony komponent już nie istnieje. Usuń go ze strony.",
       "DETACH": "Odłącz",
       "DETACH_HINT": "Zastępuje go kopią jego sekcji, używaną tylko na tej stronie.",
+      "DETACH_FAILED": "Nie udało się odłączyć współdzielonego komponentu.",
       "MORE": "Więcej akcji",
       "CONTENT": "Treść",
       "NO_SETTINGS": "Brak tu ustawień do zmiany.",
@@ -660,6 +661,7 @@
     },
     "GITHUB": {
       "INTRO": "Połącz platformę z organizacją GitHub tylko raz. Każda witryna przechowuje wtedy wersje swoich stron we własnym, prywatnym repozytorium.",
+      "ASK_ADMIN": "Ta platforma nie jest jeszcze połączona z GitHubem. Poproś administratora platformy o jej połączenie.",
       "CONNECTED_HINT": "Każda witryna przechowuje wersje swoich stron we własnym, prywatnym repozytorium w {organization}. Włącz historię witryny w jej panelu Historia.",
       "CONNECTED": "Połączono",
       "FAILING": "Nie działa",

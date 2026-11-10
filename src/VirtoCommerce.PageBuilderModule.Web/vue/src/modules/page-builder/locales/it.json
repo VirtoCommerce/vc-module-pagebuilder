@@ -265,6 +265,7 @@
       "SHARED_MISSING": "Questo componente condiviso non esiste più. Rimuovilo dalla pagina.",
       "DETACH": "Scollega",
       "DETACH_HINT": "La sostituisce con una copia delle sue sezioni, usata solo da questa pagina.",
+      "DETACH_FAILED": "Impossibile scollegare il componente condiviso.",
       "MORE": "Altre azioni",
       "CONTENT": "Contenuto",
       "NO_SETTINGS": "Nessuna impostazione qui.",
@@ -660,6 +661,7 @@
     },
     "GITHUB": {
       "INTRO": "Collega la piattaforma a un'organizzazione GitHub una sola volta. Ogni sito conserva poi le versioni delle sue pagine in un proprio repository privato.",
+      "ASK_ADMIN": "Questa piattaforma non è ancora collegata a GitHub. Chiedi all'amministratore della piattaforma di collegarla.",
       "CONNECTED_HINT": "Ogni sito conserva le versioni delle sue pagine in un proprio repository privato in {organization}. Attiva la cronologia di un sito dal suo pannello Cronologia.",
       "CONNECTED": "Collegato",
       "FAILING": "Non funziona",

@@ -528,6 +528,18 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetPublishedAsync_DefaultLanguageCasedOtherwiseThanStoreLanguage_ReadsTheSnapshotItWasPublishedAs()
+    {
+        _store.DefaultLanguage = "en-us";
+        _storage.Files[Theme(Product)] = Template("product-info");
+
+        var snapshot = await _snapshots.GetPublishedAsync(StoreId, null, Ct);
+
+        Assert.Equal((1, "en-US"), (snapshot.Publication, snapshot.CultureName));
+        Assert.True(_storage.Files.ContainsKey(Theme("default/snapshots/1/en-US.json")));
+    }
+
+    [Fact]
     public async Task GetPublishedAsync_TruncatedPointerAfterDefaultLanguageChanged_ReturnsCompletePublication()
     {
         _storage.Files[Theme(Product)] = Template("product-info");

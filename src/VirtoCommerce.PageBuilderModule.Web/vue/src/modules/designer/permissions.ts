@@ -1,6 +1,6 @@
 import type { HistoryFile } from "./history";
 
-// Mirrors the permissions the server checks on a designer Save and Discard.
+// Mirrors the permissions the server checks on a designer Save, Discard and history Restore: builder:update, then each part's own.
 
 export const PERMISSIONS = {
   update: "builder:update",
@@ -16,4 +16,4 @@ export function partPermission(part: HistoryFile, template: boolean): string {
 }
 
 export const refusedParts = (parts: HistoryFile[], template: boolean, hasAccess: (permission: string) => boolean): HistoryFile[] =>
-  [...new Set(parts)].filter((part) => !hasAccess(partPermission(part, template)));
+  [...new Set(parts)].filter((part) => !hasAccess(PERMISSIONS.update) || !hasAccess(partPermission(part, template)));

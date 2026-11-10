@@ -265,6 +265,7 @@
       "SHARED_MISSING": "Ce composant partagé n'existe plus. Retirez-le de la page.",
       "DETACH": "Dissocier",
       "DETACH_HINT": "La remplace par une copie de ses sections que seule cette page utilise.",
+      "DETACH_FAILED": "Le composant partagé n'a pas pu être dissocié.",
       "MORE": "Plus d'actions",
       "CONTENT": "Contenu",
       "NO_SETTINGS": "Rien à configurer ici.",
@@ -660,6 +661,7 @@
     },
     "GITHUB": {
       "INTRO": "Connectez la plateforme à une organisation GitHub une seule fois. Chaque site conserve alors les versions de ses pages dans son propre dépôt privé.",
+      "ASK_ADMIN": "Cette plateforme n'est pas encore connectée à GitHub. Demandez à l'administrateur de la plateforme de la connecter.",
       "CONNECTED_HINT": "Chaque site conserve les versions de ses pages dans son propre dépôt privé dans {organization}. Activez l'historique d'un site depuis son panneau Historique.",
       "CONNECTED": "Connecté",
       "FAILING": "Ne fonctionne pas",

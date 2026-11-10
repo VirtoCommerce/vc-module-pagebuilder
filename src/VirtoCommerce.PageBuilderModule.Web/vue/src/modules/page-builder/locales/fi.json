@@ -265,6 +265,7 @@
       "SHARED_MISSING": "Tätä jaettua komponenttia ei enää ole. Poista se sivulta.",
       "DETACH": "Irrota",
       "DETACH_HINT": "Korvaa sen kopiolla sen osioista, jota käyttää vain tämä sivu.",
+      "DETACH_FAILED": "Jaettua komponenttia ei voitu irrottaa.",
       "MORE": "Lisää toimintoja",
       "CONTENT": "Sisältö",
       "NO_SETTINGS": "Täällä ei ole asetettavaa.",
@@ -660,6 +661,7 @@
     },
     "GITHUB": {
       "INTRO": "Yhdistä alusta kerran GitHub-organisaatioon. Jokainen sivusto säilyttää sen jälkeen sivujensa versiot omassa yksityisessä repositoriossaan siellä.",
+      "ASK_ADMIN": "Tätä alustaa ei ole vielä yhdistetty GitHubiin. Pyydä alustan ylläpitäjää yhdistämään se.",
       "CONNECTED_HINT": "Jokainen sivusto säilyttää sivujensa versiot omassa yksityisessä repositoriossaan organisaatiossa {organization}. Ota historia käyttöön sivuston Historia-paneelista.",
       "CONNECTED": "Yhdistetty",
       "FAILING": "Ei toimi",

@@ -265,6 +265,7 @@
       "SHARED_MISSING": "此共享组件已不存在。请将其从页面中移除。",
       "DETACH": "分离",
       "DETACH_HINT": "用仅供此页面使用的区块副本替换它。",
+      "DETACH_FAILED": "无法分离共享组件。",
       "MORE": "更多操作",
       "CONTENT": "内容",
       "NO_SETTINGS": "这里没有可设置的项。",
@@ -660,6 +661,7 @@
     },
     "GITHUB": {
       "INTRO": "只需将平台连接到 GitHub 组织一次。之后每个站点都会将其页面的版本保存在该组织中自己的私有仓库里。",
+      "ASK_ADMIN": "此平台尚未连接到 GitHub。请让平台管理员进行连接。",
       "CONNECTED_HINT": "每个站点都会将其页面的版本保存在 {organization} 中自己的私有仓库里。请在站点的“历史”面板中为其启用历史。",
       "CONNECTED": "已连接",
       "FAILING": "无法工作",

@@ -2125,7 +2125,12 @@ export class PageBuilderClient extends AuthApiBase {
         return Promise.resolve<void>(null as any);
     }
 
-    getDesignerThemeFile(storeId?: string | undefined, path?: string | undefined): Promise<void> {
+    /**
+     * @param storeId (optional) 
+     * @param path (optional) 
+     * @return OK
+     */
+    getDesignerThemeFile(storeId?: string | undefined, path?: string | undefined): Promise<ThemeFileContent> {
         let url_ = this.baseUrl + "/api/pagebuilder/designer/theme-file?";
         if (storeId === null)
             throw new globalThis.Error("The parameter 'storeId' cannot be null.");
@@ -2140,6 +2145,7 @@ export class PageBuilderClient extends AuthApiBase {
         let options_: RequestInit = {
             method: "GET",
             headers: {
+                "Accept": "application/json"
             }
         };
 
@@ -2150,10 +2156,16 @@ export class PageBuilderClient extends AuthApiBase {
         });
     }
 
-    protected processGetDesignerThemeFile(response: Response): Promise<void> {
+    protected processGetDesignerThemeFile(response: Response): Promise<ThemeFileContent> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 400) {
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ThemeFileContent;
+            return result200;
+            });
+        } else if (status === 400) {
             return response.text().then((_responseText) => {
             return throwException("Bad Request", status, _responseText, _headers);
             });
@@ -2170,7 +2182,7 @@ export class PageBuilderClient extends AuthApiBase {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<ThemeFileContent>(null as any);
     }
 
     /**
@@ -2228,7 +2240,13 @@ export class PageBuilderClient extends AuthApiBase {
         return Promise.resolve<DesignerStorefront>(null as any);
     }
 
-    saveDesignerChanges(storeId?: string | undefined, catalogHash?: string | undefined, body?: DesignerSaveRequest | undefined): Promise<void> {
+    /**
+     * @param storeId (optional) 
+     * @param catalogHash (optional) 
+     * @param body (optional) 
+     * @return OK
+     */
+    saveDesignerChanges(storeId?: string | undefined, catalogHash?: string | undefined, body?: DesignerSaveRequest | undefined): Promise<DesignerSaveResult> {
         let url_ = this.baseUrl + "/api/pagebuilder/designer/save?";
         if (storeId === null)
             throw new globalThis.Error("The parameter 'storeId' cannot be null.");
@@ -2247,6 +2265,7 @@ export class PageBuilderClient extends AuthApiBase {
             method: "POST",
             headers: {
                 "Content-Type": "application/json-patch+json",
+                "Accept": "application/json"
             }
         };
 
@@ -2257,10 +2276,16 @@ export class PageBuilderClient extends AuthApiBase {
         });
     }
 
-    protected processSaveDesignerChanges(response: Response): Promise<void> {
+    protected processSaveDesignerChanges(response: Response): Promise<DesignerSaveResult> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 400) {
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as DesignerSaveResult;
+            return result200;
+            });
+        } else if (status === 400) {
             return response.text().then((_responseText) => {
             return throwException("Bad Request", status, _responseText, _headers);
             });
@@ -2285,10 +2310,15 @@ export class PageBuilderClient extends AuthApiBase {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<DesignerSaveResult>(null as any);
     }
 
-    discardDesignerChanges(storeId?: string | undefined, body?: DesignerDiscardRequest | undefined): Promise<void> {
+    /**
+     * @param storeId (optional) 
+     * @param body (optional) 
+     * @return OK
+     */
+    discardDesignerChanges(storeId?: string | undefined, body?: DesignerDiscardRequest | undefined): Promise<ContentSaveResult> {
         let url_ = this.baseUrl + "/api/pagebuilder/designer/discard?";
         if (storeId === null)
             throw new globalThis.Error("The parameter 'storeId' cannot be null.");
@@ -2303,6 +2333,7 @@ export class PageBuilderClient extends AuthApiBase {
             method: "POST",
             headers: {
                 "Content-Type": "application/json-patch+json",
+                "Accept": "application/json"
             }
         };
 
@@ -2313,10 +2344,16 @@ export class PageBuilderClient extends AuthApiBase {
         });
     }
 
-    protected processDiscardDesignerChanges(response: Response): Promise<void> {
+    protected processDiscardDesignerChanges(response: Response): Promise<ContentSaveResult> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 400) {
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ContentSaveResult;
+            return result200;
+            });
+        } else if (status === 400) {
             return response.text().then((_responseText) => {
             return throwException("Bad Request", status, _responseText, _headers);
             });
@@ -2333,7 +2370,7 @@ export class PageBuilderClient extends AuthApiBase {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<ContentSaveResult>(null as any);
     }
 
     /**
@@ -4675,7 +4712,12 @@ export class ThemeClient extends AuthApiBase {
         this.baseUrl = this.getBaseUrl("", baseUrl);
     }
 
-    publish(storeId?: string | undefined, catalogHash?: string | undefined): Promise<void> {
+    /**
+     * @param storeId (optional) 
+     * @param catalogHash (optional) 
+     * @return OK
+     */
+    publish(storeId?: string | undefined, catalogHash?: string | undefined): Promise<ThemePublicationPointer> {
         let url_ = this.baseUrl + "/api/pagebuilder/theme/publish?";
         if (storeId === null)
             throw new globalThis.Error("The parameter 'storeId' cannot be null.");
@@ -4690,6 +4732,7 @@ export class ThemeClient extends AuthApiBase {
         let options_: RequestInit = {
             method: "POST",
             headers: {
+                "Accept": "application/json"
             }
         };
 
@@ -4700,10 +4743,16 @@ export class ThemeClient extends AuthApiBase {
         });
     }
 
-    protected processPublish(response: Response): Promise<void> {
+    protected processPublish(response: Response): Promise<ThemePublicationPointer> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 400) {
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ThemePublicationPointer;
+            return result200;
+            });
+        } else if (status === 400) {
             return response.text().then((_responseText) => {
             return throwException("Bad Request", status, _responseText, _headers);
             });
@@ -4720,10 +4769,14 @@ export class ThemeClient extends AuthApiBase {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<ThemePublicationPointer>(null as any);
     }
 
-    getStatus(storeId?: string | undefined): Promise<void> {
+    /**
+     * @param storeId (optional) 
+     * @return OK
+     */
+    getStatus(storeId?: string | undefined): Promise<ThemeStatus> {
         let url_ = this.baseUrl + "/api/pagebuilder/theme/status?";
         if (storeId === null)
             throw new globalThis.Error("The parameter 'storeId' cannot be null.");
@@ -4734,6 +4787,7 @@ export class ThemeClient extends AuthApiBase {
         let options_: RequestInit = {
             method: "GET",
             headers: {
+                "Accept": "application/json"
             }
         };
 
@@ -4744,10 +4798,16 @@ export class ThemeClient extends AuthApiBase {
         });
     }
 
-    protected processGetStatus(response: Response): Promise<void> {
+    protected processGetStatus(response: Response): Promise<ThemeStatus> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 400) {
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ThemeStatus;
+            return result200;
+            });
+        } else if (status === 400) {
             return response.text().then((_responseText) => {
             return throwException("Bad Request", status, _responseText, _headers);
             });
@@ -4764,10 +4824,14 @@ export class ThemeClient extends AuthApiBase {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<ThemeStatus>(null as any);
     }
 
-    saveCatalog(storeId?: string | undefined): Promise<void> {
+    /**
+     * @param storeId (optional) 
+     * @return OK
+     */
+    saveCatalog(storeId?: string | undefined): Promise<SchemaCatalogPointer> {
         let url_ = this.baseUrl + "/api/pagebuilder/catalog?";
         if (storeId === null)
             throw new globalThis.Error("The parameter 'storeId' cannot be null.");
@@ -4778,6 +4842,7 @@ export class ThemeClient extends AuthApiBase {
         let options_: RequestInit = {
             method: "PUT",
             headers: {
+                "Accept": "application/json"
             }
         };
 
@@ -4788,10 +4853,16 @@ export class ThemeClient extends AuthApiBase {
         });
     }
 
-    protected processSaveCatalog(response: Response): Promise<void> {
+    protected processSaveCatalog(response: Response): Promise<SchemaCatalogPointer> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 400) {
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as SchemaCatalogPointer;
+            return result200;
+            });
+        } else if (status === 400) {
             return response.text().then((_responseText) => {
             return throwException("Bad Request", status, _responseText, _headers);
             });
@@ -4808,7 +4879,7 @@ export class ThemeClient extends AuthApiBase {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<SchemaCatalogPointer>(null as any);
     }
 
     /**
@@ -4848,6 +4919,10 @@ export class ThemeClient extends AuthApiBase {
             return response.text().then((_responseText) => {
             return;
             });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            return throwException("Bad Request", status, _responseText, _headers);
+            });
         } else if (status === 401) {
             return response.text().then((_responseText) => {
             return throwException("Unauthorized", status, _responseText, _headers);
@@ -4868,7 +4943,12 @@ export class ThemeClient extends AuthApiBase {
         return Promise.resolve<void>(null as any);
     }
 
-    generatePalette(storeId?: string | undefined, body?: ThemePaletteGenerationRequest | undefined): Promise<void> {
+    /**
+     * @param storeId (optional) 
+     * @param body (optional) 
+     * @return OK
+     */
+    generatePalette(storeId?: string | undefined, body?: ThemePaletteGenerationRequest | undefined): Promise<ThemePaletteGenerationResult> {
         let url_ = this.baseUrl + "/api/pagebuilder/theme/palette?";
         if (storeId === null)
             throw new globalThis.Error("The parameter 'storeId' cannot be null.");
@@ -4883,6 +4963,7 @@ export class ThemeClient extends AuthApiBase {
             method: "POST",
             headers: {
                 "Content-Type": "application/json-patch+json",
+                "Accept": "application/json"
             }
         };
 
@@ -4893,10 +4974,16 @@ export class ThemeClient extends AuthApiBase {
         });
     }
 
-    protected processGeneratePalette(response: Response): Promise<void> {
+    protected processGeneratePalette(response: Response): Promise<ThemePaletteGenerationResult> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 400) {
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ThemePaletteGenerationResult;
+            return result200;
+            });
+        } else if (status === 400) {
             return response.text().then((_responseText) => {
             return throwException("Bad Request", status, _responseText, _headers);
             });
@@ -4913,10 +5000,15 @@ export class ThemeClient extends AuthApiBase {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<ThemePaletteGenerationResult>(null as any);
     }
 
-    checkPalette(storeId?: string | undefined, body?: ThemePaletteCheckRequest | undefined): Promise<void> {
+    /**
+     * @param storeId (optional) 
+     * @param body (optional) 
+     * @return OK
+     */
+    checkPalette(storeId?: string | undefined, body?: ThemePaletteCheckRequest | undefined): Promise<ThemePaletteCheckResult> {
         let url_ = this.baseUrl + "/api/pagebuilder/theme/palette/check?";
         if (storeId === null)
             throw new globalThis.Error("The parameter 'storeId' cannot be null.");
@@ -4931,6 +5023,7 @@ export class ThemeClient extends AuthApiBase {
             method: "POST",
             headers: {
                 "Content-Type": "application/json-patch+json",
+                "Accept": "application/json"
             }
         };
 
@@ -4941,10 +5034,16 @@ export class ThemeClient extends AuthApiBase {
         });
     }
 
-    protected processCheckPalette(response: Response): Promise<void> {
+    protected processCheckPalette(response: Response): Promise<ThemePaletteCheckResult> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 400) {
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ThemePaletteCheckResult;
+            return result200;
+            });
+        } else if (status === 400) {
             return response.text().then((_responseText) => {
             return throwException("Bad Request", status, _responseText, _headers);
             });
@@ -4961,7 +5060,7 @@ export class ThemeClient extends AuthApiBase {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<ThemePaletteCheckResult>(null as any);
     }
 }
 
@@ -5081,6 +5180,12 @@ export interface DesignerSavePage {
 export interface DesignerSaveRequest {
     page?: DesignerSavePage | undefined;
     themeFiles?: DesignerSaveFile[] | undefined;
+}
+
+export interface DesignerSaveResult {
+    eTag?: string | undefined;
+    themeFiles?: ThemeFileVersion[] | undefined;
+    saveId?: string | undefined;
 }
 
 export interface DesignerStorefront {
@@ -5537,6 +5642,17 @@ export interface PagePublishStatus {
     liveBehind?: boolean;
 }
 
+export interface PaletteContrastFailure {
+    scheme?: string | undefined;
+    pair?: string | undefined;
+    text?: string | undefined;
+    background?: string | undefined;
+    textColor?: string | undefined;
+    backgroundColor?: string | undefined;
+    ratio?: number;
+    minimumRatio?: number;
+}
+
 export interface PermalinkUsage {
     groupId?: string | undefined;
     name?: string | undefined;
@@ -5554,6 +5670,10 @@ export interface PermalinkUsageRequest {
 
 export interface SaveFilesModel {
     files?: string | undefined;
+}
+
+export interface SchemaCatalogPointer {
+    hash?: string | undefined;
 }
 
 export interface SeoInfo {
@@ -5587,6 +5707,17 @@ export interface SortInfo {
     sortDirection?: SortDirection;
 }
 
+export interface ThemeFileContent {
+    content?: string | undefined;
+    path?: string | undefined;
+    eTag?: string | undefined;
+}
+
+export interface ThemeFileVersion {
+    path?: string | undefined;
+    eTag?: string | undefined;
+}
+
 export interface ThemePalette {
     light?: { [key: string]: string; } | undefined;
     dark?: { [key: string]: string; } | undefined;
@@ -5597,15 +5728,36 @@ export interface ThemePaletteCheckRequest {
     tokens?: ThemePaletteTokens | undefined;
 }
 
+export interface ThemePaletteCheckResult {
+    failures?: PaletteContrastFailure[] | undefined;
+    unchecked?: number;
+}
+
 export interface ThemePaletteGenerationRequest {
     primary?: string | undefined;
     secondary?: string | undefined;
     tokens?: ThemePaletteTokens | undefined;
 }
 
+export interface ThemePaletteGenerationResult {
+    light?: { [key: string]: string; } | undefined;
+    dark?: { [key: string]: string; } | undefined;
+    failures?: PaletteContrastFailure[] | undefined;
+}
+
 export interface ThemePaletteTokens {
     light?: string[] | undefined;
     dark?: string[] | undefined;
+}
+
+export interface ThemePublicationPointer {
+    publication?: number;
+}
+
+export interface ThemeStatus {
+    publication?: number | undefined;
+    drafts?: string[] | undefined;
+    newDrafts?: string[] | undefined;
 }
 
 export interface UpdatePageContentRequest {

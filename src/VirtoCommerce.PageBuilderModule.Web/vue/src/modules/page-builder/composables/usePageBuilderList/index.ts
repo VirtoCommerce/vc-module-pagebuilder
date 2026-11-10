@@ -8,6 +8,7 @@ import {
 } from "@vc-shell/framework";
 import { useI18n } from "vue-i18n";
 
+import { createLatestRequestTracker } from "../../../../utilities/latestRequest";
 import useUrlParams from "../useStoreParams";
 import { hasLanguageVersions } from "../useMultilanguagePageDetails/helpers";
 
@@ -82,24 +83,40 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
   const searchResult = ref<PageBuilderPageListSearchResult>();
   const { t } = useI18n({ useScope: "global" });
 
+  const listRequests = createLatestRequestTracker(() => undefined);
+
   const { action: loadPages, loading: loadingPages } = useAsync<PageBuilderPageSearchCriteria>(async (_query) => {
+    const request = listRequests.begin();
     searchQuery.value = { ...searchQuery.value, ...(_query || {}) };
 
-    if (!storeId?.value || !(await validateStoreContext())) {
-      searchResult.value = {
-        totalCount: 0,
-        results: [],
-      } as PageBuilderPageListSearchResult;
-      return;
+    try {
+      if (!storeId?.value || !(await validateStoreContext())) {
+        if (request.isCurrent()) {
+          searchResult.value = {
+            totalCount: 0,
+            results: [],
+          } as PageBuilderPageListSearchResult;
+        }
+        return;
+      }
+
+      const criteria: PageBuilderPageSearchCriteria = {
+        ...searchQuery.value,
+        storeId: storeId.value,
+      };
+
+      const apiClient = await getApiClient();
+      const result = await apiClient.searchList(criteria);
+      if (request.isCurrent()) {
+        searchResult.value = result;
+      }
+    } catch (error) {
+      if (request.isCurrent()) {
+        throw error;
+      }
+    } finally {
+      request.complete();
     }
-
-    const criteria: PageBuilderPageSearchCriteria = {
-      ...searchQuery.value,
-      storeId: storeId.value,
-    };
-
-    const apiClient = await getApiClient();
-    searchResult.value = await apiClient.searchList(criteria);
   });
 
   const { action: removePages, loading: loadingRemovePages } = useAsync<{ items: PageBuilderPageListItem[] }>(

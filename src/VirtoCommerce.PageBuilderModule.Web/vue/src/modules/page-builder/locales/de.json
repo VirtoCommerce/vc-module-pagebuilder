@@ -265,6 +265,7 @@
       "SHARED_MISSING": "Diese geteilte Komponente existiert nicht mehr. Entfernen Sie sie von der Seite.",
       "DETACH": "Trennen",
       "DETACH_HINT": "Ersetzt sie durch eine Kopie ihrer Abschnitte, die nur diese Seite verwendet.",
+      "DETACH_FAILED": "Die geteilte Komponente konnte nicht getrennt werden.",
       "MORE": "Weitere Aktionen",
       "CONTENT": "Inhalt",
       "NO_SETTINGS": "Hier gibt es nichts einzustellen.",
@@ -660,6 +661,7 @@
     },
     "GITHUB": {
       "INTRO": "Verbinden Sie die Plattform einmalig mit einer GitHub-Organisation. Jede Website bewahrt dann die Versionen ihrer Seiten in einem eigenen privaten Repository dort auf.",
+      "ASK_ADMIN": "Diese Plattform ist noch nicht mit GitHub verbunden. Bitten Sie den Administrator der Plattform, sie zu verbinden.",
       "CONNECTED_HINT": "Jede Website bewahrt die Versionen ihrer Seiten in einem eigenen privaten Repository in {organization} auf. Aktivieren Sie den Verlauf einer Website in ihrem Verlauf-Bereich.",
       "CONNECTED": "Verbunden",
       "FAILING": "Funktioniert nicht",

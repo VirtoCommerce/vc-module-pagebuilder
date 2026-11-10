@@ -106,7 +106,7 @@ interface ContentVersion {
 | 404 | the page does not exist, the version does not exist, or the item did not exist as of the version |
 | 409 `{ error }` | the store's repository belongs to another store |
 | 412 | restore: the page was saved by someone else while it was being restored |
-| 502 `{ error }` | GitHub did not answer or refused |
+| 502 `{ error }` | GitHub did not answer or refused, or the store's GitHub connection cannot be used (its repository setting is malformed or not allowed, or the saved GitHub App cannot be read) |
 
 Restore and `GET` of a version take the `versionId` the list returned.
 

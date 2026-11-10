@@ -136,28 +136,29 @@ test("a value at a path is replaced in a copy; a text only where a text is", () 
 const location = { href: "https://platform.example/apps/designer/", origin: "https://platform.example" };
 const SEARCH = "/api/pagebuilder/search";
 const graphql = (query: unknown) => ({ url: "/graphql", method: "POST", body: { query } });
+const GRAPHQL_URL = "https://platform.example/graphql";
 
-test("a schema request goes over http(s) only, and to the platform only with the token", () => {
-  assert.deepEqual(schemaRequest({ url: `${SEARCH}?storeId=B2B` }, location), { url: `https://platform.example${SEARCH}?storeId=B2B`, platform: true });
-  assert.deepEqual(schemaRequest({ url: "https://elsewhere.example/schema.json" }, location), { url: "https://elsewhere.example/schema.json", platform: false });
-  assert.equal(schemaRequest({ url: "//elsewhere.example/x" }, location)?.platform, false);
-  assert.equal(schemaRequest({ url: "http://platform.example/api" }, location)?.platform, false);
-  assert.equal(schemaRequest({ url: "https://platform.example.evil.example/api" }, location)?.platform, false);
+test("a schema request goes over http(s) only, to its URL resolved against the designer's page", () => {
+  assert.deepEqual(schemaRequest({ url: `${SEARCH}?storeId=B2B` }, location), { url: `https://platform.example${SEARCH}?storeId=B2B` });
+  assert.deepEqual(schemaRequest({ url: "https://elsewhere.example/schema.json" }, location), { url: "https://elsewhere.example/schema.json" });
+  assert.equal(schemaRequest({ url: "//elsewhere.example/x" }, location)?.url, "https://elsewhere.example/x");
+  assert.equal(schemaRequest({ url: "http://platform.example/api" }, location)?.url, "http://platform.example/api");
+  assert.equal(schemaRequest({ url: "https://platform.example.evil.example/api" }, location)?.url, "https://platform.example.evil.example/api");
   assert.equal(schemaRequest({ url: "javascript:alert(1)" }, location), undefined);
   assert.equal(schemaRequest({ url: "data:application/json,[]" }, location), undefined);
   assert.equal(schemaRequest({ url: "http://[" }, location), undefined);
 });
 
 test("a schema request to another origin may use any method and body", () => {
-  assert.equal(schemaRequest({ url: "https://elsewhere.example/x", method: "POST", body: { query: "mutation { x }" } }, location)?.platform, false);
-  assert.equal(schemaRequest({ url: "https://elsewhere.example/api/platform/x", method: "delete" }, location)?.platform, false);
+  assert.equal(schemaRequest({ url: "https://elsewhere.example/x", method: "POST", body: { query: "mutation { x }" } }, location)?.url, "https://elsewhere.example/x");
+  assert.equal(schemaRequest({ url: "https://elsewhere.example/api/platform/x", method: "delete" }, location)?.url, "https://elsewhere.example/api/platform/x");
 });
 
 test("the method of a schema request is compared ignoring case, and is GET by default", (t) => {
   t.mock.method(console, "warn", () => undefined);
-  assert.equal(schemaRequest({ url: SEARCH, method: "get" }, location)?.platform, true);
-  assert.equal(schemaRequest(graphql("{ a }"), location)?.platform, true);
-  assert.equal(schemaRequest({ ...graphql("{ a }"), method: "post" }, location)?.platform, true);
+  assert.equal(schemaRequest({ url: SEARCH, method: "get" }, location)?.url, `https://platform.example${SEARCH}`);
+  assert.equal(schemaRequest(graphql("{ a }"), location)?.url, GRAPHQL_URL);
+  assert.equal(schemaRequest({ ...graphql("{ a }"), method: "post" }, location)?.url, GRAPHQL_URL);
   assert.equal(schemaRequest({ url: "/graphql", body: { query: "{ a }" } }, location), undefined);
 });
 
@@ -198,12 +199,12 @@ test("path tricks do not reach the allowed schema requests", (t) => {
 
 test("a GraphQL schema request must be a read", (t) => {
   t.mock.method(console, "warn", () => undefined);
-  assert.equal(schemaRequest(graphql("query { products { id } }"), location)?.platform, true);
+  assert.equal(schemaRequest(graphql("query { products { id } }"), location)?.url, GRAPHQL_URL);
   assert.equal(schemaRequest(graphql("mutation { removeCart(id: 1) }"), location), undefined);
   assert.equal(schemaRequest(graphql("mutation{a}"), location), undefined);
   assert.equal(schemaRequest(graphql("subscription { a }"), location), undefined);
   assert.equal(schemaRequest(graphql("query A { a } mutation B { b }"), location), undefined);
-  assert.equal(schemaRequest(graphql("query A { a }\nquery B { b }"), location)?.platform, true);
+  assert.equal(schemaRequest(graphql("query A { a }\nquery B { b }"), location)?.url, GRAPHQL_URL);
   for (const query of [undefined, null, 1, { query: "{ a }" }]) assert.equal(schemaRequest(graphql(query), location), undefined);
   assert.equal(schemaRequest({ url: "/graphql", method: "POST" }, location), undefined);
   assert.equal(schemaRequest({ url: "/graphql", method: "POST", body: [{ query: "{ a }" }] }, location), undefined);
@@ -211,9 +212,9 @@ test("a GraphQL schema request must be a read", (t) => {
 
 test("the keywords count outside GraphQL strings only", (t) => {
   t.mock.method(console, "warn", () => undefined);
-  assert.equal(schemaRequest(graphql('{ products(query: "mutation") { id } }'), location)?.platform, true);
-  assert.equal(schemaRequest(graphql('{ products(query: "a \\" subscription") { id } }'), location)?.platform, true);
-  assert.equal(schemaRequest(graphql('{ a(q: """mutation "quoted" \\""" subscription""") }'), location)?.platform, true);
+  assert.equal(schemaRequest(graphql('{ products(query: "mutation") { id } }'), location)?.url, GRAPHQL_URL);
+  assert.equal(schemaRequest(graphql('{ products(query: "a \\" subscription") { id } }'), location)?.url, GRAPHQL_URL);
+  assert.equal(schemaRequest(graphql('{ a(q: """mutation "quoted" \\""" subscription""") }'), location)?.url, GRAPHQL_URL);
   assert.equal(schemaRequest(graphql('{ a(q: "x") } mutation { b(q: "y") }'), location), undefined);
   assert.equal(schemaRequest(graphql('{ a(q: "\\\\") } mutation { b }'), location), undefined);
   assert.equal(schemaRequest(graphql('{ a(q: """x""") } mutation { b(q: """y""") }'), location), undefined);
@@ -229,7 +230,7 @@ test("a GraphQL comment cannot hide a mutation behind a quote", (t) => {
   t.mock.method(console, "warn", () => undefined);
   assert.equal(schemaRequest(graphql('# """\nmutation { a }\n# """'), location), undefined);
   assert.equal(schemaRequest(graphql('# "\nmutation { a }\n# "'), location), undefined);
-  assert.equal(schemaRequest(graphql("# not a mutation\n{ a }"), location)?.platform, true);
+  assert.equal(schemaRequest(graphql("# not a mutation\n{ a }"), location)?.url, GRAPHQL_URL);
   assert.equal(schemaRequest(graphql('{ a(q: "#") } mutation { b }'), location), undefined);
 });
 

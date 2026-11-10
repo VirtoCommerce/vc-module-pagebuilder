@@ -80,7 +80,7 @@
           <VcButton
             variant="secondary"
             icon="lucide-unlink"
-            @click="designer.detach(placed.id)"
+            @click="detach(placed.id)"
           >
             {{ $t("PAGE_BUILDER.DESIGNER.DETACH") }}
           </VcButton>
@@ -127,7 +127,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { usePopup } from "@vc-shell/framework";
+import { notification, usePopup } from "@vc-shell/framework";
 import { VcButton, VcDropdown, VcHint, VcIcon } from "@vc-shell/framework/ui";
 import type { Designer } from "../useDesigner";
 import type { Selection } from "../types";
@@ -195,6 +195,14 @@ async function confirmRemove() {
   const current = sel.value;
   if (isMain.value) return;
   if (await showConfirmation(t("PAGE_BUILDER.DESIGNER.CONFIRM_REMOVE", { name: title.value }))) props.designer.remove(current);
+}
+
+async function detach(id: string) {
+  try {
+    await props.designer.detach(id);
+  } catch {
+    notification.error(t("PAGE_BUILDER.DESIGNER.DETACH_FAILED"));
+  }
 }
 
 const actions = computed(() => {

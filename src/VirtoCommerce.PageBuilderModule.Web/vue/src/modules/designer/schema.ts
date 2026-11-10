@@ -151,17 +151,15 @@ function isAllowedOnPlatform(target: URL, request: SchemaRequest): boolean {
   return method === "POST" && target.pathname === "/graphql" && !target.search && isGraphqlRead(request.body);
 }
 
-/** `platform` means the designer's own origin, where the request carries the user's session. */
-export function schemaRequest(request: SchemaRequest, location: Pick<Location, "href" | "origin">): { url: string; platform: boolean } | undefined {
+export function schemaRequest(request: SchemaRequest, location: Pick<Location, "href" | "origin">): { url: string } | undefined {
   try {
     const target = new URL(request.url, location.href);
     if (target.protocol !== "http:" && target.protocol !== "https:") return undefined;
-    const platform = target.origin === location.origin;
-    if (platform && !isAllowedOnPlatform(target, request)) {
+    if (target.origin === location.origin && !isAllowedOnPlatform(target, request)) {
       console.warn("[page-builder] Refused a schema's request to the platform", request.method ?? "GET", target.pathname);
       return undefined;
     }
-    return { url: target.href, platform };
+    return { url: target.href };
   } catch {
     return undefined;
   }

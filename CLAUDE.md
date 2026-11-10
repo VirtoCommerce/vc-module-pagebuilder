@@ -9,6 +9,7 @@ A **VirtoCommerce platform module** for page builder / theme editor functionalit
 | Sub-project | Stack | Location |
 |---|---|---|
 | C# backend | .NET 10, EF Core | `src/VirtoCommerce.PageBuilderModule.*` |
+| Angular 21 designer (stores with New Page Builder off) | Angular 21, NgRx, Signals | `src/.../Apps/page-builder-designer/` |
 | Vue 3 UI (Admin Shell + standalone shell) | Vue 3, Vite, @vc-shell | `src/.../vue/` |
 | AngularJS admin | AngularJS (legacy) | `src/.../Web/Scripts/` |
 
@@ -27,6 +28,17 @@ dotnet test
 
 # Build specific project
 dotnet build src/VirtoCommerce.PageBuilderModule.Web/
+```
+
+### Angular Designer
+
+All commands run from: `src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/`
+
+```bash
+npm start                    # Dev server
+npm run build                # Full build (ngv-markdown → ngv-datepicker → themes → app)
+npm test                     # Tests
+npm run lint                 # ESLint
 ```
 
 ### Vue 3 Shell

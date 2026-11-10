@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -14,6 +16,7 @@ using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.History;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.Platform.Core.Events;
 using Xunit;
@@ -87,6 +90,16 @@ public class PageBuilderControllerThemeFilesTests
         Assert.IsType<ForbidResult>(await Builder(new FakeAuthorizationService("s2", Permissions.Update, Permissions.Theme)).DiscardDraft("s1", Path, "themes", "default"));
 
         Assert.True(_live.Files.ContainsKey(Theme($"{Path}-draft")));
+    }
+
+    [Fact]
+    public async Task DiscardDraft_StoreUserDoesNotWorkIn_IsRefusedBeforeThemePermissionIsAsked()
+    {
+        var authorization = new RecordingAuthorizationService(new FakeAuthorizationService("s2", Permissions.Update));
+
+        Assert.IsType<ForbidResult>(await Builder(authorization).DiscardDraft("s1", Path, "themes", "default"));
+
+        Assert.Empty(authorization.Policies);
     }
 
     [Theory]
@@ -327,6 +340,26 @@ public class PageBuilderControllerThemeFilesTests
         Assert.Empty(_live.Events.OfType<PageBuilderContentChangedEvent>());
     }
 
+    [Fact]
+    public async Task SaveTemplates_ThemeFileNamedAgainFromTheRoot_ReturnsNamingErrorAndWritesNothing()
+    {
+        await SaveCatalogAsync();
+        var files = new PageBuilderController.SaveFilesModel
+        {
+            Files = JsonConvert.SerializeObject(new[]
+            {
+                new { path = Path, type = "themes", content = Group("site-header") },
+                new { path = $"/{Path}", type = "themes", content = Group("site-header") },
+            }),
+        };
+
+        var result = await Builder().SaveTemplates("s1", "default", files, draft: true, catalogHash: Catalog);
+
+        var body = PlatformJson.ParseBody(Assert.IsType<BadRequestObjectResult>(result));
+        Assert.Equal(DesignerThemeFiles.NamingError, (string)body["error"]);
+        Assert.False(_live.Files.ContainsKey(Theme($"{Path}-draft")));
+    }
+
     [Theory]
     [InlineData("default/snapshots/current.json")]
     [InlineData("default/catalogs/abc12345.json")]
@@ -359,7 +392,7 @@ public class PageBuilderControllerThemeFilesTests
     };
 
 
-    private PageBuilderController Builder(FakeAuthorizationService authorization = null, IEventPublisher eventPublisher = null, IContentHistory history = null)
+    private PageBuilderController Builder(IAuthorizationService authorization = null, IEventPublisher eventPublisher = null, IContentHistory history = null)
     {
         var options = Options.Create(new GitContentOptions { Enabled = true, Organization = "acme", Token = "t0ken", BaseBranch = "main" });
         var themePublisher = new ThemePublisher(_themeStorageFactory, new ThemeSnapshotBuilder(), new ThemeValidator(), _live.StoreService, new SchemaCatalogService(_themeStorageFactory),
@@ -398,6 +431,20 @@ public class PageBuilderControllerThemeFilesTests
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "alice")], "test")) },
         };
         return controller;
+    }
+
+    private sealed class RecordingAuthorizationService(IAuthorizationService inner) : IAuthorizationService
+    {
+        public List<string> Policies { get; } = [];
+
+        public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object resource, IEnumerable<IAuthorizationRequirement> requirements) =>
+            inner.AuthorizeAsync(user, resource, requirements);
+
+        public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object resource, string policyName)
+        {
+            Policies.Add(policyName);
+            return inner.AuthorizeAsync(user, resource, policyName);
+        }
     }
 
     private sealed class GatedEventPublisher : IEventPublisher

@@ -57,6 +57,7 @@
               {{ $t(connection.error ? "PAGE_BUILDER.GIT.SETUP.INSTALL" : "PAGE_BUILDER.GITHUB.MANAGE_ACCESS", { organization: connection.organization }) }}
             </VcButton>
             <VcButton
+              v-if="maySetUp"
               variant="secondary"
               size="sm"
               icon="lucide-github"
@@ -106,7 +107,7 @@
         {{ $t("PAGE_BUILDER.GIT.SETUP.CONFIGURATION") }}
       </p>
 
-      <template v-else>
+      <template v-else-if="maySetUp">
         <p class="pb-gh__text">{{ $t("PAGE_BUILDER.GITHUB.INTRO") }}</p>
         <VcInput
           v-model="organization"
@@ -146,6 +147,13 @@
         </div>
       </template>
 
+      <p
+        v-else
+        class="pb-gh__text"
+      >
+        {{ $t("PAGE_BUILDER.GITHUB.ASK_ADMIN") }}
+      </p>
+
       <VcBanner
         v-if="actionError"
         variant="danger"
@@ -172,7 +180,7 @@
 import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useEventListener } from "@vueuse/core";
-import { useApiClient, type IBladeToolbar } from "@vc-shell/framework";
+import { useApiClient, usePermissions, type IBladeToolbar } from "@vc-shell/framework";
 import { VcBanner, VcBlade, VcButton, VcInput, VcStatus } from "@vc-shell/framework/ui";
 import { GitContentSetupClient, type GitContentConnectionStatus } from "../../api_client/virtocommerce.pagebuildermodule";
 import GitCard from "../page-builder/components/GitCard.vue";
@@ -186,12 +194,14 @@ defineBlade({
 
 const { t } = useI18n({ useScope: "global" });
 const { getApiClient } = useApiClient(GitContentSetupClient);
+const { hasAccess } = usePermissions();
 
 const connection = ref<GitContentConnectionStatus>();
 const busy = ref(false);
 const actionError = ref<string>();
 const settingUp = ref(false);
 const organization = ref("");
+const maySetUp = computed(() => hasAccess("platform:setting:update"));
 let appCreationOpen = false;
 
 const errorMessage = (error: unknown) => gitErrorMessage(error, t("PERMISSION_MESSAGES.ACCESS_RESTRICTED"));

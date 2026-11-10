@@ -144,16 +144,17 @@ Features: LRU cache (100 items) for GET, fallback chains, jsonpath response mapp
 
 ## Vue 3 Shell App
 
-**Location:** `Apps/page-builder-shell/`
+**Location:** `vue/` (the Admin Shell plugin and the standalone app; `Apps/page-builder-shell/` keeps only the package.json vc-build runs)
 **Framework:** Vue 3 Composition API, Vite 6, TypeScript
-**Key libs:** `@vc-shell/framework@1.2.2`, `vue-router`, `vee-validate`, `@vueuse/core`
+**Key libs:** `@vc-shell/framework@2.7.0`, `vue-router`, `vee-validate`, `@vueuse/core`
 
 **Build commands:**
 ```bash
-yarn serve           # Dev
-yarn build           # Production
-yarn build:dev       # Dev build
-yarn type-check      # Vue-tsc
+yarn serve              # Dev
+yarn build              # Admin Shell plugin
+yarn build:standalone   # Standalone app
+yarn type-check         # Vue-tsc
+yarn test               # Unit tests and specs
 ```
 
 **API client** auto-generated via `@vc-shell/api-client-generator`. Regenerate when C# DTOs change.

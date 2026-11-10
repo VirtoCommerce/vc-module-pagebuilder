@@ -265,6 +265,7 @@
       "SHARED_MISSING": "This shared component no longer exists. Remove it from the page.",
       "DETACH": "Detach",
       "DETACH_HINT": "Replaces it with a copy of its sections that only this page uses.",
+      "DETACH_FAILED": "The shared component couldn't be detached.",
       "MORE": "More actions",
       "CONTENT": "Content",
       "NO_SETTINGS": "Nothing to set here.",
@@ -660,6 +661,7 @@
     },
     "GITHUB": {
       "INTRO": "Connect the platform to a GitHub organization once. Every site then keeps the versions of its pages in its own private repository there.",
+      "ASK_ADMIN": "This platform isn't connected to GitHub yet. Ask the platform's administrator to connect it.",
       "CONNECTED_HINT": "Each site keeps its pages' versions in its own private repository in {organization}. Turn history on for a site from its History panel.",
       "CONNECTED": "Connected",
       "FAILING": "Not working",

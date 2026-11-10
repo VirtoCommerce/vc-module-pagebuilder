@@ -265,6 +265,7 @@
       "SHARED_MISSING": "Den här delade komponenten finns inte längre. Ta bort den från sidan.",
       "DETACH": "Koppla från",
       "DETACH_HINT": "Ersätter den med en kopia av dess sektioner som bara den här sidan använder.",
+      "DETACH_FAILED": "Den delade komponenten kunde inte kopplas från.",
       "MORE": "Fler åtgärder",
       "CONTENT": "Innehåll",
       "NO_SETTINGS": "Inget att ställa in här.",
@@ -660,6 +661,7 @@
     },
     "GITHUB": {
       "INTRO": "Anslut plattformen till en GitHub-organisation en gång. Varje webbplats sparar sedan versionerna av sina sidor i ett eget privat repositorium där.",
+      "ASK_ADMIN": "Den här plattformen är inte ansluten till GitHub än. Be plattformens administratör att ansluta den.",
       "CONNECTED_HINT": "Varje webbplats sparar versionerna av sina sidor i ett eget privat repositorium i {organization}. Aktivera historik för en webbplats från dess Historik-panel.",
       "CONNECTED": "Ansluten",
       "FAILING": "Fungerar inte",
