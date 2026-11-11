@@ -242,7 +242,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                                 // The repository is the source of truth: preview the exact commit at the
                                 // head of this editor's branch, else what is published. The blob draft
                                 // this url would otherwise point at is not written on this flow.
-                                window.open(gitUrl('git/preview'), '_blank');
+                                window.open(gitUrl('git/preview'), '_blank', 'noopener,noreferrer');
                                 return;
                             }
                             var showPreview = function (storeUrl) {
@@ -256,7 +256,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                                     if (language) {
                                         previewUrl += `&cultureName=${encodeURIComponent(language)}`;
                                     }
-                                    window.open(previewUrl, '_blank');
+                                    window.open(previewUrl, '_blank', 'noopener,noreferrer');
                                 } else {
                                     var dialog = {
                                         id: "noUrlInStore",

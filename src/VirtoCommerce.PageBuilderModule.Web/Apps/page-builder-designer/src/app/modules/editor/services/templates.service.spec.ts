@@ -292,7 +292,15 @@ describe('TemplatesService page versions', () => {
         requests.expectOne('/restore/' + literal).flush({ branch: 'branch', commitSha: literal });
         const open = vi.spyOn(window, 'open').mockReturnValue(null);
         service.previewVersion('', 'pages', createEntry(), '', literal);
-        expect(open).toHaveBeenCalledWith('/preview/' + literal, '_blank');
+        expect(open).toHaveBeenCalledWith('/preview/' + literal, '_blank', 'noopener,noreferrer');
+        open.mockRestore();
+    });
+
+    it('opens the external preview without giving it a handle on the designer', () => {
+        config.initConfigWith({ externalPreview: { url: '/designer-preview?pageId={{groupId}}' } });
+        const open = vi.spyOn(window, 'open').mockReturnValue(null);
+        service.externalPreview('', 'pages', createEntry(), 'one');
+        expect(open).toHaveBeenCalledWith('/designer-preview?pageId=one', '_blank', 'noopener,noreferrer');
         open.mockRestore();
     });
 
