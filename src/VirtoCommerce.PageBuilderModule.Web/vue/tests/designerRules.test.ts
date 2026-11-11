@@ -29,7 +29,7 @@ import {
   splitTexts,
 } from "../src/modules/designer/ruleConditions";
 
-/** Mirrors the built-in conditions that vc-frontend's templates/conditions.ts announces in the handshake. */
+/** Mirrors the built-in conditions the storefront announces in the handshake. */
 const nameEquals = { type: "object", element: [{ id: "name", type: "string", label: "Name" }, { id: "equals", type: "string", label: "Value" }] };
 const DESCRIPTORS: ConditionDescriptor[] = [
   { name: "inCategory", pageTypes: ["product", "category"], label: "In category", value: { type: "list", label: "Category ids" } },

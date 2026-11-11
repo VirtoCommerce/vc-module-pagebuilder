@@ -27,7 +27,6 @@ export interface Handshake {
   hash: string;
   capabilities: string[];
   conditions: ConditionDescriptor[];
-  /** template keys the storefront has without a theme file, such as `product.b2c` */
   builtInTemplates: string[];
   paletteTokens: PaletteTokens;
 }
@@ -327,7 +326,7 @@ export async function ensureCatalog(storeId: string, catalog: Catalog, api: Cata
     if (!(await api.has(storeId, catalog.hash))) await api.upload(storeId, catalog);
     hashes.add(catalog.hash);
   } catch (e) {
-    // An editor without builder:update leaves the upload to one who has it.
+    // An editor without the update permission leaves the upload to one who has it.
     if ((e as { status?: unknown } | undefined)?.status === 403) hashes.add(catalog.hash);
     else console.warn("[page-builder] The storefront's schema catalog was not uploaded; it is tried again when the preview reloads", e);
   }

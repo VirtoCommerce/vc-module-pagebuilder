@@ -237,7 +237,7 @@ function select(sel: Selection) {
 }
 </script>
 
-<!-- Not scoped: SectionRows renders the rows (all pd-tree__ classes). -->
+<!-- Not scoped: a child component renders the rows. -->
 <style lang="scss">
 .pd-tree {
   display: flex;

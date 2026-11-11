@@ -35,7 +35,7 @@ public class GitContentSetupController(
     IValidator<PageBuilderStoreRequest> storeRequestValidator,
     IValidator<GitHubAppSetupRequest> appSetupRequestValidator) : Controller
 {
-    // the key of Platform.Web's OverrideScpFormActionUri, which a module cannot reference
+    // the platform's own key for a page's CSP form-action, whose constant a module cannot reference
     private const string FormActionItem = "Content-Security-Policy-Form-Action-Uri";
 
     private const int MaxSites = 100;

@@ -94,7 +94,7 @@ public class HistoryControllerTests
     [Fact]
     public async Task GetHistory_TakeThatDidNotBind_ReturnsBadRequest()
     {
-        // MVC passes the parameter's default on, so take=abc must not list a page of 20.
+        // MVC passes the parameter's default on, so take=abc must not list a page of the default size.
         var controller = Controller();
         controller.ModelState.AddModelError("take", "The value 'abc' is not valid for take.");
 

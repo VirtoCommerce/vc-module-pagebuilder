@@ -24,7 +24,7 @@ import {
 import { readRules } from "../src/modules/designer/rules";
 import type { Item, PageDocument } from "../src/modules/designer/types";
 
-/** Mirrors the `loaded` message that vc-frontend's buildPreviewCatalog in preview-v2.ts sends. */
+/** Mirrors the `loaded` message the storefront's preview sends. */
 const loadedData = (extra: Record<string, unknown> = {}) => ({
   blocks: { link: { name: "Link" } },
   sections: { "site-header": { name: "Header", groups: ["header"] }, text: { name: "Text" } },

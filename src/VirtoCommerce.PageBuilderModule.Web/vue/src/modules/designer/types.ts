@@ -31,7 +31,6 @@ export interface Field {
   required?: boolean;
   hidden?: boolean;
   multiline?: boolean;
-  /** `url`: the string is a link */
   format?: string;
   multiple?: boolean;
   min?: number;
@@ -99,7 +98,6 @@ export interface TemplateEntry {
   default?: unknown;
 }
 
-/** Opens the asset picker on the given types, all when none; resolves to the picked asset's URL. */
 export const PickAssetKey: InjectionKey<(acceptedTypes?: string[]) => Promise<string | undefined>> = Symbol("PickAsset");
 export const PageAnchorsKey: InjectionKey<Ref<PageAnchor[]>> = Symbol("PageAnchors");
 export const StoreMenusKey: InjectionKey<() => Promise<unknown[]>> = Symbol("StoreMenus");

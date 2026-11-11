@@ -33,7 +33,6 @@ interface UseAssetLibraryActionsOptions {
   /** Shown inside the library, so that it nests in a dialog that hosts the library. */
   requestDeleteConfirmation: (confirmation: AssetDeleteConfirmation) => Promise<boolean>;
   getAssetPublicUrl: (entry: AssetEntry) => string | undefined;
-  /** Files of other types are not uploaded. */
   acceptedTypes?: MaybeRefOrGetter<readonly string[]>;
 }
 

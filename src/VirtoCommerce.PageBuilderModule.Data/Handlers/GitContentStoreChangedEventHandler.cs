@@ -27,7 +27,7 @@ public class GitContentStoreChangedEventHandler(
         {
             try
             {
-                // RegisterEventHandler resolves this handler once from the root provider, so it must not capture a Scoped IBackgroundJob.
+                // the handler is resolved once, from the root provider, so it must not capture a scoped job client
                 await BackgroundJob.Enqueue<GitContentRepositoryJob>(payload, _enqueueOptions);
             }
             catch (Exception ex)

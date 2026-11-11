@@ -31,7 +31,7 @@
     <Copy SourceFiles="@(PageBuilderApp)" DestinationFiles="$(PublishDir)\..\%(Identity)" />
     <Copy SourceFiles="@(AiFolder)" DestinationFiles="$(PublishDir)\..\%(Identity)" />
   </Target>
-  <!-- Admin Shell plugin: Vue sources in vue/, built into plugins/admin-shell/ -->
+  <!-- The Admin Shell plugin's sources and build output: yarn builds them, not this project -->
   <ItemGroup>
     <Compile Remove="vue\**" />
     <Content Remove="vue\**" />
@@ -48,8 +48,7 @@
       <Value>**/vue/src/api_client/virtocommerce.*.ts</Value>
     </SonarQubeSetting>
   </ItemGroup>
-  <!-- Admin Shell plugin: built from vue/ into plugins/admin-shell/ before publish, so vc-build Compress (locally and in CI)
-       packs it. SkipAdminShellPlugin=true leaves it out. -->
+  <!-- Admin Shell plugin: built before publish, so vc-build Compress (locally and in CI) packs it. -->
   <Target Name="BuildAdminShellPlugin" BeforeTargets="Publish" Condition="'$(SkipAdminShellPlugin)' != 'true' AND Exists('$(MSBuildProjectDirectory)\vue\package.json')">
     <Exec Command="corepack enable" ContinueOnError="true" />
     <Exec Command="yarn install --immutable" WorkingDirectory="$(MSBuildProjectDirectory)\vue" />

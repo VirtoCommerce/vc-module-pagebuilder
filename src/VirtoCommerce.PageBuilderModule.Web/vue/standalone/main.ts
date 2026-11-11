@@ -20,7 +20,7 @@ setMenuBadge("ActivePagesList", { content: pageCounts.active, variant: "success"
 setMenuBadge("ArchivedPagesList", { content: pageCounts.archived, variant: "secondary" });
 setMenuBadge("AllPagesList", { content: pageCounts.all, variant: "primary" });
 
-// vc-shell's useUser() reads only "vc_auth_data", while the platform admin has a cookie session and a JWT in "ls.authenticationData".
+// vc-shell reads the user only from its own key, while the platform admin has a cookie session and a JWT under its legacy key.
 const LEGACY_AUTH_KEY = "ls.authenticationData";
 const SHELL_AUTH_KEY = "vc_auth_data";
 
@@ -123,7 +123,7 @@ async function bridgeLegacyAuthData() {
   });
 }
 
-// An empty OzAgentUrl setting disables the AI integration: vc-shell's aiAgentPlugin skips its install when config.url is empty.
+// An empty URL disables the AI integration: vc-shell does not install its AI agent without one.
 async function fetchOzAgentUrl(): Promise<string> {
   try {
     const auth = localStorage.getItem(SHELL_AUTH_KEY);

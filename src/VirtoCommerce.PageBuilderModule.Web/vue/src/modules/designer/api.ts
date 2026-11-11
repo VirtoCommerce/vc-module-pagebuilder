@@ -60,7 +60,6 @@ export async function loadPage(groupId: string): Promise<{ doc: PageDocument; eT
   return { doc: toDocument(body.content ?? ""), eTag: body.eTag ?? res.headers.get("etag") ?? undefined };
 }
 
-/** 412 when someone changed the page since `eTag`. */
 export async function savePage(groupId: string, doc: PageDocument, eTag: string): Promise<string | undefined> {
   const res = await call(`${groupUrl(groupId)}/content?includeVersion=true`, {
     method: "POST",
@@ -127,7 +126,6 @@ export async function sharedComponentContent(id: string): Promise<PageDocument> 
   return toDocument(await (await call(`/api/page-builder-shared-components/${encodeURIComponent(id)}/content`)).text());
 }
 
-/** 400 when the sections cannot be shared. */
 export async function saveSharedComponentContent(id: string, doc: PageDocument) {
   await call(`/api/page-builder-shared-components/${encodeURIComponent(id)}/content`, {
     method: "PUT",
@@ -242,7 +240,7 @@ export async function checkPalette(storeId: string, tokens: PaletteTokens, look:
 
 export interface ThemeFile {
   content: unknown;
-  /** Save sends it back (412 when someone saved since), and a file the theme lacks has one too. */
+  /** A file the theme lacks has one too. */
   eTag: string;
 }
 
@@ -256,7 +254,6 @@ export async function themeStatus(storeId: string): Promise<ThemeStatus> {
   return parseThemeStatus(await (await call(`/api/pagebuilder/theme/status?${new URLSearchParams({ storeId })}`)).json());
 }
 
-/** 400 `{ error, errors }`: no catalog is named, or a file does not fit it. */
 export async function publishTheme(storeId: string, catalogHash?: string): Promise<number> {
   const res = await call(publishThemeUrl(storeId, catalogHash), { method: "POST" });
   return ((await res.json()) as { publication: number }).publication;
@@ -279,10 +276,6 @@ export const sectionGroupFiles = (
     return { path, eTag: eTags[path] ?? "", content: { type: group, name: group === "header" ? "Header" : "Footer", content } };
   });
 
-/**
- * 412: the page or a theme file changed since it was read. 428: one went without its version. 400 `{ error, errors }`:
- * a file does not fit the named catalog. 403: a part needs a permission the user lacks.
- */
 export async function saveDesigner(
   storeId: string,
   save: { page?: DesignerSavePage; themeFiles: DesignerSaveFile[] },
@@ -297,7 +290,7 @@ export async function saveDesigner(
   return ((await res.json().catch(() => ({}))) ?? {}) as { saveId?: string; eTag?: string; themeFiles?: { path: string; eTag: string }[] };
 }
 
-/** A file never published keeps its draft, its only copy. 400: the page was never published. */
+/** A file never published keeps its draft, its only copy. */
 export async function discardDesigner(storeId: string, discard: { page?: DesignerDiscardPage; themeFiles: string[] }) {
   await call(designerDiscardUrl(storeId), {
     method: "POST",
@@ -350,7 +343,7 @@ export async function filePublishStatus(page: FilePage): Promise<PublishStatus> 
   return ((await (await call(`/api/pagebuilder/git/publish-status?${fileArgs(page)}`)).json()) ?? { published: true, hasChanges: false }) as PublishStatus;
 }
 
-/** Goes through the builder, which checks the publish permission for every store. 409: someone published first. */
+/** Goes through the builder, which checks the publish permission for every store. */
 export async function setFilePublished(page: FilePage, publish: boolean, rebase = false) {
   await call(`/api/pagebuilder/git/${publish ? "publish" : "unpublish"}?${fileArgs(page, rebase ? { rebase: "true" } : {})}`, { method: "POST" });
 }

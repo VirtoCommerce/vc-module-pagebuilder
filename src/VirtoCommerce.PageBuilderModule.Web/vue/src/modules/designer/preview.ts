@@ -129,7 +129,6 @@ export function storefrontPage(storefrontUrl: string | undefined, path: string):
   }
 }
 
-/** The storefront's preview path must be exactly /designer-preview. */
 export function previewUrl(storefrontUrl: string | undefined, previewPath = "/designer-preview"): string | undefined {
   const url = storefrontPage(storefrontUrl, previewPath);
   url?.searchParams.set("ep", window.location.origin);

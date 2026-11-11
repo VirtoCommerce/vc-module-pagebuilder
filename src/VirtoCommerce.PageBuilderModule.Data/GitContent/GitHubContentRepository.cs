@@ -165,7 +165,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
 
             // already gone: publishing deletes the work branch, and so does the repository's
             // "automatically delete head branches" setting — whichever wins, the caller is satisfied.
-            // GitHub says so with 404 or with 422 "Reference does not exist"; any other 422 is a refusal.
+            // GitHub answers a ref that is already gone with 404 or with 422.
             if (response.StatusCode == HttpStatusCode.UnprocessableEntity)
             {
                 var details = await response.Content.ReadAsStringAsync(cancellationToken);

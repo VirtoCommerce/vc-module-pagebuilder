@@ -244,7 +244,6 @@ export interface ExposedAssetsLibraryContent {
 
 interface Props {
   pickable?: boolean;
-  /** The types the picker lists, selects and uploads; folders always list. */
   accept?: string[];
 }
 

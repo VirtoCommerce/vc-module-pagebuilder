@@ -85,7 +85,7 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
             return string.Equals(Canonicalize(left), Canonicalize(right), StringComparison.Ordinal);
         }
 
-        /// <summary>Compares the parsed JSON, whatever the formatting. A document that does not parse differs from any other; a null only equals another null.</summary>
+        /// <summary>Ignores formatting; a document that does not parse differs from any other.</summary>
         public static bool AreSameDocuments(string left, string right)
         {
             if (left == null || right == null)
@@ -103,7 +103,6 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
             }
         }
 
-        // a string that looks like a date stays that string
         private static JToken Parse(string json)
         {
             using var reader = new JsonTextReader(new StringReader(json)) { DateParseHandling = DateParseHandling.None };

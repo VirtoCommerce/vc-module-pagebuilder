@@ -314,7 +314,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
         await downloadContent();
         notification.success(t("PAGE_BUILDER.PAGES.ALERTS.DOWNLOAD_SUCCESS"));
       } catch {
-        // useAsync and the global error handler report the error.
+        // The failed action has already reported the error.
       }
     },
   },

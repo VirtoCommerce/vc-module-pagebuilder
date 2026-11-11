@@ -283,7 +283,7 @@ describe("loading an asset's reference details", () => {
 describe("a failed asset library action", () => {
   const ROOT = "/stores/s1/Page Builder";
   const refused = new Error("Refused by the platform");
-  // A failed useAsync action toasts on a later task, so a count taken before then misses it.
+  // A failed action toasts on a later task, so a count taken before then misses it.
   const toastsShown = () => new Promise((resolve) => setTimeout(resolve));
 
   function assetLibrary() {

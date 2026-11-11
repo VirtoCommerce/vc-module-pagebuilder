@@ -27,9 +27,8 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         public string Organization { get; set; }
 
         /// <summary>
-        /// What a store's own repository setting may name besides <see cref="Repository"/>: "owner/name" or
-        /// "owner/*", ignoring case. Empty allows nothing else, because whoever edits a store's settings would
-        /// otherwise reach every repository the platform's credentials can write to.
+        /// Repositories a store's own setting may name besides <see cref="Repository"/>. Empty allows none, because
+        /// whoever edits a store's settings would otherwise reach every repository the platform's credentials can write to.
         /// </summary>
         public IList<string> AllowedRepositories { get; set; } = [];
 

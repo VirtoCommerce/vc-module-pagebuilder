@@ -6,7 +6,7 @@ export interface PageAnchor {
   label: string;
 }
 
-/** Must match the storefront's slugifyAnchor or links break: `\w` is ASCII-only, so a non-Latin value slugifies to "". */
+/** Must slugify as the storefront does or links break: `\w` is ASCII-only, so a non-Latin value slugifies to "". */
 export function slugifyAnchor(value: string): string {
   return value
     .toLowerCase()

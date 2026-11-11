@@ -79,8 +79,8 @@ angular.module('virtoCommerce.pageBuilderModule')
                 loadLegacyDraft();
             };
 
-            // Which designer this store's pages open in. Without an answer neither opens: not opening
-            // is recoverable, editing the page in the wrong designer is not.
+            // Without an answer neither designer opens: not opening is recoverable, editing the page
+            // in the wrong designer is not.
             function loadDesigner() {
                 var pathname = window.location.pathname === '/' ? '' : window.location.pathname;
                 var platformUrl = window.location.origin + pathname;

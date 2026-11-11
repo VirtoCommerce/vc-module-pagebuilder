@@ -17,7 +17,7 @@ interface ContextItem {
 }
 
 export interface UseAiAgentContextWithStoreOptions<T extends ContextItem> {
-  /** A single object is wrapped in an array: merged with the store sentinel, vc-shell's list mode trims it to {id, objectType, name}. */
+  /** A single object is wrapped in an array: merged with the store sentinel, vc-shell's list mode trims its fields. */
   dataRef?: Ref<T | T[] | null | undefined> | ComputedRef<T | T[] | null | undefined>;
   suggestions?: UseAiAgentContextOptions<T>["suggestions"];
 }

@@ -58,7 +58,7 @@ public class ThemePaletteService : IThemePaletteService
         ["info"] = new PaletteColor(0x2b, 0x7e, 0xa8),
     };
 
-    // "{0}" is the color; light text and icons on white take a darker shade than the fill, to reach AA
+    // light text and icons on white take a darker shade than the fill, to reach AA
     private static readonly Dictionary<string, string> DefaultLightButtonRoles = new()
     {
         ["background_solid"] = "color_{0}_500",
@@ -574,7 +574,7 @@ public class ThemePaletteService : IThemePaletteService
         yield return CreatePair($"{name}-link-active", CreateTokenReference($"{area}_link_active", linkActive), areaBackground, TextContrastRatio);
     }
 
-    // badges and chips use the same tokens as VcButton
+    // the storefront's badges and chips use the same tokens as its buttons
     private static IEnumerable<PaletteContrastPair> CreateButtonPairs(string family)
     {
         var solidText = family == "warning" ? "warning_900" : "additional_50";

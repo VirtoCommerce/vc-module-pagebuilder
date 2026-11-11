@@ -12,7 +12,7 @@ const config = getApplicationConfiguration({
   build: { outDir: path.resolve(__dirname, "../Apps/page-builder-shell/dist") },
 });
 
-// `yarn type-check` covers both builds, so this build drops the checker plugin.
+// The type check covers both builds, so this build drops the checker plugin.
 config.plugins = config.plugins?.filter((p) => !(p && "name" in p && p.name === "vite-plugin-checker"));
 
 export default config;

@@ -77,7 +77,7 @@ export function fieldAt(fields: Field[], [key, ...rest]: (string | number)[]): F
   return field.type === "object" ? fieldAt(field.element ?? [], rest) : undefined;
 }
 
-/** A link (`"format": "url"`) is set in the settings panel only, never by an edit from the preview. */
+/** A link is set in the settings panel only, never by an edit from the preview. */
 export function isTextEdit(fields: Field[], path: (string | number)[], value: unknown): boolean {
   const field = fieldAt(fields, path);
   return typeof value === "string" && field?.type === "string" && field.format !== "url";
@@ -106,14 +106,13 @@ export function itemTitle(item: Item, schema: ItemSchema | undefined, defaultLan
 
 const reportedExpressions = new Set<string>();
 
-/** An expression that is not a supported form, or fails, hides the field. */
 export function isVisible(field: Field, context: Record<string, unknown>): boolean {
   if (field.hidden) return false;
   if (!field.visibility) return true;
   try {
     return !!evaluate(field.visibility, context);
   } catch (error) {
-    // Cached per expression because the fields are filtered again on every change.
+    // Warned once per expression because the fields are filtered again on every change.
     if (!reportedExpressions.has(field.visibility)) {
       reportedExpressions.add(field.visibility);
       const reason = error instanceof UnsupportedExpressionError ? "it is not one of the supported forms" : "it failed";

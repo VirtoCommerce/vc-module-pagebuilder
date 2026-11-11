@@ -141,7 +141,7 @@
 </template>
 
 <script setup lang="ts">
-// The conditions object is edited in place, so conditions the storefront did not announce stay as they were.
+// Edits keep the rest of the conditions object, so conditions the storefront did not announce stay as they were.
 import { computed, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { VcButton, VcIcon, VcInput, VcSelect } from "@vc-shell/framework/ui";

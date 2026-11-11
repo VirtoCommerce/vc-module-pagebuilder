@@ -7,6 +7,5 @@ public class DesignerSaveFile
 
     public string Content { get; set; }
 
-    /// <summary>The version the file was read at, as designer/theme-file returned it.</summary>
     public string ETag { get; set; }
 }

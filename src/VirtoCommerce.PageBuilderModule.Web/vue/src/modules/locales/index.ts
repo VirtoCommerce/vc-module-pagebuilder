@@ -6,7 +6,7 @@ import * as sharedComponents from "../shared-components/locales";
 type Locale = keyof typeof app;
 
 // The Admin Shell UI installs one module: per language, the dictionaries the standalone app installs one by one.
-// Not the app's language_name: the shell offers every language that has one, and these cover only the Page Builder.
+// Not the app's language name: the shell offers every language that has one, and these cover only the Page Builder.
 const locales: Record<string, object> = Object.fromEntries(
   (Object.keys(app) as Locale[]).map((locale) => [
     locale,

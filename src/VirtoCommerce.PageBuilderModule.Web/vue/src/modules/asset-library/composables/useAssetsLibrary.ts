@@ -28,7 +28,6 @@ interface UploadAssetsPayload {
 }
 
 export interface UseAssetsLibraryOptions {
-  /** Lists only blobs of these types, and every folder. */
   acceptedTypes?: MaybeRefOrGetter<readonly string[]>;
 }
 

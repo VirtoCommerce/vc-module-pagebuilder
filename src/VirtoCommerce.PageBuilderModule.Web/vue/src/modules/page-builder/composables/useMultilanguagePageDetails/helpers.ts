@@ -3,7 +3,7 @@ import type {
   MultilanguagePageLanguage,
 } from "../../../../api_client/virtocommerce.pagebuildermodule";
 
-// Matches MultilanguagePageBatchResult.FailedReason on the backend.
+// Matches the backend's reason for a failed batch item.
 const failedReason = "Failed";
 
 export function hasLanguageVersions(languages?: MultilanguagePageLanguage[]): boolean {

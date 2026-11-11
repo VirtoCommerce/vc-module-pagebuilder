@@ -114,7 +114,6 @@ const props = defineProps<{
   keys: string[];
   ruleCount: (key: string) => number;
   disabled?: boolean;
-  /** Why the menu lists only the default templates. */
   notice?: string;
 }>();
 const emit = defineEmits<{ open: [key: string | null]; create: [type: PageType] }>();

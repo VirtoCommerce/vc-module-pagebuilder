@@ -97,9 +97,8 @@ export default () => {
   };
 
   /**
-   * setStoreId for as long as one blade is open. The returned function hands the store back to what
-   * decided it before (the blade under it that pinned one, or else the address) and tells whether that
-   * changed it, so what was read under the held store can be read again.
+   * The release hands the store back to what decided it before and tells whether that changed it,
+   * so what was read under the held store can be read again.
    */
   const holdStoreId = (id: string) => {
     const before = { storeId: storeId.value, pinned: storeIdPinned };

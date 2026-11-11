@@ -1,4 +1,4 @@
-// Mirrors PageBuilderPermalink.IsValid on the server: these characters break a URL as written or cannot be seen.
+// Mirrors the server's permalink check: these characters break a URL as written or cannot be seen.
 const forbiddenCharacters = /[\s\p{Cc}\p{Cf}?#&%\\"<>{}|^`]/u;
 const maxLength = 2048;
 

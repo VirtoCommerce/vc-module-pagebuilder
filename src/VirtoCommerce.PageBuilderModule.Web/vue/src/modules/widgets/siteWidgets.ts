@@ -12,7 +12,7 @@ function siteWidget(icon: string, title: string, blade: string) {
     defineComponent({
       setup() {
         const { t } = useI18n({ useScope: "global" });
-        // SiteDetails and StoreDetails share the store via defineBladeContext({ item }).
+        // Both host blades share the store as their blade context's item.
         const ctx = injectBladeContext();
         const storeId = computed(() => (ctx.value.item as { id?: string } | undefined)?.id);
         const { openBlade } = useBlade();

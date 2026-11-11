@@ -21,7 +21,7 @@ export function usePageDesigner() {
     { immediate: true },
   );
 
-  // A designer in another tab never reports back, so onOpen and onClose run only for the designer blade.
+  // A designer in another tab never reports back, so the callbacks run only for the designer blade.
   return async (context: PageDesignerContext, { onOpen, onClose }: { onOpen?: () => void; onClose?: () => void } = {}) => {
     const ahead = known.value;
     const newPageBuilder = ahead && ahead.storeId === context.storeId ? ahead.newPageBuilder : await isNewPageBuilder(context.storeId);

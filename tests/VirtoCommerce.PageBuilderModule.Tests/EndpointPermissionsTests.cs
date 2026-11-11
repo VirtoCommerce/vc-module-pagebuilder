@@ -22,7 +22,7 @@ public class EndpointPermissionsTests
 
     private const string NoPolicy = "no policy";
 
-    // PageBuilderControllerPermissionsTests covers PageBuilderController.
+    // covered by its own permission tests
     private static readonly Type[] Controllers = typeof(GitContentSetupController).Assembly.GetTypes()
         .Where(type => typeof(ControllerBase).IsAssignableFrom(type) && !type.IsAbstract && type != typeof(PageBuilderController))
         .ToArray();

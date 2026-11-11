@@ -177,7 +177,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
 
             var permissionsProvider = serviceProvider.GetRequiredService<IPermissionsRegistrar>();
             permissionsProvider.RegisterPermissions(ModuleInfo.Id, "Page builder", ModuleConstants.Security.Permissions.AllPermissions);
-            // the read permissions decide which stores a role works in; PageBuilderAuthorizationRequirement checks them in each action
+            // the read permissions decide which stores a role works in; each action checks them with the store
             permissionsProvider.WithAvailabeScopesForPermissions(
                 [ModuleConstants.Security.Permissions.Read, ModuleConstants.Security.Permissions.SharedComponentsRead],
                 new StoreSelectedScope());

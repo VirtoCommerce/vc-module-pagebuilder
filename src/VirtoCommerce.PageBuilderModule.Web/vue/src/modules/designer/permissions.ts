@@ -1,6 +1,6 @@
 import type { HistoryFile } from "./history";
 
-// Mirrors the permissions the server checks on a designer Save, Discard and history Restore: builder:update, then each part's own.
+// Mirrors the permissions the server checks on a designer Save, Discard and history Restore: the update permission, then each part's own.
 
 export const PERMISSIONS = {
   update: "builder:update",

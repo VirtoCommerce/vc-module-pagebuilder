@@ -19,7 +19,7 @@ const anything: unknown = new Proxy(function () {}, {
   apply: () => anything,
 });
 
-/** Runs the controller on an existing page; each read of the store takes the next answer. */
+/** Each read of the store takes the next answer. */
 function openPage(answers: unknown[]) {
   const opened: string[] = [];
   const errors: string[] = [];

@@ -2,7 +2,7 @@ import type { GroupedPageBuilderPage } from "../../api_client/virtocommerce.page
 
 export type PageLifecycle = "Draft" | "Pending" | "Active" | "Archived";
 
-/** Mirrors GroupedPageSearchService's filters: a published page waiting for its start date is pending. */
+/** Mirrors the server's page search filters: a published page waiting for its start date is pending. */
 export function pageLifecycle(
   page: Pick<GroupedPageBuilderPage, "status" | "startDate" | "endDate">,
   now = new Date(),

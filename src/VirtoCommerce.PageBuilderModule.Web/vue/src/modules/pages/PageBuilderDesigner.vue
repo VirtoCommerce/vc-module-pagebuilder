@@ -712,7 +712,6 @@ const rulesActive = computed(() => !!designer.templateKey.value && rules.loaded.
 
 const maximized = inject(BladeMaximizedKey, null);
 if (maximized) maximized.value = true;
-// The full-view z-index sits over the shell's chrome (40-60) and under its dropdowns (100+) and popups (9000+).
 const fullView = useLocalStorage("vc-page-designer-full-view", false);
 const designerShown = computed(() => !designer.loadError.value && !archived.value && !openFailed.value);
 const unsaved = computed(() => designerShown.value && (designer.dirty.value || look.dirty.value || rules.dirty.value));
@@ -732,6 +731,7 @@ const parentCrumbs = computed(() =>
 const FULL_VIEW_STYLE: Record<string, string> = {
   position: "fixed",
   inset: "0",
+  // Over the shell's chrome, under its dropdowns and popups.
   "z-index": "90",
   // VcBlade re-renders its own inline width and the shells' maximized widths are !important, so only min-width works.
   "min-width": "100%",
@@ -1906,7 +1906,7 @@ const inEffect = computed(() => {
   };
 });
 
-// The storefront's descriptors lack these page-level fields; a page's Template is stored as settings.template.
+// The storefront's descriptors lack these page-level fields.
 watchEffect(() => {
   const type = designer.pageType.value;
   const page = !designer.shared.value && !type && (!!designer.groupId.value || designer.file.value?.type === "pages");
