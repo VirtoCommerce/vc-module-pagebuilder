@@ -538,6 +538,13 @@ The catalog is the storefront's section, block, template and palette schemas, th
   has none), a `select` one of its `options` values, each of them when it is `multiple` (one with a `request` has
   remote options and is not checked). An empty value (none, `null`, `""`, `[]`) passes unless the field is `required`;
   a required field left out passes when it has a `default`.
+- The server checks section and block types, required fields, `select` options and `color-token` values. A section
+  schema's `limit`, `groups` and `targetTemplates` are kept by the designer only: Add section offers the section
+  types that fit all three, Duplicate and Paste refuse a section already at its `limit`, and Paste one outside its
+  `groups`. A theme file saved or published through the API is not checked against them. The storefront does not
+  read `limit` either: from the header and footer groups it takes, for each section type it renders there, the first
+  section of that type that is not hidden, and from a template only the first section of the template's main type;
+  every other section that is not hidden is shown.
 - A schema is data: see [Schemas](preview-protocol.md#schemas).
 
 ## Endpoints
