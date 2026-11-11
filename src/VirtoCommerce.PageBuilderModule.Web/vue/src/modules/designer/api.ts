@@ -160,7 +160,8 @@ function loadStore(storeId: string): Promise<Store> {
 
 export async function loadStorefront(storeId: string) {
   const [store, storefront] = (await Promise.all([
-    loadStore(storeId),
+    // the store adds only the catalog context and the languages, so a user who may not read it still gets the preview
+    loadStore(storeId).catch((): Store => ({})),
     call(`/api/pagebuilder/designer/storefront?${new URLSearchParams({ storeId })}`).then((res) => res.json()),
   ])) as [Store, { url?: string; previewPath: string }];
   return {

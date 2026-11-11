@@ -48,6 +48,18 @@ describe("loadStorefront", () => {
     expect(platform.to("/api/stores/B2B%20store")).toHaveLength(2);
   });
 
+  it("keeps the storefront when the store cannot be read, with the default catalog context and no languages", async () => {
+    platform.on("GET", "/api/stores/B2B%20store", status(403, "Forbidden"));
+    platform.on("GET", "/api/pagebuilder/designer/storefront", { url: "https://shop.test", previewPath: "/designer-preview" });
+
+    await expect(loadStorefront(STORE)).resolves.toEqual({
+      url: "https://shop.test",
+      previewPath: "/designer-preview",
+      catalog: { storeId: STORE, cultureName: "en-US", currencyCode: "USD" },
+      languages: [],
+    });
+  });
+
   it("fails when the endpoint refuses", async () => {
     platform.on("GET", "/api/pagebuilder/designer/storefront", status(403, "Forbidden"));
 
