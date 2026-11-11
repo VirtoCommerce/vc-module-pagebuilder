@@ -143,6 +143,7 @@
             :keys="templateKeyList"
             :rule-count="(key) => rulesFor(rules.rules.value, key).length"
             :disabled="!!designer.busy.value"
+            :notice="templateKeysNotice"
             @open="switchTo"
             @create="startCreate"
           />
@@ -1719,6 +1720,7 @@ watch(designer.templateKey, (key) => {
 let home: { groupId: string; storeId: string } | FilePage | undefined;
 const themeName = ref<string>();
 const templateKeyList = ref<string[]>([]);
+const templateKeysNotice = ref<string>();
 const readSavedTemplates = savedTemplatesReader();
 let templatesRead = 0;
 watch([() => designer.themeStatus.value, themeName], async ([status, theme]) => {
@@ -1758,7 +1760,15 @@ const whyOf = (r: RulesPick) =>
 
 async function loadTemplateKeys() {
   const storeId = designer.storeId.value;
-  if (storeId && themeName.value) templateKeyList.value = await templateKeys(storeId, themeName.value).catch(() => []);
+  if (!storeId || !themeName.value) return;
+  try {
+    templateKeyList.value = await templateKeys(storeId, themeName.value);
+    templateKeysNotice.value = undefined;
+  } catch (e) {
+    // The keys read before stay listed; the switcher always lists the default templates.
+    const forbidden = e instanceof ApiError && e.status === 403;
+    templateKeysNotice.value = t(forbidden ? "PAGE_BUILDER.DESIGNER.TEMPLATES.LIST_FORBIDDEN" : "PAGE_BUILDER.DESIGNER.TEMPLATES.LIST_FAILED");
+  }
 }
 
 function openRules() {

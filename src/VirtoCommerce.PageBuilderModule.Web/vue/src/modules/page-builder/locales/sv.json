@@ -466,6 +466,8 @@
         "CREATE_BUTTON": "Skapa",
         "CREATE_FAILED": "Mallen kunde inte skapas.",
         "OPEN_FAILED": "Mallen kunde inte öppnas, så sidan är öppen igen.",
+        "LIST_FORBIDDEN": "Endast standardmallarna visas: för att lista temats mallar krävs behörighet att läsa webbplatsens innehåll.",
+        "LIST_FAILED": "Temats mallar kunde inte listas.",
         "CONFIRM_SWITCH": "Du har osparade ändringar. Byta ändå? De går förlorade.",
         "PRODUCT_TITLE": "Produktmall: {name}",
         "CATEGORY_TITLE": "Kategorimall: {name}",

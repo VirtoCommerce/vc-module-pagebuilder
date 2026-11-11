@@ -466,6 +466,8 @@
         "CREATE_BUTTON": "Luo",
         "CREATE_FAILED": "Mallia ei voitu luoda.",
         "OPEN_FAILED": "Mallipohjaa ei voitu avata, joten sivu on taas auki.",
+        "LIST_FORBIDDEN": "Vain oletusmallipohjat näytetään: teeman mallipohjien listaaminen vaatii oikeuden lukea sivuston sisältöä.",
+        "LIST_FAILED": "Teeman mallipohjia ei voitu listata.",
         "CONFIRM_SWITCH": "Sinulla on tallentamattomia muutoksia. Vaihdetaanko silti? Ne menetetään.",
         "PRODUCT_TITLE": "Tuotemalli: {name}",
         "CATEGORY_TITLE": "Kategoriamalli: {name}",

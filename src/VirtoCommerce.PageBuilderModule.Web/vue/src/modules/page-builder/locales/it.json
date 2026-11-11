@@ -466,6 +466,8 @@
         "CREATE_BUTTON": "Crea",
         "CREATE_FAILED": "Impossibile creare il modello.",
         "OPEN_FAILED": "Impossibile aprire il modello, quindi è stata riaperta la pagina.",
+        "LIST_FORBIDDEN": "Vengono mostrati solo i modelli predefiniti: per elencare i modelli del tema serve l'autorizzazione a leggere i contenuti del sito.",
+        "LIST_FAILED": "Impossibile elencare i modelli del tema.",
         "CONFIRM_SWITCH": "Hai modifiche non salvate. Cambiare comunque? Andranno perse.",
         "PRODUCT_TITLE": "Modello di prodotto: {name}",
         "CATEGORY_TITLE": "Modello di categoria: {name}",

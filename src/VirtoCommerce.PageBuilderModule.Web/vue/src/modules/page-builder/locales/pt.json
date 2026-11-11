@@ -466,6 +466,8 @@
         "CREATE_BUTTON": "Criar",
         "CREATE_FAILED": "Não foi possível criar o modelo.",
         "OPEN_FAILED": "Não foi possível abrir o modelo, por isso a página foi aberta novamente.",
+        "LIST_FORBIDDEN": "Apenas os modelos padrão são mostrados: listar os modelos do tema requer permissão para ler o conteúdo do site.",
+        "LIST_FAILED": "Não foi possível listar os modelos do tema.",
         "CONFIRM_SWITCH": "Você tem alterações não salvas. Trocar mesmo assim? Elas serão perdidas.",
         "PRODUCT_TITLE": "Modelo de produto: {name}",
         "CATEGORY_TITLE": "Modelo de categoria: {name}",

@@ -466,6 +466,8 @@
         "CREATE_BUTTON": "创建",
         "CREATE_FAILED": "无法创建模板。",
         "OPEN_FAILED": "无法打开模板，因此已重新打开页面。",
+        "LIST_FORBIDDEN": "仅显示默认模板：列出主题的模板需要读取站点内容的权限。",
+        "LIST_FAILED": "无法列出主题的模板。",
         "CONFIRM_SWITCH": "有未保存的更改。仍要切换吗？更改将丢失。",
         "PRODUCT_TITLE": "商品模板：{name}",
         "CATEGORY_TITLE": "分类模板：{name}",

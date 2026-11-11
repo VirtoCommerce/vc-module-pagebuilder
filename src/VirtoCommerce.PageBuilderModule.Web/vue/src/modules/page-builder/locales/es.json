@@ -466,6 +466,8 @@
         "CREATE_BUTTON": "Crear",
         "CREATE_FAILED": "No se pudo crear la plantilla.",
         "OPEN_FAILED": "No se pudo abrir la plantilla, así que se ha vuelto a abrir la página.",
+        "LIST_FORBIDDEN": "Solo se muestran las plantillas predeterminadas: para listar las plantillas del tema se necesita permiso para leer el contenido del sitio.",
+        "LIST_FAILED": "No se pudieron listar las plantillas del tema.",
         "CONFIRM_SWITCH": "Tienes cambios sin guardar. ¿Cambiar de todos modos? Se perderán.",
         "PRODUCT_TITLE": "Plantilla de producto: {name}",
         "CATEGORY_TITLE": "Plantilla de categoría: {name}",

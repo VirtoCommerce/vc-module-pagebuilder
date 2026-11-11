@@ -35,6 +35,13 @@
         class="pd-switch__menu"
         role="menu"
       >
+        <p
+          v-if="notice"
+          class="pd-switch__notice"
+          role="status"
+        >
+          {{ notice }}
+        </p>
         <template v-if="page">
           <p class="pd-switch__group">{{ $t("PAGE_BUILDER.DESIGNER.TEMPLATES.PAGES") }}</p>
           <button
@@ -107,6 +114,8 @@ const props = defineProps<{
   keys: string[];
   ruleCount: (key: string) => number;
   disabled?: boolean;
+  /** Why the menu lists only the default templates. */
+  notice?: string;
 }>();
 const emit = defineEmits<{ open: [key: string | null]; create: [type: PageType] }>();
 
@@ -185,6 +194,16 @@ function pick(key: string | null, close: () => void) {
     width: 280px;
     padding: 4px;
     font-size: 13px;
+  }
+
+  &__notice {
+    margin: 4px;
+    padding: 8px;
+    border-radius: 6px;
+    background: var(--warning-50);
+    color: var(--neutrals-700);
+    font-size: 12px;
+    line-height: 1.4;
   }
 
   &__group {

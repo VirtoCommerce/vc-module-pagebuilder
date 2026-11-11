@@ -466,6 +466,8 @@
         "CREATE_BUTTON": "Opprett",
         "CREATE_FAILED": "Malen kunne ikke opprettes.",
         "OPEN_FAILED": "Malen kunne ikke åpnes, så siden er åpnet igjen.",
+        "LIST_FORBIDDEN": "Bare standardmalene vises: for å liste temaets maler trengs tillatelse til å lese nettstedets innhold.",
+        "LIST_FAILED": "Temaets maler kunne ikke listes.",
         "CONFIRM_SWITCH": "Du har endringer som ikke er lagret. Bytte likevel? De går tapt.",
         "PRODUCT_TITLE": "Produktmal: {name}",
         "CATEGORY_TITLE": "Kategorimal: {name}",

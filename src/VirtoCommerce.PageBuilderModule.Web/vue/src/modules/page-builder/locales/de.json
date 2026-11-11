@@ -466,6 +466,8 @@
         "CREATE_BUTTON": "Erstellen",
         "CREATE_FAILED": "Die Vorlage konnte nicht erstellt werden.",
         "OPEN_FAILED": "Die Vorlage konnte nicht geöffnet werden; die Seite ist wieder geöffnet.",
+        "LIST_FORBIDDEN": "Es werden nur die Standardvorlagen angezeigt: Um die Vorlagen des Themes aufzulisten, ist die Berechtigung zum Lesen der Website-Inhalte erforderlich.",
+        "LIST_FAILED": "Die Vorlagen des Themes konnten nicht aufgelistet werden.",
         "CONFIRM_SWITCH": "Sie haben ungespeicherte Änderungen. Trotzdem wechseln? Sie gehen verloren.",
         "PRODUCT_TITLE": "Produktvorlage: {name}",
         "CATEGORY_TITLE": "Kategorievorlage: {name}",

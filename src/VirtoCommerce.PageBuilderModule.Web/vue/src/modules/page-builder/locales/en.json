@@ -466,6 +466,8 @@
         "CREATE_BUTTON": "Create",
         "CREATE_FAILED": "The template couldn't be created.",
         "OPEN_FAILED": "The template couldn't be opened, so the page is open again.",
+        "LIST_FORBIDDEN": "Only the default templates are shown: listing the theme's templates needs permission to read the site content.",
+        "LIST_FAILED": "The theme's templates couldn't be listed.",
         "CONFIRM_SWITCH": "You have unsaved changes. Switch anyway? They'll be lost.",
         "PRODUCT_TITLE": "Product template: {name}",
         "CATEGORY_TITLE": "Category template: {name}",

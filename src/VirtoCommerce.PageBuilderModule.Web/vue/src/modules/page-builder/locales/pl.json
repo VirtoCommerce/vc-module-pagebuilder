@@ -466,6 +466,8 @@
         "CREATE_BUTTON": "Utwórz",
         "CREATE_FAILED": "Nie udało się utworzyć szablonu.",
         "OPEN_FAILED": "Nie udało się otworzyć szablonu, więc ponownie otwarto stronę.",
+        "LIST_FORBIDDEN": "Wyświetlane są tylko szablony domyślne: wyświetlenie szablonów motywu wymaga uprawnienia do odczytu zawartości witryny.",
+        "LIST_FAILED": "Nie udało się wyświetlić szablonów motywu.",
         "CONFIRM_SWITCH": "Masz niezapisane zmiany. Przełączyć mimo to? Zostaną utracone.",
         "PRODUCT_TITLE": "Szablon produktu: {name}",
         "CATEGORY_TITLE": "Szablon kategorii: {name}",

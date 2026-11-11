@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { defineComponent, h } from "vue";
 import { flushPromises, shallowMount, type VueWrapper } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
 import type { IBladeToolbar } from "@vc-shell/framework";
@@ -356,5 +357,51 @@ describe("pasting from the clipboard", () => {
 
     expect(notification.error).toHaveBeenCalledWith(message);
     expect(pasteDialog(wrapper).exists()).toBe(false);
+  });
+});
+
+describe("the template switcher", () => {
+  const SEARCH = `/api/content/themes/${STORE}/search`;
+  // Renders the menu as well as the trigger, as an open VcDropdown does.
+  const VcDropdown = defineComponent({
+    name: "VcDropdown",
+    setup: (_, { slots }) => () => h("div", [slots.trigger?.({ isActive: true, toggle: () => undefined }), slots["items-container"]?.({ close: () => undefined })]),
+  });
+
+  async function openWithTemplates(answer: unknown) {
+    fakePlatform()
+      .on("GET", `/api/stores/${STORE}`, { id: STORE, dynamicProperties: [{ name: "DefaultThemeName", values: [{ value: "default" }] }] })
+      .on("GET", GROUP, { id: "g1", storeId: STORE, name: "About", status: "Published" })
+      .on("GET", `${GROUP}/content`, { content: JSON.stringify(PAGE), eTag: '"v1"' })
+      .on("GET", "/api/page-builder-pages/grouped/publish-status/g1", { published: true, hasChanges: true })
+      .on("GET", "/api/pagebuilder/designer/theme-file", themeFileAnswer({}))
+      .on("GET", "/api/pagebuilder/theme/status", { publication: 3, drafts: [] })
+      .on("GET", SEARCH, answer)
+      .install();
+    blade.param.value = "g1";
+    const wrapper = shallowMount(PageBuilderDesigner, {
+      global: { plugins: [await routerAt("/")], stubs: { VcBlade: false, TemplateSwitcher: false, VcDropdown } },
+    });
+    await flushPromises();
+    return wrapper;
+  }
+
+  const items = (wrapper: VueWrapper) => wrapper.findAll('.pd-switch [role="menuitemradio"]').map((x) => x.text());
+
+  it("lists the theme's alternate templates next to the default ones, with no notice", async () => {
+    const wrapper = await openWithTemplates([{ name: "product.printers.json" }]);
+
+    expect(items(wrapper)).toContain("Printers");
+    expect(wrapper.find(".pd-switch__notice").exists()).toBe(false);
+  });
+
+  it.each([
+    [403, "Only the default templates are shown: listing the theme's templates needs permission to read the site content."],
+    [500, "The theme's templates couldn't be listed."],
+  ])("says why it lists only the default templates when the theme's templates answer %i", async (code, message) => {
+    const wrapper = await openWithTemplates(status(code));
+
+    expect(wrapper.find(".pd-switch__notice").text()).toBe(message);
+    expect(items(wrapper).filter((x) => x === "Default")).toHaveLength(3);
   });
 });
