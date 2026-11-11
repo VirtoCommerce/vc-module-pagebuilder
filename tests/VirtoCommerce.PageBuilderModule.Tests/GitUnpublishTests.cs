@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading;
@@ -163,6 +164,20 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Equal(nameof(GitPublishState.AlreadyPublished), JObject.FromObject(Assert.IsType<OkObjectResult>(result).Value!)["state"]!.Value<string>());
             Assert.Equal([LivePage], live.Removed);
             Assert.Empty(repository.DeletedFiles);
+        }
+
+        [Fact]
+        public async Task Unpublish_RetriedOnceTheLivePageIsGone_AnswersAlreadyPublished()
+        {
+            var repository = Repository(withBranch: false);
+            repository.Files.Remove((RepoPath, "master"));
+            var live = new FakeBlobStorage();
+            live.BeforeRemove = path => throw new FileNotFoundException($"Could not find file '{path}'.");
+
+            var result = await Controller(repository, Publisher(), live: live, history: Unpublished()).GitUnpublish("s1", Page, "pages");
+
+            Assert.Equal(nameof(GitPublishState.AlreadyPublished), JObject.FromObject(Assert.IsType<OkObjectResult>(result).Value!)["state"]!.Value<string>());
+            Assert.Empty(live.Events);
         }
 
         [Fact]

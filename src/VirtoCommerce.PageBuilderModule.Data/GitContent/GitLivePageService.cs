@@ -101,7 +101,14 @@ public class GitLivePageService(
 
     protected virtual async Task RemoveLivePageAsync(string storeId, string contentType, string path, CancellationToken cancellationToken)
     {
-        await GetStorageProvider(storeId, contentType).RemoveAsync([GetLivePath(path)]);
+        var storageProvider = GetStorageProvider(storeId, contentType);
+        // the file system provider throws for a file that is gone, as it is when an unpublish is retried
+        if (await storageProvider.GetBlobInfoAsync(GetLivePath(path)) == null)
+        {
+            return;
+        }
+
+        await storageProvider.RemoveAsync([GetLivePath(path)]);
         await eventPublisher.Publish(new PageBuilderContentChangedEvent(contentType, [CreateChangedEntry(path, contentType, EntryState.Deleted)]), cancellationToken);
         await PublishLiveFileChangedAsync(storeId, contentType, new GenericChangedEntry<ContentFile>(null, CreateLiveFile(path), EntryState.Deleted), cancellationToken);
     }
