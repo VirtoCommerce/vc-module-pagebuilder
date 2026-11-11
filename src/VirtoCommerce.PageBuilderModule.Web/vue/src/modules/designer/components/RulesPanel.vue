@@ -260,6 +260,7 @@
           <VcTextarea
             v-model="jsonText"
             class="pd-rules-json__code"
+            :maxlength="LONG_TEXT_MAX_LENGTH"
             :aria-label="$t('PAGE_BUILDER.DESIGNER.RULES.JSON_TITLE')"
             @update:model-value="jsonErrors = []"
           />
@@ -302,6 +303,7 @@ import { notification, usePopup } from "@vc-shell/framework";
 import { VcButton, VcIcon, VcPopup, VcSwitch, VcTextarea } from "@vc-shell/framework/ui";
 import { productFacts, searchCategories, type CatalogContext, type NamedEntity, type ProductFacts } from "../api";
 import { rulesPath } from "../history";
+import { LONG_TEXT_MAX_LENGTH } from "../json";
 import { BUILT_IN_CONDITIONS, CATEGORY_CONDITION, PROPERTY_CONDITION, categoryIds, conditionsFor, optionLabel } from "../ruleConditions";
 import { formatRules, hasOwnRules, moveItem, newRuleId, parseRules, rulesFor, rulesOf, withRules, type RuleError, type TemplateRule } from "../rules";
 import { alternateName, pageTypeOf, type PageType } from "../templates";

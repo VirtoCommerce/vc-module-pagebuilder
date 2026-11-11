@@ -474,6 +474,7 @@
           <VcTextarea
             v-model="pasteText"
             class="pd-dialog__code"
+            :maxlength="LONG_TEXT_MAX_LENGTH"
           />
           <VcButton
             :disabled="!pasteText"
@@ -602,6 +603,7 @@ import { PageAnchorsKey, PaletteTokensKey, PickAssetKey, StoreMenusKey, WhiteLab
 import { pageAnchors } from "../designer/anchors";
 import { useDesigner } from "../designer/useDesigner";
 import { resolveRefs, toDocument } from "../designer/document";
+import { LONG_TEXT_MAX_LENGTH } from "../designer/json";
 import { pageOnly } from "../designer/groups";
 import { previewUrl, storefrontPage, usePreviewBridge } from "../designer/preview";
 import {

@@ -167,7 +167,7 @@ const textInput = (name: string, tag: "input" | "textarea", maxlength?: string) 
   });
 
 export const VcInput = textInput("VcInput", "input", "1024");
-export const VcTextarea = textInput("VcTextarea", "textarea");
+export const VcTextarea = textInput("VcTextarea", "textarea", "1024");
 export const VcEditor = textInput("VcEditor", "textarea");
 export const VcColorInput = textInput("VcColorInput", "input");
 

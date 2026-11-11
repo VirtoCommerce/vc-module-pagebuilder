@@ -322,4 +322,15 @@ describe("RulesPanel", () => {
 
     expect(wrapper.find(".pd-rules__rule--hit").exists()).toBe(false);
   });
+
+  it("edits as JSON a rules file far longer than 1024 characters without cutting it", async () => {
+    const product = Array.from({ length: 40 }, (_, i) => ({ id: `r-${i}`, template: "product.printer", when: { productType: `Type ${i}` } }));
+    const { wrapper } = await mountPanel({ file: { version: 2, conditions: ["productType"], product } });
+
+    await button(wrapper, "Edit as JSON").trigger("click");
+    const textarea = wrapper.find("textarea");
+
+    expect((textarea.element as HTMLTextAreaElement).value.length).toBeGreaterThan(1024);
+    expect(Number(textarea.attributes("maxlength") ?? Infinity)).toBeGreaterThanOrEqual(100_000);
+  });
 });

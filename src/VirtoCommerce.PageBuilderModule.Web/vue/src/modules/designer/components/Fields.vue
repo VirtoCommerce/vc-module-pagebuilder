@@ -30,6 +30,7 @@
         :placeholder="placeholder(field)"
         :hint="field.info"
         :required="field.required"
+        :maxlength="LONG_TEXT_MAX_LENGTH"
         :class="{ 'pd-fields__code': field.type === 'markdown' }"
         @update:model-value="setText(field, $event)"
       />
@@ -339,6 +340,7 @@ import { isTranslations, translationOf, withTranslation, type Translating } from
 import { SEARCH_DEBOUNCE_MS, requestResult, runSearch, searchDisplayValue, type SearchField, type SearchValue } from "../search";
 import { assetTypes } from "../assetTypes";
 import { moveItem } from "../rules";
+import { LONG_TEXT_MAX_LENGTH } from "../json";
 import ImageField from "./ImageField.vue";
 import ImageListField from "./ImageListField.vue";
 

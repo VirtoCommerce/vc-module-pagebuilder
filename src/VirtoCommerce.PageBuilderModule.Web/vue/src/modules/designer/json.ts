@@ -6,3 +6,6 @@ export const isTextList = (value: unknown): value is string[] => Array.isArray(v
 
 /** structuredClone refuses reactive proxies. */
 export const clone = <T>(value: T): T => (value === undefined ? value : (JSON.parse(JSON.stringify(value)) as T));
+
+/** VcTextarea cuts its text at 1024 characters unless given a maxlength: a rules file, a copied section or a markdown text is often longer. */
+export const LONG_TEXT_MAX_LENGTH = "1000000";

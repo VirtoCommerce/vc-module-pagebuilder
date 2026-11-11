@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, shallowMount, type VueWrapper } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
 import type { IBladeToolbar } from "@vc-shell/framework";
@@ -205,5 +205,39 @@ describe("picking an asset", () => {
     await flushPromises();
 
     expect(wrapper.findComponent(AssetsLibraryContent).props()).toMatchObject({ pickable: true, accept: [".svg", "image/png"] });
+  });
+});
+
+describe("pasting from the clipboard", () => {
+  afterEach(() => {
+    delete (navigator as { clipboard?: unknown }).clipboard;
+  });
+
+  async function pasteWith(readText: () => Promise<string>) {
+    Object.defineProperty(navigator, "clipboard", { value: { readText }, configurable: true });
+    fakePlatform()
+      .on("GET", `/api/stores/${STORE}`, { id: STORE, dynamicProperties: [{ name: "DefaultThemeName", values: [{ value: "default" }] }] })
+      .on("GET", GROUP, { id: "g1", storeId: STORE, name: "About", status: "Published" })
+      .on("GET", `${GROUP}/content`, { content: JSON.stringify(PAGE), eTag: '"v1"' })
+      .on("GET", "/api/page-builder-pages/grouped/publish-status/g1", { published: true, hasChanges: true })
+      .on("GET", "/api/pagebuilder/designer/theme-file", themeFileAnswer({}))
+      .on("GET", "/api/pagebuilder/theme/status", { publication: 3, drafts: [] })
+      .install();
+    blade.param.value = "g1";
+    const wrapper = shallowMount(PageBuilderDesigner, {
+      global: { plugins: [await routerAt("/")], stubs: { VcBlade: false, VcPopup: false, VcTextarea: false } },
+    });
+    await flushPromises();
+    wrapper.findComponent(SectionTree).vm.$emit("paste");
+    await flushPromises();
+    return wrapper;
+  }
+
+  const pasteDialog = (wrapper: VueWrapper) => wrapper.find('[role="dialog"][aria-label="Paste a section or block"]');
+
+  it("takes a copied section far longer than 1024 characters in the paste dialog", async () => {
+    const wrapper = await pasteWith(() => Promise.reject(new DOMException("denied", "NotAllowedError")));
+
+    expect(Number(pasteDialog(wrapper).find("textarea").attributes("maxlength") ?? Infinity)).toBeGreaterThanOrEqual(100_000);
   });
 });
