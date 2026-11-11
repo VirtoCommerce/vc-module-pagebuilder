@@ -1,4 +1,5 @@
 /* In a layer: the shell's unlayered CSS already has most of these utilities, and a later copy would override its responsive variants by load order. */
 @layer pagebuilder {
   @tailwind utilities;
+  @tailwind variants;
 }
