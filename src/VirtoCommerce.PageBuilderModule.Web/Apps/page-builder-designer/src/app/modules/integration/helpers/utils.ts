@@ -119,7 +119,7 @@ export function evalInContext(expr: string, context: any): any {
 }
 
 // A filter or a script in a path is schema text too: it runs through the expression language, not through
-// jsonpath's own interpreter, which calls whatever methods the data has. Its variables arrive on the sandbox.
+// jsonpath's own interpreter, which calls whatever methods the data has.
 function evalJsonPathScript(script: string, sandbox: object): unknown {
   return evaluate(script.replaceAll(/(?<![\w$.])_\$_/g, 'this._$_'), sandbox, EVAL_UTILS, KNOWN_EXPRESSIONS);
 }

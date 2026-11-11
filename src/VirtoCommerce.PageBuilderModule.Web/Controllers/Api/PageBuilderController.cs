@@ -610,7 +610,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return await SaveDraftToGitAsync(storeId, theme, files);
         }
 
-        // a live write of a page is a publication; on the git flow, every live write is one
+        // With the git flow on, live belongs to the CI deploy and editors publish through a pull request.
+        // Without git the designer saves theme settings straight to live, which needs no publish permission.
         private static bool IsPublication(List<SaveFileModel> files, bool draft, bool gitFlow) =>
             !draft && (gitFlow || files.Exists(file => file != null && GitPageLocation.IsPageContent(file.Type)));
 
@@ -1376,7 +1377,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var repository = await gitContentPolicy.GetRepositoryAsync(storeId, HttpContext.RequestAborted);
             if (repository == null)
             {
-                // there is no history to show: in the blob flow a draft overwrites the page and keeps no versions
+                // there is no history to show: the blob flow overwrites in place and keeps no versions
                 return NotFound();
             }
 
