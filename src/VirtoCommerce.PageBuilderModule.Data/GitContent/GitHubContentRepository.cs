@@ -25,6 +25,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
     {
         public const string HttpClientName = GitHubApiClient.HttpClientName;
 
+        // the repository is transient and the memory cache is not: whatever guards the cache is shared too
+        private static readonly object ReadCacheLock = new();
+
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IMemoryCache _memoryCache;
         private readonly GitContentOptions _options;
@@ -48,11 +51,12 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                 return cached;
             }
 
+            var generation = GetReadGeneration(repository, path, gitRef);
             var content = await FetchFileAsync(repository, path, gitRef, cancellationToken);
 
             // misses are cached too: the designer polls a page that does not exist yet on the work
             // branch on every keystroke-triggered status refresh
-            CacheRead(repository, path, gitRef, content);
+            CacheFetchedRead(repository, path, gitRef, content, generation);
 
             return content;
         }
@@ -205,7 +209,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                 // the write that raced with this one may have been this very content
                 if (current?.Holds(bytes) == true)
                 {
-                    CacheRead(repository, path, branch, content);
+                    CacheWrittenRead(repository, path, branch, content);
                     return await GetBranchHeadShaAsync(repository, branch, cancellationToken);
                 }
 
@@ -216,7 +220,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             {
                 var operation = $"commit \"{path}\" to branch \"{branch}\"";
                 await GitHubApiClient.EnsureSuccessAsync(response, operation, cancellationToken);
-                CacheRead(repository, path, branch, content);
+                CacheWrittenRead(repository, path, branch, content);
                 return await ReadCommitShaAsync(response, operation, cancellationToken);
             }
         }
@@ -246,7 +250,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                 GitHubApiClient.CreateJsonContent(body), operation, cancellationToken);
 
             await GitHubApiClient.EnsureSuccessAsync(response, operation, cancellationToken);
-            CacheRead(repository, path, branch, null);
+            CacheWrittenRead(repository, path, branch, null);
             return await ReadCommitShaAsync(response, operation, cancellationToken);
         }
 
@@ -334,20 +338,58 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
 
         public virtual void InvalidateRead(string repository, string path, string gitRef)
         {
-            _memoryCache.Remove(ReadCacheKey(repository, path, gitRef));
+            lock (ReadCacheLock)
+            {
+                StartReadGeneration(repository, path, gitRef);
+                _memoryCache.Remove(ReadCacheKey(repository, path, gitRef));
+            }
         }
 
         // A write puts what it wrote into the read cache rather than dropping the entry: right after a
         // commit the contents API can still answer the previous version, and a read that took it would
         // keep it for as long as any other read.
-        private void CacheRead(string repository, string path, string gitRef, string content)
+        private void CacheWrittenRead(string repository, string path, string gitRef, string content)
         {
-            _memoryCache.Set(ReadCacheKey(repository, path, gitRef), content, GitCommitSha.IsSha(gitRef)
-                ? _options.ImmutableReadCacheExpiration
-                : _options.ReadCacheExpiration);
+            lock (ReadCacheLock)
+            {
+                StartReadGeneration(repository, path, gitRef);
+                _memoryCache.Set(ReadCacheKey(repository, path, gitRef), content, ReadCacheExpiration(gitRef));
+            }
         }
 
+        // A read whose request went out before a write or an invalidation may carry the content from
+        // before it; it is cached only when nothing touched that entry while it was in flight.
+        private void CacheFetchedRead(string repository, string path, string gitRef, string content, object generation)
+        {
+            lock (ReadCacheLock)
+            {
+                if (ReferenceEquals(_memoryCache.Get(ReadGenerationKey(repository, path, gitRef)), generation))
+                {
+                    _memoryCache.Set(ReadCacheKey(repository, path, gitRef), content, ReadCacheExpiration(gitRef));
+                }
+            }
+        }
+
+        private object GetReadGeneration(string repository, string path, string gitRef)
+        {
+            lock (ReadCacheLock)
+            {
+                return _memoryCache.Get(ReadGenerationKey(repository, path, gitRef)) ?? StartReadGeneration(repository, path, gitRef);
+            }
+        }
+
+        private object StartReadGeneration(string repository, string path, string gitRef)
+        {
+            return _memoryCache.Set(ReadGenerationKey(repository, path, gitRef), new object(), ReadCacheExpiration(gitRef));
+        }
+
+        private TimeSpan ReadCacheExpiration(string gitRef) => GitCommitSha.IsSha(gitRef)
+            ? _options.ImmutableReadCacheExpiration
+            : _options.ReadCacheExpiration;
+
         private static string ReadCacheKey(string repository, string path, string gitRef) => $"{nameof(GitHubContentRepository)}:{repository}:{gitRef}:{path}";
+
+        private static string ReadGenerationKey(string repository, string path, string gitRef) => $"{ReadCacheKey(repository, path, gitRef)}:generation";
 
         // a branch name may contain '/' (designer/john/about-us) — escape each segment, keep the separators
 

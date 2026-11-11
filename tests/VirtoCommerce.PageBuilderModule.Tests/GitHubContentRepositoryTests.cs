@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -71,6 +72,47 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             await repository.CommitFileAsync("o/r", "pages/foo.page", "new", "work", "msg", Author, TestContext.Current.CancellationToken);
 
             Assert.Equal("new", await repository.ReadFileAsync("o/r", "pages/foo.page", "work", TestContext.Current.CancellationToken));
+        }
+
+        [Fact]
+        public async Task ReadFileAsync_ThatStartedBeforeACommit_DoesNotCacheOverTheWrittenContent()
+        {
+            var handler = new ScriptedHandler(
+                ("GET", "repos/o/r/contents/pages/foo.page?ref=work", _ => RespondJson(ContentsPayload("old"))),
+                ("GET", "repos/o/r/contents/pages/foo.page?ref=work", _ => RespondJson("""{ "sha": "file-sha" }""")),
+                ("PUT", "repos/o/r/contents/pages/foo.page", _ => RespondJson(CommitPayload())));
+            var release = new TaskCompletionSource();
+            var requested = handler.HoldResponse(0, release.Task);
+            var repository = Create(handler);
+
+            var read = repository.ReadFileAsync("o/r", "pages/foo.page", "work", TestContext.Current.CancellationToken);
+            await requested;
+            await repository.CommitFileAsync("o/r", "pages/foo.page", "new", "work", "msg", Author, TestContext.Current.CancellationToken);
+            release.SetResult();
+            await read;
+
+            Assert.Equal("new", await repository.ReadFileAsync("o/r", "pages/foo.page", "work", TestContext.Current.CancellationToken));
+            handler.AssertDone();
+        }
+
+        [Fact]
+        public async Task ReadFileAsync_ThatStartedBeforeAnInvalidation_DoesNotCacheTheOldContent()
+        {
+            var handler = new ScriptedHandler(
+                ("GET", "repos/o/r/contents/pages/foo.page?ref=master", _ => RespondJson(ContentsPayload("before"))),
+                ("GET", "repos/o/r/contents/pages/foo.page?ref=master", _ => RespondJson(ContentsPayload("after"))));
+            var release = new TaskCompletionSource();
+            var requested = handler.HoldResponse(0, release.Task);
+            var repository = Create(handler);
+
+            var read = repository.ReadFileAsync("o/r", "pages/foo.page", "master", TestContext.Current.CancellationToken);
+            await requested;
+            repository.InvalidateRead("o/r", "pages/foo.page", "master");
+            release.SetResult();
+            await read;
+
+            Assert.Equal("after", await repository.ReadFileAsync("o/r", "pages/foo.page", "master", TestContext.Current.CancellationToken));
+            handler.AssertDone();
         }
 
         [Fact]
@@ -476,16 +518,34 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         /// </summary>
         private sealed class ScriptedHandler(params (string Method, string Url, Func<string, HttpResponseMessage> Respond)[] script) : HttpMessageHandler
         {
+            private readonly Dictionary<int, (TaskCompletionSource Requested, Task Release)> _holds = new();
             private int _step;
+
+            /// <summary>Keeps the response of a step until <paramref name="release"/> completes; the returned task completes once that step's request arrives.</summary>
+            public Task HoldResponse(int step, Task release)
+            {
+                var requested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                _holds[step] = (requested, release);
+                return requested.Task;
+            }
 
             protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
-                Assert.True(_step < script.Length, $"Unexpected request #{_step + 1}: {request.Method} {request.RequestUri}");
-                var (method, url, respond) = script[_step++];
+                var step = Interlocked.Increment(ref _step) - 1;
+                Assert.True(step < script.Length, $"Unexpected request #{step + 1}: {request.Method} {request.RequestUri}");
+                var (method, url, respond) = script[step];
                 Assert.Equal(method, request.Method.Method);
                 Assert.Equal(url, request.RequestUri!.PathAndQuery.TrimStart('/'));
                 var body = request.Content == null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
-                return respond(body);
+                var response = respond(body);
+
+                if (_holds.TryGetValue(step, out var hold))
+                {
+                    hold.Requested.SetResult();
+                    await hold.Release;
+                }
+
+                return response;
             }
 
             public void AssertDone() => Assert.Equal(script.Length, _step);
