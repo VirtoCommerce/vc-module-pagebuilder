@@ -1615,6 +1615,14 @@ useBeforeUnload(unsaved);
 // onBeforeClose returning true keeps the blade open.
 onBeforeClose(async () => unsaved.value && !(await showConfirmation(t("PAGE_BUILDER.DESIGNER.DISCARD"))));
 
+// Held while the designer is open: the lists under it go back to their store once it closes.
+let releaseStore: (() => boolean) | undefined;
+let unmounted = false;
+onBeforeUnmount(() => {
+  unmounted = true;
+  if (releaseStore?.()) notifyPagesChanged();
+});
+
 const { getApiClient } = useApiClient(PageBuilderPageClient);
 onMounted(async () => {
   let storeId: string;
@@ -1644,7 +1652,7 @@ onMounted(async () => {
     return;
   }
   // The assets library picker works on this store.
-  useUrlParams().setStoreId(storeId);
+  if (!unmounted) releaseStore = useUrlParams().holdStoreId(storeId);
   void previewAs.load(storeId);
   await Promise.all([
     open,

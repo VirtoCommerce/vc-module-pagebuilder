@@ -96,6 +96,29 @@ export default () => {
     }
   };
 
+  /**
+   * setStoreId for as long as one blade is open. The returned function hands the store back to what
+   * decided it before (the blade under it that pinned one, or else the address) and tells whether that
+   * changed it, so what was read under the held store can be read again.
+   */
+  const holdStoreId = (id: string) => {
+    const before = { storeId: storeId.value, pinned: storeIdPinned };
+    setStoreId(id);
+
+    return (): boolean => {
+      if (!storeIdPinned || storeId.value !== id) {
+        return false;
+      }
+      if (before.pinned && before.storeId) {
+        setStoreId(before.storeId);
+      } else {
+        storeIdPinned = false;
+        initUrlParams();
+      }
+      return storeId.value !== id;
+    };
+  };
+
   async function getStoreUrl(): Promise<string | null> {
     const store = await getStore();
     if (store) {
@@ -185,6 +208,7 @@ export default () => {
     storeContextError: readonly(storeContextError),
     initUrlParams,
     setStoreId,
+    holdStoreId,
     validateStoreContext,
     getStoreUrl,
     getLanguages,

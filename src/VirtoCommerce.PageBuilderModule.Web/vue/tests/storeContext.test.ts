@@ -106,7 +106,32 @@ test("isNewPageBuilder answers nothing when the store cannot be read, and leaves
   assert.equal(storeContext.storeContextStatus.value, "ready");
 });
 
-// Keep this test last: a pinned store stays pinned for the module's lifetime.
+test("a store a blade holds gives way to the store in the address once the blade lets it go", () => {
+  setStoreSearch("B2B-store");
+  const storeContext = useUrlParams();
+  storeContext.initUrlParams();
+
+  const release = storeContext.holdStoreId("pb-cursor");
+  storeContext.initUrlParams();
+  assert.equal(storeContext.storeId.value, "pb-cursor");
+
+  assert.equal(release(), true);
+  assert.equal(storeContext.storeId.value, "B2B-store");
+  storeContext.initUrlParams();
+  assert.equal(storeContext.storeId.value, "B2B-store");
+  assert.equal(release(), false);
+});
+
+test("a store a blade holds that the address names too changes nothing once it is let go", () => {
+  setStoreSearch("B2B-store");
+  const storeContext = useUrlParams();
+  storeContext.initUrlParams();
+
+  assert.equal(storeContext.holdStoreId("B2B-store")(), false);
+  assert.equal(storeContext.storeId.value, "B2B-store");
+});
+
+// Keep these tests last: a pinned store stays pinned for the module's lifetime.
 test("setStoreId pins the store over the URL and uses the store it is given", async () => {
   setStoreSearch("B2B-store");
   globalThis.fetch = async () => {
@@ -122,4 +147,18 @@ test("setStoreId pins the store over the URL and uses the store it is given", as
   assert.deepEqual(await storeContext.getLanguages(), ["en-US", "de-DE"]);
   assert.equal(await storeContext.getDefaultLanguage(), "de-DE");
   assert.equal(storeContext.storeContextStatus.value, "ready");
+});
+
+test("a store a blade holds gives way to the store the blade under it pinned", () => {
+  setStoreSearch(null);
+  const storeContext = useUrlParams();
+  storeContext.setStoreId("Admin-store");
+
+  const release = storeContext.holdStoreId("Other-store");
+  assert.equal(storeContext.storeId.value, "Other-store");
+
+  assert.equal(release(), true);
+  assert.equal(storeContext.storeId.value, "Admin-store");
+  storeContext.initUrlParams();
+  assert.equal(storeContext.storeId.value, "Admin-store");
 });

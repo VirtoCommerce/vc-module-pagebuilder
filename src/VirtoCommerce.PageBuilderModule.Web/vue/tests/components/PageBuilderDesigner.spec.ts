@@ -8,7 +8,7 @@ import AssetsLibraryContent from "../../src/modules/asset-library/components/Ass
 import DiscardDialog from "../../src/modules/designer/components/DiscardDialog.vue";
 import SectionTree from "../../src/modules/designer/components/SectionTree.vue";
 import VersionHistory from "../../src/modules/designer/components/VersionHistory.vue";
-import { pagesChanged } from "../../src/modules/page-builder/composables";
+import { pagesChanged, useUrlParams } from "../../src/modules/page-builder/composables";
 import { PickAssetKey } from "../../src/modules/designer/types";
 import { toClipboard } from "../../src/modules/designer/clipboard";
 import { BladeStackKey, blade, notification } from "./support/vcShell";
@@ -227,6 +227,34 @@ describe("telling open lists the page changed", () => {
     await flushPromises();
 
     expect(platform.to("/api/pagebuilder/history/v7/restore", "POST")).toHaveLength(1);
+    expect(pagesChanged.value).toBe(before + 1);
+  });
+});
+
+describe("the store the lists work on", () => {
+  afterEach(() => history.replaceState(null, "", "/"));
+
+  it("goes back to the store in the address, and the lists read again, once the designer of another store's page closes", async () => {
+    history.replaceState(null, "", "/?storeId=Other-store");
+    const storeContext = useUrlParams();
+    storeContext.initUrlParams();
+    fakePlatform()
+      .on("GET", `/api/stores/${STORE}`, { id: STORE, dynamicProperties: [{ name: "DefaultThemeName", values: [{ value: "default" }] }] })
+      .on("GET", GROUP, { id: "g1", storeId: STORE, name: "About", status: "Published" })
+      .on("GET", `${GROUP}/content`, { content: JSON.stringify(PAGE), eTag: '"v1"' })
+      .on("GET", "/api/page-builder-pages/grouped/publish-status/g1", { published: true, hasChanges: true })
+      .on("GET", "/api/pagebuilder/designer/theme-file", themeFileAnswer({}))
+      .on("GET", "/api/pagebuilder/theme/status", { publication: 3, drafts: [] })
+      .install();
+    blade.param.value = "g1";
+    const wrapper = shallowMount(PageBuilderDesigner, { global: { plugins: [await routerAt("/")], stubs: { VcBlade: false } } });
+    await flushPromises();
+    expect(storeContext.storeId.value).toBe(STORE);
+    const before = pagesChanged.value;
+
+    wrapper.unmount();
+
+    expect(storeContext.storeId.value).toBe("Other-store");
     expect(pagesChanged.value).toBe(before + 1);
   });
 });
