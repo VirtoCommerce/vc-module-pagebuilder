@@ -1,7 +1,7 @@
 import settings from '../../../../data/settings.json';
 
 describe('bundled settings', () => {
-  // The builder API checks builder:publish and the store; the Content module's publishing asks for content:create only.
+  // The builder API checks the builder's publish permission and the store; the Content module's publishing does not.
   it('publishes file pages through the builder API on either flow', () => {
     const { publish } = settings;
 

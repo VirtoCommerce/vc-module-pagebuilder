@@ -17,8 +17,8 @@ using Xunit;
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
 /// <summary>
-/// Publishing on a store that is not on the git flow. The designer and the admin page blade publish through
-/// these actions on either flow, so the builder's permission and store checks guard a blob publish too.
+/// The designer and the admin page blade publish through these actions on either flow, so the builder's
+/// permission and store checks guard a blob publish too.
 /// </summary>
 public class BlobPublishTests
 {

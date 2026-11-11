@@ -285,8 +285,8 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             var publishCommand = {
                 name: "pageBuilder.commands.publish", icon: 'fa fa-file',
-                // Through the builder API on either flow: it checks builder:publish and the store, while
-                // the Content module's own publishing asks for content:create only.
+                // Through the builder API on either flow: it checks the builder's publish permission and the
+                // store, while the Content module's own publishing does not.
                 executeMethod: gitPublish,
                 // a pull request that is merging itself is already publishing this page — pressing
                 // publish again would achieve nothing
@@ -302,11 +302,11 @@ angular.module('virtoCommerce.pageBuilderModule')
             }
 
             // Publishing on the git flow merges this editor's work branch into the production branch;
-            // unpublishing merges a branch whose commit deletes the page. Off the git flow the server
-            // publishes or unpublishes the blob and answers Merged. Both are the same act of
+            // unpublishing merges a branch whose commit deletes the page. Both are the same act of
             // shipping a commit, hence one function. That can land straight away or wait on the CI checks
             // of a pull request, so the state comes from the server afterwards: telling the editor
             // "published" when it is still pending would send them away believing the page is live.
+            // Off the git flow the server publishes or unpublishes the blob and answers Merged.
             function gitShip(operation, pendingDialog) {
                 blade.isLoading = true;
                 operation({
