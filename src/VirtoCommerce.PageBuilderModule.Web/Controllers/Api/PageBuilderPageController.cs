@@ -69,6 +69,11 @@ public class PageBuilderPageController : Controller
     [HttpPost("search")]
     public async Task<ActionResult<GroupedPageBuilderPageSearchResult>> SearchGroups([FromBody] PageBuilderPageSearchCriteria criteria)
     {
+        if (criteria == null)
+        {
+            return BadRequest("Search criteria are required.");
+        }
+
         var authorizationResult = await authorizationService.AuthorizeAsync(User, criteria, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
         {

@@ -267,6 +267,7 @@ public class MultilanguagePageControllerTests
         var pagesController = CreatePagesController(fixture);
 
         Assert.IsType<BadRequestObjectResult>((await controller.Search(null)).Result);
+        Assert.IsType<BadRequestObjectResult>((await pagesController.SearchGroups(null)).Result);
         Assert.IsType<BadRequestObjectResult>((await pagesController.SearchList(null, fixture.List, TestContext.Current.CancellationToken)).Result);
         Assert.IsType<BadRequestObjectResult>((await pagesController.FindPermalinkUsage(null, fixture.List, TestContext.Current.CancellationToken)).Result);
     }
