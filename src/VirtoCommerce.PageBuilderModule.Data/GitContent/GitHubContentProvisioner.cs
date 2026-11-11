@@ -99,7 +99,7 @@ public class GitHubContentProvisioner(
         {
             if (!isModuleRepository)
             {
-                throw new GitContentException($"The GitHub repository \"{repository}\" does not exist, or the platform has no access to it.");
+                throw GitContentException.RepositoryUnreachable(repository);
             }
 
             repositoryInfo = await CreateRepositoryAsync(repository, storeId, cancellationToken);

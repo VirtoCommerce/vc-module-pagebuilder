@@ -13,4 +13,7 @@ public class GitContentException : Exception
         : base(message, innerException)
     {
     }
+
+    public static GitContentException RepositoryUnreachable(string repository) =>
+        new($"The GitHub repository \"{repository}\" does not exist, or the platform has no access to it.");
 }

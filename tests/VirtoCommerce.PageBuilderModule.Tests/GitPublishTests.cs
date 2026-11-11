@@ -188,6 +188,21 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
+        public async Task Publish_WhenTheRepositoryCannotBeRead_FailsInsteadOfAnsweringAlreadyPublished()
+        {
+            // GitHub answers a missing repository, or one the platform cannot see, the way it answers a missing file.
+            var live = new FakeBlobStorage();
+            live.Files[LivePage] = Published;
+
+            var failure = await Assert.ThrowsAsync<GitContentException>(() =>
+                Controller(new RecordingRepository(), Publisher(GitPublishState.Merged), live: live).GitPublish("s1", Page, "pages"));
+
+            Assert.Equal("The GitHub repository \"acme/site-s1\" does not exist, or the platform has no access to it.", failure.Message);
+            Assert.Equal(Published, live.Files[LivePage]);
+            Assert.Empty(live.Events);
+        }
+
+        [Fact]
         public async Task Publish_WhenMerged_WritesTheLivePageAsTheBaseBranchHasIt_NotTheDraft()
         {
             var repository = Repository();

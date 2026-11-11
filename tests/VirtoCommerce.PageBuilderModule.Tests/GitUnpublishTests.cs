@@ -98,6 +98,18 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
+        public async Task Unpublish_WhenTheRepositoryCannotBeRead_FailsInsteadOfAnsweringNotFound()
+        {
+            var repository = new RecordingRepository();
+
+            var failure = await Assert.ThrowsAsync<GitContentException>(() =>
+                Controller(repository, Publisher(), history: Unpublished()).GitUnpublish("vccom", Page, "pages"));
+
+            Assert.Equal("The GitHub repository \"acme/site-vccom\" does not exist, or the platform has no access to it.", failure.Message);
+            Assert.Empty(repository.DeletedFiles);
+        }
+
+        [Fact]
         public async Task Unpublish_WhenMerged_RemovesTheLivePage()
         {
             var repository = Repository();

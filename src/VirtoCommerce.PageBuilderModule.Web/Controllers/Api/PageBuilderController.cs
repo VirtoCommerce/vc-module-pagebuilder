@@ -199,6 +199,19 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         private async Task<string> GetBaseBranchAsync() => (await gitHubConnectionService.GetConnectionAsync(HttpContext.RequestAborted)).BaseBranch;
 
+        /// <summary>
+        /// GitHub answers a repository that does not exist, or that the platform cannot see, the way it
+        /// answers a file that is not there, so a missing file means nothing about the page until the
+        /// repository itself answers.
+        /// </summary>
+        private async Task EnsureRepositoryReadableAsync(string repository, string baseBranch)
+        {
+            if (await gitContentRepository.GetBranchHeadShaAsync(repository, baseBranch, HttpContext.RequestAborted) == null)
+            {
+                throw GitContentException.RepositoryUnreachable(repository);
+            }
+        }
+
         private GitPageFileLocation GitLocation(string repository, string type, string path) =>
             gitContentOptions.Value.GetPageLocation(repository, type, path, User?.Identity?.Name);
 
@@ -972,6 +985,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var draft = await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, location.Branch, HttpContext.RequestAborted);
             if (draft == null)
             {
+                await EnsureRepositoryReadableAsync(location.Repository, await GetBaseBranchAsync());
+
                 // nothing to merge; re-sync the live page anyway (repairs a failed or late live write)
                 if (storeRepository.IsPlatformManaged)
                 {
@@ -1191,6 +1206,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             if (await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, baseBranch, HttpContext.RequestAborted) == null)
             {
+                await EnsureRepositoryReadableAsync(location.Repository, baseBranch);
+
                 // retry of a merged unpublish whose live removal failed; a page the branch never had stays live
                 if (storeRepository.IsPlatformManaged && await gitLivePageService.IsRemovedFromBaseBranchAsync(location, HttpContext.RequestAborted))
                 {
