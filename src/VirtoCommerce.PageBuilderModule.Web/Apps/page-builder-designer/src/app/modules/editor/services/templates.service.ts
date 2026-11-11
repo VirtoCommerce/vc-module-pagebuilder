@@ -243,7 +243,7 @@ export class TemplatesService {
         const context = { templatesToSave };
         const saveTemplates = this.appConfig.getContext().config.saveTemplates;
         const request = this.http.generateRequest(saveTemplates, null, context);
-        return this.http.doRequest(request);
+        return this.http.doRequest(request, { nullWhenError: false }, null);
     }
 
 }

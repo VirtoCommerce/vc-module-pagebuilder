@@ -50,6 +50,14 @@ interface RunActionContext {
 const isConflictWithAWayOut = (error: any): boolean =>
     error?.status === 409 && !!error?.error?.canRebase;
 
+const refusedPublishingNotification = (error: any, action: 'publish' | 'unpublish') => shared.showNotification({
+    message: error?.status === 403
+        ? `You don't have permission to ${action} this page.`
+        : `Could not ${action}: ${error?.error?.error ?? error?.message ?? 'request failed'}`,
+    msgType: 'error',
+    top: true,
+});
+
 @Injectable({
     providedIn: 'root'
 })
@@ -301,7 +309,10 @@ export class TemplateEditorDataEffects {
         switchMap(([, context]) => this.publish(context).pipe(
             catchError(error => isConflictWithAWayOut(error)
                 ? this.offerToPublishOverTheConflict(context, error)
-                : of(actions.getTemplatePublishStatusFails({ error, templateKey: context.templateKey })))
+                : of(
+                    actions.getTemplatePublishStatusFails({ error, templateKey: context.templateKey }),
+                    refusedPublishingNotification(error, 'publish'),
+                ))
         ))
     ));
 
@@ -389,7 +400,10 @@ export class TemplateEditorDataEffects {
                     }
                 }),
             ]),
-            catchError(error => of(actions.getTemplatePublishStatusFails({ error, templateKey })))
+            catchError(error => of(
+                actions.getTemplatePublishStatusFails({ error, templateKey }),
+                refusedPublishingNotification(error, 'unpublish'),
+            ))
         ))
     ));
 

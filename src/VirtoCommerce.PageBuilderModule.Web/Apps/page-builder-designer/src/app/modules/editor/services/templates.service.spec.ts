@@ -264,6 +264,21 @@ describe('TemplatesService page versions', () => {
         save.flush(null);
     });
 
+    it('reports a refused theme template save instead of completing it as saved', () => {
+        config.initConfigWith({ saveTemplates: { ...settings.saveTemplates, url: '/theme/save' } });
+        const templates = [{ entry: createEntry({ path: 'page.json', type: 'pages' }), content: createTemplate() }];
+        let saved = false;
+        let error: any;
+        service.saveTemplates(templates).subscribe({ next: () => saved = true, error: value => error = value });
+        requests.expectOne('/theme/save').flush('Forbidden', { status: 403, statusText: 'Forbidden' });
+        expect(saved).toBe(false);
+        expect(error?.status).toBe(403);
+        saved = false;
+        service.saveTemplates(templates).subscribe({ next: () => saved = true });
+        requests.expectOne('/theme/save').flush(null);
+        expect(saved).toBe(true);
+    });
+
     it('preserves literal path and revision values in history requests', () => {
         config.initConfigWith({ history: {
             url: '/history?path={{path}}',
@@ -362,6 +377,20 @@ describe('TemplatesService page versions', () => {
         const request = requests.expectOne('/settings');
         expect(JSON.parse(request.request.body)).toEqual(data);
         request.flush(true);
+    });
+
+    it('reports a refused theme settings save instead of completing it as saved', () => {
+        config.initConfigWith({ saveSettings: { url: '/settings', method: 'POST', body: '{{item}}' } });
+        const themeSettings = TestBed.inject(ThemeSettingsService);
+        let saved = false;
+        let error: any;
+        themeSettings.saveSettings({ current: {} } as any).subscribe({ next: () => saved = true, error: value => error = value });
+        requests.expectOne('/settings').flush('Forbidden', { status: 403, statusText: 'Forbidden' });
+        expect(saved).toBe(false);
+        expect(error?.status).toBe(403);
+        themeSettings.saveSettings({ current: {} } as any).subscribe({ next: () => saved = true });
+        requests.expectOne('/settings').flush(null);
+        expect(saved).toBe(true);
     });
 
     it('resolves sessionId lazily for raw save, history and restore descriptors', () => {

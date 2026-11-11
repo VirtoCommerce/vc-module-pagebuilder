@@ -86,6 +86,13 @@ describe('ThemeDomainEffects', () => {
             expect(result.type).toBe(sharedActions.showNotification.type);
             expect((result as any).msgType).toBe('error');
         });
+
+        it('says the settings were not saved when the editor lacks permission', async () => {
+            actions$.next(actions.saveSettingsFail({ error: { status: 403 } as any }));
+            const result = await firstValueFrom(effects.saveSettingsFail$);
+            expect(result).toMatchObject({ type: sharedActions.showNotification.type, msgType: 'error' });
+            expect((result as any).message).toContain('permission');
+        });
     });
 
     describe('cancelAction$', () => {
