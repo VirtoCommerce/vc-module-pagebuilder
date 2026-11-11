@@ -395,7 +395,7 @@
               </template>
             </div>
             <div
-              v-else-if="storefrontChecked"
+              v-else-if="!url && storefrontChecked"
               class="pd-message"
             >
               <VcIcon

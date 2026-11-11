@@ -125,6 +125,64 @@ describe("full view", () => {
   });
 });
 
+describe("the preview", () => {
+  const NO_STOREFRONT = "the site has no storefront URL";
+
+  function openPageOn(storefrontUrl: string | null) {
+    fakePlatform()
+      .on("GET", `/api/stores/${STORE}`, { id: STORE, dynamicProperties: [{ name: "DefaultThemeName", values: [{ value: "default" }] }] })
+      .on("GET", GROUP, { id: "g1", storeId: STORE, name: "About", status: "Published" })
+      .on("GET", `${GROUP}/content`, { content: JSON.stringify(PAGE), eTag: '"v1"' })
+      .on("GET", "/api/page-builder-pages/grouped/publish-status/g1", { published: true, hasChanges: true })
+      .on("GET", "/api/pagebuilder/designer/theme-file", themeFileAnswer({}))
+      .on("GET", "/api/pagebuilder/theme/status", { publication: 3, drafts: [] })
+      .on("GET", "/api/pagebuilder/designer/storefront", { url: storefrontUrl, previewPath: "/designer-preview" })
+      .install();
+    blade.param.value = "g1";
+  }
+
+  it("says the site has no storefront URL when it has none", async () => {
+    openPageOn(null);
+    const wrapper = shallowMount(PageBuilderDesigner, { global: { plugins: [await routerAt("/")], stubs: { VcBlade: false } } });
+    await flushPromises();
+
+    expect(wrapper.find("iframe").exists()).toBe(false);
+    expect(wrapper.text()).toContain(NO_STOREFRONT);
+  });
+
+  it("leaves the no-storefront message out once the storefront's preview has connected", async () => {
+    openPageOn("https://shop.test");
+    const wrapper = shallowMount(PageBuilderDesigner, {
+      attachTo: document.body,
+      global: { plugins: [await routerAt("/")], stubs: { VcBlade: false } },
+    });
+    try {
+      await flushPromises();
+      const frame = wrapper.find("iframe").element as HTMLIFrameElement;
+      const loaded = {
+        protocol: 2,
+        hash: "0badc0de",
+        sections: {},
+        blocks: {},
+        shared: {},
+        objects: {},
+        paletteTokens: { light: [], dark: [] },
+        capabilities: [],
+        conditions: [],
+      };
+
+      const data = { source: "preview", type: "loaded", data: loaded };
+      window.dispatchEvent(new MessageEvent("message", { source: frame.contentWindow, origin: "https://shop.test", data }));
+      await flushPromises();
+
+      expect(wrapper.find(".pd__frame-wait").exists()).toBe(false);
+      expect(wrapper.text()).not.toContain(NO_STOREFRONT);
+    } finally {
+      wrapper.unmount();
+    }
+  });
+});
+
 describe("telling open lists the page changed", () => {
   let platform: FakePlatform;
 
