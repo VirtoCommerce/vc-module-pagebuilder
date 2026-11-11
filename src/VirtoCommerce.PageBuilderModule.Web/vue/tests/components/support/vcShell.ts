@@ -100,6 +100,7 @@ export const blade = {
   replaceWith: vi.fn(async (_event: unknown) => undefined),
   callParent: vi.fn(async (_method: string, _args?: unknown): Promise<unknown> => undefined),
   onBeforeClose: vi.fn((_guard: () => Promise<boolean>) => undefined),
+  onActivated: vi.fn((_callback: () => void) => undefined),
 };
 // A mounted component stands for a blade; as in the framework, called outside any component only openBlade works.
 export function useBlade() {
@@ -120,6 +121,7 @@ export function useBlade() {
     replaceWith: (event: unknown) => inBlade(blade.replaceWith)(event),
     callParent: (method: string, args?: unknown) => inBlade(blade.callParent)(method, args),
     onBeforeClose: (guard: () => Promise<boolean>) => inBlade(blade.onBeforeClose)(guard),
+    onActivated: (callback: () => void) => inBlade(blade.onActivated)(callback),
   };
 }
 export const useBladeStack = () => ({ blades: ref([]), closeChildren: vi.fn() });
@@ -145,6 +147,6 @@ export function resetVcShell() {
   blade.query.value = undefined;
   blade.options.value = undefined;
   blade.activeChildParam.value = undefined;
-  for (const fn of [blade.openBlade, blade.closeSelf, blade.closeChildren, blade.replaceWith, blade.callParent, blade.onBeforeClose]) fn.mockReset();
+  for (const fn of [blade.openBlade, blade.closeSelf, blade.closeChildren, blade.replaceWith, blade.callParent, blade.onBeforeClose, blade.onActivated]) fn.mockReset();
   useBeforeUnload.mockReset();
 }

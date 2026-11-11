@@ -39,9 +39,9 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref, useTemplateRef } from "vue";
+import { computed, inject, onMounted, ref, useTemplateRef } from "vue";
 import { useI18n } from "vue-i18n";
-import { useBlade, type IBladeToolbar } from "@vc-shell/framework";
+import { BladeMaximizedKey, useBlade, type IBladeToolbar } from "@vc-shell/framework";
 import { VcBlade, VcButton, VcButtonGroup } from "@vc-shell/framework/ui";
 import { PagesList, type ExposedPagesList } from "../page-builder/components";
 import { PageLifecycleFilters, pageCounts, refreshMenuBadges, useUrlParams } from "../page-builder/composables";
@@ -56,7 +56,14 @@ const ALL = "all";
 type Status = PageLifecycleFilters | typeof ALL;
 
 const { t } = useI18n({ useScope: "global" });
-const { param, openBlade } = useBlade();
+const { param, openBlade, onActivated } = useBlade();
+// The list's columns do not fit next to the store blade, so the blade takes the whole view whenever it is the active one.
+const maximized = inject(BladeMaximizedKey, null);
+const maximize = () => {
+  if (maximized) maximized.value = true;
+};
+maximize();
+onActivated(maximize);
 const { setStoreId } = useUrlParams();
 if (param.value) {
   setStoreId(param.value);
