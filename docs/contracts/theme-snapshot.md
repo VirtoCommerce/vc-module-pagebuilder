@@ -553,7 +553,7 @@ All take `storeId` and check the store as the other Page Builder endpoints do.
 
 | Method and route | Permission | Returns |
 |---|---|---|
-| `POST api/pagebuilder/theme/publish?storeId&catalogHash` | `builder:publish` | `{ publication }`; 400 `{ error, errors }` when it names no catalog or the theme does not fit it |
+| `POST api/pagebuilder/theme/publish?storeId&catalogHash` | `builder:publish` | `{ publication }`; 400 `{ error, errors }` when it names no catalog or the theme does not fit it; 400 `{ error }` on a store with New Page Builder off |
 | `GET api/pagebuilder/theme/status?storeId` | `builder:read` | `{ publication, drafts, newDrafts }`: the current publication, left out before the first, the theme files with a draft by their path in the theme (`templates/product.json`, `config/template_rules.json`), and those of them with no live file, which a Discard keeps |
 | `POST api/pagebuilder/save?storeId&theme&draft&catalogHash`, the files as the body | `builder:update`; `builder:templates` or `builder:theme` by theme file | 200; 400 `{ error, errors }` when a theme file does not fit the catalog it names; 400 `{ error }` for a live theme write on a New Page Builder store, for a file under `snapshots/` or `catalogs/`, or for a file in `config/` other than `settings_data.json`, `template_rules.json`, `brand.json`, `palette.json` and `palette.dark.json`; a live write of a page needs `builder:publish` |
 | `GET api/pagebuilder/designer/theme-file?storeId&path` | `builder:read` | `{ path, content?, eTag }`: a theme file as the designer edits it and its version, see [Save](history-api.md#save) |

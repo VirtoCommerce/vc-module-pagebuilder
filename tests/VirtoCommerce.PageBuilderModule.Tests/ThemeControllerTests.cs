@@ -143,6 +143,42 @@ public class ThemeControllerTests
     }
 
     [Fact]
+    public async Task Publish_StoreWithoutTheNewPageBuilder_ReturnsBadRequestWithoutPublishing()
+    {
+        _services.NewPageBuilder = false;
+        var controller = Controller(new FakeAuthorizationService(true));
+
+        var result = Assert.IsType<BadRequestObjectResult>((await controller.Publish("s1", "abcdefgh", Ct)).Result);
+
+        Assert.Equal("""{"error":"The store does not use the new Page Builder: its theme is not published with theme/publish."}""", PlatformJson.Serialize(result.Value));
+        Assert.Equal(["new page builder s1"], _services.Calls);
+    }
+
+    [Fact]
+    public async Task Publish_StoreWithoutTheNewPageBuilderUserDoesNotWorkIn_ReturnsForbid()
+    {
+        _services.NewPageBuilder = false;
+        var controller = Controller(new FakeAuthorizationService("s2", Permissions.Publish));
+
+        Assert.IsType<ForbidResult>((await controller.Publish("s1", "abcdefgh", Ct)).Result);
+        Assert.Empty(_services.Calls);
+    }
+
+    [Fact]
+    public async Task OtherThemeActions_StoreWithoutTheNewPageBuilder_DoNotAskForIt()
+    {
+        _services.NewPageBuilder = false;
+        var controller = Controller(new FakeAuthorizationService(true), """{ "hash": "abcdefgh" }""");
+
+        Assert.IsType<OkObjectResult>((await controller.GetStatus("s1", Ct)).Result);
+        Assert.IsType<OkObjectResult>((await controller.SaveCatalog("s1", Ct)).Result);
+        Assert.IsType<OkObjectResult>((await controller.GeneratePalette("s1", GenerationRequest("#1b789b"), Ct)).Result);
+        Assert.IsType<OkObjectResult>((await controller.CheckPalette("s1", CheckRequest(), Ct)).Result);
+
+        Assert.DoesNotContain("new page builder s1", _services.Calls);
+    }
+
+    [Fact]
     public async Task GeneratePalette_BodyThatDidNotBind_ReturnsBadRequest()
     {
         var controller = Controller(new FakeAuthorizationService(true));
@@ -177,6 +213,7 @@ public class ThemeControllerTests
             _services,
             _services,
             _services,
+            _services,
             authorization,
             RequestValidators.Stores("s1"),
             new ThemePaletteGenerationRequestValidator(new ThemePaletteTokensValidator()),
@@ -186,9 +223,23 @@ public class ThemeControllerTests
         };
     }
 
-    private sealed class RecordingThemeServices : IThemePublisher, ISchemaCatalogService, IThemePaletteService
+    private sealed class RecordingThemeServices : IThemePublisher, ISchemaCatalogService, IThemePaletteService, IThemeSnapshotService
     {
         public List<string> Calls { get; } = [];
+
+        public bool NewPageBuilder { get; set; } = true;
+
+        public Task<bool> IsNewPageBuilderEnabledAsync(string storeId, CancellationToken cancellationToken = default)
+        {
+            Calls.Add($"new page builder {storeId}");
+            return Task.FromResult(NewPageBuilder);
+        }
+
+        public Task<ThemeSnapshot> GetPublishedAsync(string storeId, string cultureName, CancellationToken cancellationToken = default)
+        {
+            Calls.Add($"snapshot {storeId}");
+            return Task.FromResult<ThemeSnapshot>(null);
+        }
 
         public Task<int> PublishAsync(string storeId, string catalogHash, ClaimsPrincipal user, CancellationToken cancellationToken = default)
         {

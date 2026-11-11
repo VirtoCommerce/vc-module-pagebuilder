@@ -21,6 +21,7 @@ public class ThemeController(
     IThemePublisher themePublisher,
     ISchemaCatalogService schemaCatalogService,
     IThemePaletteService themePaletteService,
+    IThemeSnapshotService themeSnapshotService,
     IAuthorizationService authorizationService,
     IValidator<PageBuilderStoreRequest> storeRequestValidator,
     IValidator<ThemePaletteGenerationRequest> paletteGenerationRequestValidator,
@@ -36,6 +37,11 @@ public class ThemeController(
         if (await CheckRequestAsync(storeId, cancellationToken, catalogHash) is { } refused)
         {
             return refused;
+        }
+
+        if (!await themeSnapshotService.IsNewPageBuilderEnabledAsync(storeId, cancellationToken))
+        {
+            return BadRequest(new { error = "The store does not use the new Page Builder: its theme is not published with theme/publish." });
         }
 
         try
