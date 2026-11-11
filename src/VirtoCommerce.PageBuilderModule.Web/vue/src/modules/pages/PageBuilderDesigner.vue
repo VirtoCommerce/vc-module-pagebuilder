@@ -708,13 +708,13 @@ const mode = ref<(typeof modes)[number]["id"]>("sections");
 const shownModes = computed(() => modes.filter((m) => (m.id !== "shared" && m.id !== "theme") || (!designer.shared.value && (m.id !== "theme" || mayEditTheme))));
 const rules = useTemplateRules();
 const rulesActive = computed(() => !!designer.templateKey.value && rules.loaded.value);
-const unsaved = computed(() => designer.dirty.value || look.dirty.value || rules.dirty.value);
 
 const maximized = inject(BladeMaximizedKey, null);
 if (maximized) maximized.value = true;
 // The full-view z-index sits over the shell's chrome (40-60) and under its dropdowns (100+) and popups (9000+).
 const fullView = useLocalStorage("vc-page-designer-full-view", false);
 const designerShown = computed(() => !designer.loadError.value && !archived.value && !openFailed.value);
+const unsaved = computed(() => designerShown.value && (designer.dirty.value || look.dirty.value || rules.dirty.value));
 // Full view hides the blade's header, and only the designer's own bar has a way out of it.
 const fullViewOn = computed(() => fullView.value && designerShown.value);
 // The shell's narrow mode folds a blade's toolbar into a floating button, so the designer's bar carries the actions while the preview shows.

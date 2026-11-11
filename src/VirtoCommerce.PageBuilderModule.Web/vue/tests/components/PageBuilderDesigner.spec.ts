@@ -43,6 +43,19 @@ describe("opening the designer", () => {
     expect(wrapper.find(".pd-message").text()).toContain("couldn't be loaded");
     expect(wrapper.findComponent(VcBlade).props("loading")).toBe(false);
   });
+
+  it("has nothing to save or discard when the page is gone", async () => {
+    blade.param.value = "g1";
+    fakePlatform().on("GET", GROUP, status(404)).install();
+
+    const wrapper = shallowMount(PageBuilderDesigner, { global: { stubs: { VcBlade: false } } });
+    await flushPromises();
+
+    expect(wrapper.find(".pd-message").exists()).toBe(true);
+    expect(wrapper.findComponent(VcBlade).props("modified")).toBe(false);
+    expect(toolbarItem(wrapper, "save").disabled).toBe(true);
+    expect(toolbarItem(wrapper, "discard").isVisible).toBe(false);
+  });
 });
 
 describe("reloading a designer opened by query", () => {
