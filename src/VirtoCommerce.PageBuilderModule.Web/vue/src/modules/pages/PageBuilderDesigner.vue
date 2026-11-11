@@ -1195,7 +1195,7 @@ async function pasteFromClipboard() {
     pasteText.value = "";
     return;
   }
-  if (!pasteFrom(text)) pasteText.value = text;
+  pasteFrom(text);
 }
 function pasteFrom(text: string): boolean {
   const copied = fromClipboard(text);

@@ -10,7 +10,8 @@ import SectionTree from "../../src/modules/designer/components/SectionTree.vue";
 import VersionHistory from "../../src/modules/designer/components/VersionHistory.vue";
 import { pagesChanged } from "../../src/modules/page-builder/composables";
 import { PickAssetKey } from "../../src/modules/designer/types";
-import { BladeStackKey, blade } from "./support/vcShell";
+import { toClipboard } from "../../src/modules/designer/clipboard";
+import { BladeStackKey, blade, notification } from "./support/vcShell";
 import { fakePlatform, status, themeFileAnswer, type FakePlatform } from "./support/fakePlatform";
 
 const STORE = "B2B-store";
@@ -235,9 +236,26 @@ describe("pasting from the clipboard", () => {
 
   const pasteDialog = (wrapper: VueWrapper) => wrapper.find('[role="dialog"][aria-label="Paste a section or block"]');
 
+  it("asks for the copied content when the browser does not let the page read the clipboard", async () => {
+    const wrapper = await pasteWith(() => Promise.reject(new DOMException("denied", "NotAllowedError")));
+
+    expect(pasteDialog(wrapper).exists()).toBe(true);
+    expect(notification.error).not.toHaveBeenCalled();
+  });
+
   it("takes a copied section far longer than 1024 characters in the paste dialog", async () => {
     const wrapper = await pasteWith(() => Promise.reject(new DOMException("denied", "NotAllowedError")));
 
     expect(Number(pasteDialog(wrapper).find("textarea").attributes("maxlength") ?? Infinity)).toBeGreaterThanOrEqual(100_000);
+  });
+
+  it.each([
+    ["text that is not a copied item", "hello", "The clipboard doesn't hold a copied section or block."],
+    ["a copied block with no section selected", toClipboard("block", { id: "b1", type: "button" }), "Select a section to paste a block into."],
+  ])("says why it refuses %s, without asking for the clipboard again", async (_, text, message) => {
+    const wrapper = await pasteWith(() => Promise.resolve(text));
+
+    expect(notification.error).toHaveBeenCalledWith(message);
+    expect(pasteDialog(wrapper).exists()).toBe(false);
   });
 });
