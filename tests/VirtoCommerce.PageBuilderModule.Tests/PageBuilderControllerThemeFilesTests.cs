@@ -283,6 +283,7 @@ public class PageBuilderControllerThemeFilesTests
         Assert.Equal([$"theme:{Path}", "theme:default/config/template_rules.json"], record.Entries.Select(x => x.Item.ToString()));
         // The history tells the published version by these bytes.
         Assert.Equal(_live.Files[Theme($"{Path}-draft")], record.Entries[0].Content);
+        Assert.True(PageBuilderContentPaths.IsSaveId(record.SaveId));
     }
 
     [Fact]
@@ -312,6 +313,7 @@ public class PageBuilderControllerThemeFilesTests
         var (_, record) = Assert.Single(history.Records);
         Assert.Equal(ModuleConstants.GitHistory.DiscardedSummary, record.Description);
         Assert.Equal([($"theme:{Path}", "published")], record.Entries.Select(x => (x.Item.ToString(), x.Content)));
+        Assert.True(PageBuilderContentPaths.IsSaveId(record.SaveId));
     }
 
     [Fact]

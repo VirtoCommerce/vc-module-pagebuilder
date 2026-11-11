@@ -14,6 +14,7 @@ using VirtoCommerce.PageBuilderModule.Core.History;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.Platform.Core.Caching;
 using VirtoCommerce.Platform.Core.DistributedLock;
 using VirtoCommerce.Platform.Core.Settings;
@@ -154,6 +155,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         Assert.Equal(ModuleConstants.GitHistory.PublishedSummary, record.Description);
         Assert.Equal(["theme:default/sections/header-group.json", $"theme:{Product}"], record.Entries.Select(x => x.Item.ToString()).Order());
         Assert.Equal(header, record.Entries.Single(x => x.Item.Key == "default/sections/header-group.json").Content);
+        Assert.True(PageBuilderContentPaths.IsSaveId(record.SaveId));
     }
 
     [Theory]

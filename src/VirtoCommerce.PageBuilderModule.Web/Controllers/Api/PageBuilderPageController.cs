@@ -457,7 +457,7 @@ public class PageBuilderPageController : Controller
 
         var command = AbstractTypeFactory<DesignerDiscardCommand>.TryCreateInstance();
         command.StoreId = groupedPage.StoreId;
-        command.SaveId = Request.GetSaveId();
+        command.SaveId = Request.GetOrCreateSaveId();
         command.Group = groupedPage;
         try
         {
@@ -959,7 +959,7 @@ public class PageBuilderPageController : Controller
 
     private Task RecordHistoryAsync(GroupedPageBuilderPage group, string content, string description, CancellationToken cancellationToken)
     {
-        var record = ContentHistoryRecord.Create(description, Request.GetSaveId(), User);
+        var record = ContentHistoryRecord.Create(description, Request.GetOrCreateSaveId(), User);
         record.AddEntry(new HistoryItem(HistoryItemType.Page, group.Id), content);
 
         return contentHistory.RecordAsync(group.StoreId, record, cancellationToken);

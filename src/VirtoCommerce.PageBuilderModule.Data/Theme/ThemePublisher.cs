@@ -375,7 +375,7 @@ public class ThemePublisher(
         var changedEntries = files.Select(x => CreateChangedEntry(x.Path, EntryState.Modified)).ToList();
         await eventPublisher.Publish(new PageBuilderContentChangedEvent(ContentConstants.ContentTypes.Themes, changedEntries), cancellationToken);
 
-        var record = ContentHistoryRecord.Create(ModuleConstants.GitHistory.PublishedSummary, saveId: null, user);
+        var record = ContentHistoryRecord.Create(ModuleConstants.GitHistory.PublishedSummary, Guid.NewGuid().ToString("N"), user);
         foreach (var file in files)
         {
             record.AddEntry(HistoryItem.ForThemeFile(file.Path), file.Content);

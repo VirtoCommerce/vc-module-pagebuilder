@@ -14,6 +14,7 @@ using VirtoCommerce.PageBuilderModule.Core.History;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Platform.Core.Common;
@@ -137,6 +138,26 @@ public class PageContentSaveFailureControllerTests
         Assert.Equal("store", storeId);
         Assert.Equal("Saved", record.Description);
         Assert.Equal([(new HistoryItem(HistoryItemType.Page, GroupId), Restored)], record.Entries.Select(x => (x.Item, x.Content)));
+        Assert.True(PageBuilderContentPaths.IsSaveId(record.SaveId));
+    }
+
+    [Fact]
+    public async Task PublishGroup_WithADraft_RecordsThePublishedContentUnderASaveId()
+    {
+        _pages.SeedGroup(new GroupedPageBuilderPage
+        {
+            Id = GroupId,
+            StoreId = "store",
+            Pages = [new PageBuilderPage { Id = "published", Status = Published }, new PageBuilderPage { Id = "d1", Status = Draft }],
+        });
+        _pages.SeedContent("d1", Restored);
+
+        Assert.IsType<OkResult>(await PageController().PublishGroup(GroupId, publish: true, TestContext.Current.CancellationToken));
+
+        var (_, record) = Assert.Single(_history.Records);
+        Assert.Equal("Published", record.Description);
+        Assert.Equal([(new HistoryItem(HistoryItemType.Page, GroupId), Restored)], record.Entries.Select(x => (x.Item, x.Content)));
+        Assert.True(PageBuilderContentPaths.IsSaveId(record.SaveId));
     }
 
     [Fact]
@@ -167,6 +188,7 @@ public class PageContentSaveFailureControllerTests
         var (_, record) = Assert.Single(_history.Records);
         Assert.Equal("Discarded unpublished changes", record.Description);
         Assert.Equal([(new HistoryItem(HistoryItemType.Page, GroupId), Original)], record.Entries.Select(x => (x.Item, x.Content)));
+        Assert.True(PageBuilderContentPaths.IsSaveId(record.SaveId));
     }
 
     private async Task<IActionResult> SaveAsync()
