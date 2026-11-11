@@ -233,6 +233,34 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
+        public async Task DeleteBranchAsync_ReferenceDoesNotExist_IsAlreadyGone()
+        {
+            // GitHub answers a DELETE of a ref that is not there with 422 rather than 404
+            var handler = new ScriptedHandler(
+                ("GET", "repos/o/r/contents/pages/foo.page?ref=designer%2Fjohn%2Ffoo", _ => RespondJson(ContentsPayload("draft"))),
+                ("DELETE", "repos/o/r/git/refs/heads/designer/john/foo", _ => RespondJson("""{ "message": "Reference does not exist", "status": "422" }""", HttpStatusCode.UnprocessableEntity)),
+                ("GET", "repos/o/r/contents/pages/foo.page?ref=designer%2Fjohn%2Ffoo", _ => Respond(HttpStatusCode.NotFound)));
+            var repository = Create(handler);
+
+            Assert.Equal("draft", await repository.ReadFileAsync("o/r", "pages/foo.page", "designer/john/foo", TestContext.Current.CancellationToken));
+            await repository.DeleteBranchAsync("o/r", "designer/john/foo", "pages/foo.page", TestContext.Current.CancellationToken);
+
+            Assert.Null(await repository.ReadFileAsync("o/r", "pages/foo.page", "designer/john/foo", TestContext.Current.CancellationToken));
+            handler.AssertDone();
+        }
+
+        [Fact]
+        public async Task DeleteBranchAsync_A422ThatIsNotAboutAMissingRef_Throws()
+        {
+            var handler = new ScriptedHandler(
+                ("DELETE", "repos/o/r/git/refs/heads/designer/john/foo", _ => Respond422("Cannot delete this protected branch")));
+
+            await Assert.ThrowsAsync<GitContentException>(() =>
+                Create(handler).DeleteBranchAsync("o/r", "designer/john/foo", "pages/foo.page", TestContext.Current.CancellationToken));
+            handler.AssertDone();
+        }
+
+        [Fact]
         public async Task DeleteBranchAsync_DropsTheCachedDraftOfThatBranch()
         {
             var handler = new ScriptedHandler(

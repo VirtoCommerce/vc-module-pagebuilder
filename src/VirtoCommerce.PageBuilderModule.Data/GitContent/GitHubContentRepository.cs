@@ -164,8 +164,17 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             using var response = await GitHubApiClient.SendRequestAsync(client, HttpMethod.Delete, MutableRefUrl(repository, branch), null, operation, cancellationToken);
 
             // already gone: publishing deletes the work branch, and so does the repository's
-            // "automatically delete head branches" setting — whichever wins, the caller is satisfied
-            if (response.StatusCode != HttpStatusCode.NotFound)
+            // "automatically delete head branches" setting — whichever wins, the caller is satisfied.
+            // GitHub says so with 404 or with 422 "Reference does not exist"; any other 422 is a refusal.
+            if (response.StatusCode == HttpStatusCode.UnprocessableEntity)
+            {
+                var details = await response.Content.ReadAsStringAsync(cancellationToken);
+                if (details?.Contains("Reference does not exist", StringComparison.OrdinalIgnoreCase) != true)
+                {
+                    throw GitHubApiClient.CreateException(response, details, operation);
+                }
+            }
+            else if (response.StatusCode != HttpStatusCode.NotFound)
             {
                 await GitHubApiClient.EnsureSuccessAsync(response, operation, cancellationToken);
             }
