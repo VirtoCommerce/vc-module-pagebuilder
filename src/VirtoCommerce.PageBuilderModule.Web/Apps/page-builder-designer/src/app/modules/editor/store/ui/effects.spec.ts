@@ -148,6 +148,13 @@ describe('TemplateEditorUiEffects', () => {
             expect((result as any).message).toContain('Copy your changes');
         });
 
+        it('says the changes were not saved when the editor lacks permission', async () => {
+            actions$.next(actions.saveTemplateFails({ error: { status: 403 } as any }));
+            const result = await firstValueFrom(effects.notifyFailsSave$);
+            expect(result).toMatchObject({ type: sharedActions.showNotification.type, msgType: 'error' });
+            expect((result as any).message).toContain('permission');
+        });
+
         it('shows error notification', async () => {
             actions$.next(actions.saveTemplateFails({ error: {} as any }));
             const result = await firstValueFrom(effects.notifyFailsSave$);

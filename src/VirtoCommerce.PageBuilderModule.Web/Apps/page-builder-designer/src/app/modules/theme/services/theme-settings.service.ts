@@ -28,6 +28,6 @@ export class ThemeSettingsService {
         const context = { item: JSON.stringify(settings), data: settings };
         const requestDescriptor = this.appConfig.getContext().config.saveSettings;
         const request = this.http.generateRequest(requestDescriptor, null, context);
-        return this.http.doRequest(request).pipe(map(x => !!x));
+        return this.http.doRequest(request, { nullWhenError: false }).pipe(map(x => !!x));
     }
 }

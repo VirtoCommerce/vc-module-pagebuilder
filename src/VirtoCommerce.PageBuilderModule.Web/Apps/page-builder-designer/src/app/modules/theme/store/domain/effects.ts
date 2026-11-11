@@ -65,7 +65,11 @@ export class ThemeDomainEffects {
     saveSettingsFail$ = createEffect(() => this.actions$.pipe(
         ofType(actions.saveSettingsFail),
         tap((error) => console.log(error)),
-        map(() => sharedActions.showNotification({ message: 'Could not save settings', msgType: 'error', top: true }))
+        map(({ error }) => sharedActions.showNotification({
+            message: error?.status === 403 ? "You don't have permission to save theme settings." : 'Could not save settings',
+            msgType: 'error',
+            top: true
+        }))
     ));
 
     cancelAction$ = createEffect(() => this.actions$.pipe(

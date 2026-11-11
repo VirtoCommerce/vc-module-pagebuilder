@@ -162,6 +162,8 @@ export class TemplateEditorUiEffects {
                 message = 'This page changed while you were editing. Your changes have not been saved. Copy your changes before reloading the page.';
             } else if (error?.status === 428) {
                 message = 'The page version is unavailable. Copy your changes before reloading the page.';
+            } else if (error?.status === 403) {
+                message = "You don't have permission to save these changes. Your changes have not been saved.";
             }
             return sharedActions.showNotification({ message, msgType: 'error', top: true });
         })
