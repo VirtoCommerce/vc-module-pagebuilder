@@ -163,6 +163,9 @@ const {
   importData: options.value?.importData as PageExportData | undefined,
 });
 
+// param stays set when reading the page failed, so the actions on it wait for the page itself.
+const isPageLoaded = computed(() => !!param.value && !!item.value?.id);
+
 const form = computed({
   get: () => ({ item: item.value, seo: seo.value }),
   set: (value) => {
@@ -173,7 +176,7 @@ const form = computed({
 const { canSave, isModified, setBaseline, markReady, formMeta } = useBladeForm({
   data: form,
   closeConfirmMessage: () => t("PAGE_BUILDER.PAGES.ALERTS.CLOSE_CONFIRMATION"),
-  canSaveOverride: computed(() => !isReadOnly.value),
+  canSaveOverride: computed(() => !isReadOnly.value && (!param.value || isPageLoaded.value)),
 });
 
 // Workaround: the AI agent contract has no storeId, so the page tools read it and the current page from this context.
@@ -275,7 +278,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     id: "delete",
     icon: "lucide-trash-2",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.DELETE"),
-    disabled: !param.value || isReadOnly.value,
+    disabled: !isPageLoaded.value || isReadOnly.value,
     clickHandler: async () => {
       if (await showConfirmation(t("PAGE_BUILDER.PAGES.ALERTS.DELETE"))) {
         await deleteGroup();
@@ -289,7 +292,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     id: "openPageDesigner",
     icon: "lucide-crop",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.DESIGNER"),
-    disabled: !param.value || isReadOnly.value,
+    disabled: !isPageLoaded.value || isReadOnly.value,
     clickHandler: () => {
       openDraftDesigner(async () => {
         // The designer saves on its own, so show what it left unless this blade has edits of its own.
@@ -305,7 +308,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     id: "downloadContent",
     icon: "lucide-download",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.DOWNLOAD_CONTENT"),
-    disabled: !param.value,
+    disabled: !isPageLoaded.value,
     clickHandler: async () => {
       try {
         await downloadContent();
@@ -319,7 +322,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     id: "clonePage",
     icon: "lucide-copy",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.CLONE"),
-    disabled: !param.value || isReadOnly.value || isModified.value,
+    disabled: !isPageLoaded.value || isReadOnly.value || isModified.value,
     clickHandler: async () => {
       if (loading.value) return;
       const cloned = await clonePage();
@@ -334,7 +337,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     id: "convertToMultilanguage",
     icon: "lucide-languages",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.CONVERT"),
-    isVisible: !!param.value && !isLanguageVersion.value && hasSeveralStoreLanguages.value,
+    isVisible: isPageLoaded.value && !isLanguageVersion.value && hasSeveralStoreLanguages.value,
     disabled: isReadOnly.value || isModified.value,
     clickHandler: async () => {
       if (await showConfirmation(t("PAGE_BUILDER.PAGES.ALERTS.CONVERT_CONFIRMATION"))) {
@@ -349,7 +352,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     id: "publishPage",
     icon: "lucide-file-text",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.PUBLISH"),
-    isVisible: !!param.value && status.value?.hasChanges === true,
+    isVisible: isPageLoaded.value && status.value?.hasChanges === true,
     disabled: isReadOnly.value || isModified.value || !formMeta.value.valid,
     clickHandler: async () => {
       await publishGroup();
@@ -362,7 +365,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     id: "unpublishPage",
     icon: "lucide-file",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.UNPUBLISH"),
-    isVisible: !!param.value && status.value?.hasChanges === false,
+    isVisible: isPageLoaded.value && status.value?.hasChanges === false,
     disabled: isReadOnly.value || isModified.value,
     clickHandler: async () => {
       await unpublishGroup();

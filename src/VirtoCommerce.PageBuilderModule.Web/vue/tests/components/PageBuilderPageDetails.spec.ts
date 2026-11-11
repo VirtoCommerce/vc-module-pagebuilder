@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defineComponent, h, nextTick } from "vue";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import PageBuilderPageDetails from "../../src/modules/page-builder/pages/PageBuilderPageDetails.vue";
@@ -7,6 +7,7 @@ import { blade } from "./support/vcShell";
 // Replaced by a reactive ref when the framework mock loads.
 const form = vi.hoisted(() => ({ modified: { value: false } }));
 const publishing = vi.hoisted(() => ({ hasChanges: false }));
+const loaded = vi.hoisted(() => ({ fails: false, isNew: false }));
 
 vi.mock("@vc-shell/framework", async (importOriginal) => {
   const shell = await importOriginal<typeof import("./support/vcShell")>();
@@ -15,8 +16,8 @@ vi.mock("@vc-shell/framework", async (importOriginal) => {
   return {
     ...shell,
     useBlade: () => ({ ...shell.useBlade(), options: vueRef({ storeId: "s1" }), closeSelf: vi.fn(), replaceWith: vi.fn() }),
-    useBladeForm: () => ({
-      canSave: vueRef(true),
+    useBladeForm: (options: { canSaveOverride?: { value: boolean } }) => ({
+      canSave: options.canSaveOverride ?? vueRef(true),
       isModified: form.modified,
       setBaseline: vi.fn(),
       markReady: vi.fn(),
@@ -36,12 +37,16 @@ vi.mock("../../src/modules/page-builder/composables/usePageBuilderDetails", asyn
   const { computed: vueComputed, ref: vueRef } = await import("vue");
   return {
     usePageBuilderDetails: () => ({
-      item: vueRef({ id: "g1", name: "Page", permalink: "/page", storeId: "s1", status: "Published" }),
+      item: vueRef(
+        loaded.fails ? {} : loaded.isNew ? { visibility: true } : { id: "g1", name: "Page", permalink: "/page", storeId: "s1", status: "Published" },
+      ),
       seo: vueRef({}),
       status: vueRef({ hasChanges: publishing.hasChanges }),
       isReadOnly: vueComputed(() => false),
       loading: vueComputed(() => false),
-      loadGroup: vi.fn(async () => undefined),
+      loadGroup: vi.fn(async () => {
+        if (loaded.fails) throw new Error("500");
+      }),
       saveGroup: vi.fn(),
       deleteGroup: vi.fn(),
       publishGroup: vi.fn(),
@@ -83,7 +88,7 @@ const toolbarItem = (wrapper: VueWrapper, id: string) =>
   (wrapper.findComponent({ name: "VcBlade" }).props("toolbarItems") as ToolbarItem[]).find((x) => x.id === id);
 
 async function mountPage() {
-  const wrapper = mount(PageBuilderPageDetails, { global: { stubs: { Field } } });
+  const wrapper = mount(PageBuilderPageDetails, { global: { stubs: { Field }, config: { errorHandler: () => undefined } } });
   await flushPromises();
   return wrapper;
 }
@@ -139,6 +144,63 @@ describe("cloning a page from its details", () => {
     form.modified.value = true;
     await nextTick();
 
+    expect(toolbarItem(wrapper, "clonePage")?.disabled).toBe(true);
+  });
+});
+
+describe("the actions of a page whose details failed to load", () => {
+  const pageActions = ["delete", "openPageDesigner", "downloadContent", "clonePage", "convertToMultilanguage", "publishPage", "unpublishPage"];
+  const isOffered = (item?: ToolbarItem) => item?.isVisible !== false && item?.disabled !== true;
+
+  beforeEach(() => {
+    vi.stubGlobal("defineBlade", () => undefined);
+    form.modified.value = false;
+    publishing.hasChanges = false;
+    loaded.fails = true;
+    blade.param.value = "g1";
+  });
+
+  afterEach(() => {
+    loaded.fails = false;
+  });
+
+  it("are not offered, since there is no page to act on", async () => {
+    const wrapper = await mountPage();
+
+    expect(pageActions.filter((id) => isOffered(toolbarItem(wrapper, id)))).toEqual([]);
+  });
+
+  it("do not include saving, which would send the empty details as the page", async () => {
+    const wrapper = await mountPage();
+
+    expect(toolbarItem(wrapper, "save")?.disabled).toBe(true);
+  });
+});
+
+describe("the actions of a new page", () => {
+  beforeEach(() => {
+    vi.stubGlobal("defineBlade", () => undefined);
+    form.modified.value = false;
+    loaded.isNew = true;
+    blade.param.value = "";
+  });
+
+  afterEach(() => {
+    loaded.isNew = false;
+  });
+
+  it("offer saving it", async () => {
+    const wrapper = await mountPage();
+
+    expect(toolbarItem(wrapper, "save")?.disabled).toBe(false);
+  });
+
+  it("do not offer acting on a page that does not exist yet", async () => {
+    const wrapper = await mountPage();
+
+    expect(toolbarItem(wrapper, "delete")?.disabled).toBe(true);
+    expect(toolbarItem(wrapper, "openPageDesigner")?.disabled).toBe(true);
+    expect(toolbarItem(wrapper, "downloadContent")?.disabled).toBe(true);
     expect(toolbarItem(wrapper, "clonePage")?.disabled).toBe(true);
   });
 });

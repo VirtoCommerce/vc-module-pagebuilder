@@ -44,6 +44,16 @@ describe("the SEO of a page's details", () => {
     expect(page.item.value.id).toBeUndefined();
   });
 
+  it("refuses to archive a page whose details failed to load, instead of reporting it archived", async () => {
+    platform.on("GET", CONTENT, () => status(500));
+    const page = details();
+    await page.loadGroup().catch(() => undefined);
+
+    await expect(page.deleteGroup()).rejects.toThrow();
+
+    expect(platform.to("/api/page-builder-pages/grouped/archive")).toEqual([]);
+  });
+
   it("keeps the stored SEO when a later read fails, so the next save does not blank it", async () => {
     platform.on("GET", CONTENT, stored);
     const page = details();

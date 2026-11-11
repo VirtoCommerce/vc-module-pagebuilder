@@ -131,10 +131,12 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
   }
 
   const { action: deleteGroup, loading: deletingGroup } = useAsync(async () => {
-    if (item.value.id) {
-      const apiClient = await getApiClient();
-      await apiClient.archiveGroups([item.value.id]);
+    const groupId = item.value?.id;
+    if (!groupId) {
+      throw new Error("Can't archive page.");
     }
+    const apiClient = await getApiClient();
+    await apiClient.archiveGroups([groupId]);
   });
 
   const { action: publishGroup, loading: publishingGroup } = useAsync(async () => {
