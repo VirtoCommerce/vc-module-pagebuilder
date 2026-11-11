@@ -52,9 +52,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
 
             // misses are cached too: the designer polls a page that does not exist yet on the work
             // branch on every keystroke-triggered status refresh
-            _memoryCache.Set(cacheKey, content, GitCommitSha.IsSha(gitRef)
-                ? _options.ImmutableReadCacheExpiration
-                : _options.ReadCacheExpiration);
+            CacheRead(repository, path, gitRef, content);
 
             return content;
         }
@@ -207,7 +205,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                 // the write that raced with this one may have been this very content
                 if (current?.Holds(bytes) == true)
                 {
-                    InvalidateRead(repository, path, branch);
+                    CacheRead(repository, path, branch, content);
                     return await GetBranchHeadShaAsync(repository, branch, cancellationToken);
                 }
 
@@ -218,7 +216,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             {
                 var operation = $"commit \"{path}\" to branch \"{branch}\"";
                 await GitHubApiClient.EnsureSuccessAsync(response, operation, cancellationToken);
-                InvalidateRead(repository, path, branch);
+                CacheRead(repository, path, branch, content);
                 return await ReadCommitShaAsync(response, operation, cancellationToken);
             }
         }
@@ -248,7 +246,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                 GitHubApiClient.CreateJsonContent(body), operation, cancellationToken);
 
             await GitHubApiClient.EnsureSuccessAsync(response, operation, cancellationToken);
-            InvalidateRead(repository, path, branch);
+            CacheRead(repository, path, branch, null);
             return await ReadCommitShaAsync(response, operation, cancellationToken);
         }
 
@@ -337,6 +335,16 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
         public virtual void InvalidateRead(string repository, string path, string gitRef)
         {
             _memoryCache.Remove(ReadCacheKey(repository, path, gitRef));
+        }
+
+        // A write puts what it wrote into the read cache rather than dropping the entry: right after a
+        // commit the contents API can still answer the previous version, and a read that took it would
+        // keep it for as long as any other read.
+        private void CacheRead(string repository, string path, string gitRef, string content)
+        {
+            _memoryCache.Set(ReadCacheKey(repository, path, gitRef), content, GitCommitSha.IsSha(gitRef)
+                ? _options.ImmutableReadCacheExpiration
+                : _options.ReadCacheExpiration);
         }
 
         private static string ReadCacheKey(string repository, string path, string gitRef) => $"{nameof(GitHubContentRepository)}:{repository}:{gitRef}:{path}";

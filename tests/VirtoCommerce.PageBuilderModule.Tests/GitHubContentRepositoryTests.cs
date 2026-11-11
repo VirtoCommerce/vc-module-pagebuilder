@@ -57,21 +57,49 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public async Task CommitFileAsync_DropsTheCachedReadOfThatBranch()
+        public async Task CommitFileAsync_ReadsBackTheWrittenContent_ThoughGitHubStillAnswersThePreviousOne()
         {
             var handler = new ScriptedHandler(
                 ("GET", "repos/o/r/contents/pages/foo.page?ref=work", _ => RespondJson(ContentsPayload("old"))),
                 ("GET", "repos/o/r/contents/pages/foo.page?ref=work", _ => RespondJson("""{ "sha": "file-sha" }""")),
                 ("PUT", "repos/o/r/contents/pages/foo.page", _ => RespondJson(CommitPayload())),
-                // the stale entry is gone, so this read goes to GitHub again
-                ("GET", "repos/o/r/contents/pages/foo.page?ref=work", _ => RespondJson(ContentsPayload("new"))));
+                // right after a commit the contents API can still answer from a replica that has not seen it
+                ("GET", "repos/o/r/contents/pages/foo.page?ref=work", _ => RespondJson(ContentsPayload("old"))));
             var repository = Create(handler);
 
             Assert.Equal("old", await repository.ReadFileAsync("o/r", "pages/foo.page", "work", TestContext.Current.CancellationToken));
             await repository.CommitFileAsync("o/r", "pages/foo.page", "new", "work", "msg", Author, TestContext.Current.CancellationToken);
 
             Assert.Equal("new", await repository.ReadFileAsync("o/r", "pages/foo.page", "work", TestContext.Current.CancellationToken));
+        }
+
+        [Fact]
+        public async Task CommitFileAsync_LeavesTheSamePathOnOtherBranchesToGitHub()
+        {
+            var handler = new ScriptedHandler(
+                ("GET", "repos/o/r/contents/pages/foo.page?ref=work", _ => Respond(HttpStatusCode.NotFound)),
+                ("PUT", "repos/o/r/contents/pages/foo.page", _ => RespondJson(CommitPayload())),
+                ("GET", "repos/o/r/contents/pages/foo.page?ref=master", _ => RespondJson(ContentsPayload("live"))));
+            var repository = Create(handler);
+
+            await repository.CommitFileAsync("o/r", "pages/foo.page", "new", "work", "msg", Author, TestContext.Current.CancellationToken);
+
+            Assert.Equal("live", await repository.ReadFileAsync("o/r", "pages/foo.page", "master", TestContext.Current.CancellationToken));
             handler.AssertDone();
+        }
+
+        [Fact]
+        public async Task DeleteFileAsync_ReadsBackTheMiss_ThoughGitHubStillAnswersTheDeletedFile()
+        {
+            var handler = new ScriptedHandler(
+                ("GET", "repos/o/r/contents/pages/foo.page?ref=work", _ => RespondJson("""{ "sha": "file-sha" }""")),
+                ("DELETE", "repos/o/r/contents/pages/foo.page", _ => RespondJson(CommitPayload())),
+                ("GET", "repos/o/r/contents/pages/foo.page?ref=work", _ => RespondJson(ContentsPayload("old"))));
+            var repository = Create(handler);
+
+            await repository.DeleteFileAsync("o/r", "pages/foo.page", "work", "msg", Author, TestContext.Current.CancellationToken);
+
+            Assert.Null(await repository.ReadFileAsync("o/r", "pages/foo.page", "work", TestContext.Current.CancellationToken));
         }
 
         // ── branches ───────────────────────────────────────────────────────────────────────────────
@@ -290,9 +318,13 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 ("GET", "repos/o/r/contents/pages/foo.page?ref=work", _ => RespondJson(FilePayload("fresh", "{}"))),
                 ("GET", "repos/o/r/git/ref/heads/work", _ => RespondJson($$"""{ "object": { "sha": "{{Sha}}" } }""")));
 
-            var commit = await Create(handler).CommitFileAsync("o/r", "pages/foo.page", "{}", "work", "msg", Author, TestContext.Current.CancellationToken);
+            var repository = Create(handler);
+
+            var commit = await repository.CommitFileAsync("o/r", "pages/foo.page", "{}", "work", "msg", Author, TestContext.Current.CancellationToken);
 
             Assert.Equal(Sha, commit);
+            // read back without another request: none is scripted
+            Assert.Equal("{}", await repository.ReadFileAsync("o/r", "pages/foo.page", "work", TestContext.Current.CancellationToken));
             handler.AssertDone();
         }
 
