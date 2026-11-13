@@ -14,7 +14,7 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
     {
         private const int MaxSlugLength = 60;
         private const int HashLength = 7;
-        private const string DraftSuffix = "-draft";
+        private const string DraftSuffix = ModuleConstants.DraftSuffix;
         private const string BlogsFolder = ContentConstants.ContentTypes.Blogs + "/";
 
         private static readonly Regex Unsafe = new("[^a-z0-9._-]+", RegexOptions.None, TimeSpan.FromSeconds(1));

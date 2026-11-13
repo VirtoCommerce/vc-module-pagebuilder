@@ -233,6 +233,26 @@ describe('getValueByPath', () => {
   it('returns undefined for missing path', () => {
     expect(getValueByPath({ a: 1 }, 'b')).toBeUndefined();
   });
+
+  it('resolves a recursive path', () => {
+    expect(getValueByPath({ a: { b: { c: 42 } } }, '$..c')).toBe(42);
+  });
+
+  it('runs a filter through the expression language', () => {
+    const store = { dynamicProperties: [{ name: 'DefaultThemeName', values: [{ propertyName: 'DefaultThemeName', value: 'b2b' }] }] };
+
+    expect(getValueByPath(store, "$.dynamicProperties..values[?(@.propertyName=='DefaultThemeName')].value")).toBe('b2b');
+    expect(getValueByPath({ items: [{ t: 'a', v: 1 }, { t: 'b', v: 2 }] }, "$.items[?(@.t=='b' && @root.items.length > 1)].v")).toBe(2);
+  });
+
+  it('does not let a filter or a script call what the expression language refuses', () => {
+    const model = { tags: ['a'] };
+
+    expect(getValueByPath(model, "$..[?(@.push('x'))]")).toBeNull();
+    expect(getValueByPath(model, "$.tags[(@.push('x'))]")).toBeNull();
+    expect(getValueByPath(model, "$..[?(@.constructor)]")).toBeNull();
+    expect(model.tags).toEqual(['a']);
+  });
 });
 
 // ── stripHtmlTags ──────────────────────────────────────────────────

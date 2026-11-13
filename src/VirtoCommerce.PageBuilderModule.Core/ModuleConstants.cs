@@ -6,6 +6,8 @@ namespace VirtoCommerce.PageBuilderModule.Core
     {
         public const string DefaultPageContent = "{ \"settings\": {}, \"content\": [] }";
 
+        public const string DraftSuffix = "-draft";
+
         public static class ContentProviders
         {
             /// <summary>
@@ -43,6 +45,17 @@ namespace VirtoCommerce.PageBuilderModule.Core
 
             /// <summary>A translation is behind the source language version.</summary>
             public const string Outdated = "Outdated";
+        }
+
+        public static class SchemaKinds
+        {
+            public const string Sections = "sections";
+            public const string Templates = "templates";
+            public const string Blocks = "blocks";
+            public const string Objects = "objects";
+            public const string Shared = "shared";
+
+            public static IReadOnlyList<string> All { get; } = [Sections, Templates, Blocks, Objects, Shared];
         }
 
         public static class PageLifecycleFilters
