@@ -78,14 +78,14 @@ public class PageBuilderPageController(
     [Authorize(ModuleConstants.Security.Permissions.Update)]
     public async Task<ActionResult<GroupedPageBuilderPage>> UpdateGroup([FromBody] GroupedPageBuilderPage model, CancellationToken cancellationToken = default)
     {
-        var authorizationResult = await authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
-        if (!authorizationResult.Succeeded)
-        {
-            return Forbidden;
-        }
-
         // get the existing grouped page for pages Ids
         var groupedPage = await groupedPageService.GetByIdAsync(model.Id);
+
+        var authorizationError = await AuthorizeGroupUpdateAsync(groupedPage, model);
+        if (authorizationError != null)
+        {
+            return authorizationError;
+        }
 
         if (groupedPage == null)
         {
@@ -428,6 +428,30 @@ public class PageBuilderPageController(
     // Syncs Name/Permalink/CultureName from the group into the draft page's content JSON `settings` object.
     // If the page has no content yet, starts from DefaultPageContent. If the existing content is not a JSON
     // object, leaves it untouched (legacy / non-standard payload — don't try to fix it here).
+    private async Task<ActionResult> AuthorizeGroupUpdateAsync(GroupedPageBuilderPage groupedPage, GroupedPageBuilderPage model)
+    {
+        // Authorize the persisted resource first: authorizing only the incoming model would let a caller name a
+        // store they can access and overwrite a group of another store.
+        var authorizationResult = await authorizationService.AuthorizeAsync(
+            User,
+            groupedPage ?? model,
+            new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbidden;
+        }
+
+        if (groupedPage == null || string.Equals(groupedPage.StoreId, model.StoreId, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        // A move crosses two stores: the caller must be allowed to update both the persisted source and the destination.
+        authorizationResult = await authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
+
+        return authorizationResult.Succeeded ? null : Forbidden;
+    }
+
     private async Task SyncGroupSettingsToContent(string pageId, GroupedPageBuilderPage group, CancellationToken cancellationToken)
     {
         var content = await groupedPageService.LoadContent(pageId, cancellationToken);
