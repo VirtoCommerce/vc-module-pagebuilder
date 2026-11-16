@@ -151,7 +151,7 @@ export class TemplatesService {
     externalPreview(path: string, type: string, entry: TemplateEntry, groupId: string): void {
         const previewUrl = this.appConfig.getValue('externalPreview', { item: entry, type, path, groupId });
         // open new tab with the previewUrl
-        window.open(previewUrl.url, '_blank');
+        window.open(previewUrl.url, '_blank', 'noopener,noreferrer');
     }
 
     /**
@@ -186,7 +186,7 @@ export class TemplatesService {
     previewVersion(path: string, type: string, entry: TemplateEntry, groupId: string, sha: string): void {
         const preview = this.appConfig.getValue('history', { item: entry, type, path, groupId, sha })?.preview;
         if (preview?.url) {
-            window.open(preview.url, '_blank');
+            window.open(preview.url, '_blank', 'noopener,noreferrer');
         }
     }
 
@@ -243,7 +243,7 @@ export class TemplatesService {
         const context = { templatesToSave };
         const saveTemplates = this.appConfig.getContext().config.saveTemplates;
         const request = this.http.generateRequest(saveTemplates, null, context);
-        return this.http.doRequest(request);
+        return this.http.doRequest(request, { nullWhenError: false }, null);
     }
 
 }

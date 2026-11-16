@@ -7,7 +7,7 @@ This control presents a dropdown list of options to the user. This control suppo
 | Property          | Type             | Description                                                                                                                                            |
 | ----------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `options`         | OptionModel[]  | Array of static options to display in the dropdown.<br> These values can be grouped using the `group` property.                                        |
-| `optionsSelector` | string         | JavaScript snippet to dynamically generate options from the current [`ComponentContext`](component-context.md).<br>Ignored if `request` is defined.      |
+| `optionsSelector` | string         | An [expression](../template-syntax.md#expression-language) that builds the options from the current [`ComponentContext`](component-context.md).<br>Ignored if `request` is defined.      |
 | `request`         | OptionsRequest | Configuration to fetch options via a web [request](server-descriptors.md#serverrequestdescriptor).<br>The `label` property from the result will be used for display,<br>and the option's value is taken from the corresponding field.<br>The fetched data is merged with the array from `options`.                                                                          |
 | `equalKey`        | string         | Compares values between the current value and available options.                                                                                         |
 | `filterList`      | boolean        | Enables filtering the option list in the UI.                                                                                                             |
@@ -16,10 +16,10 @@ This control presents a dropdown list of options to the user. This control suppo
 **Example**:
 
 ```js
-this.page.filter(function(x) { return x.type==='popup' }).map(function(x) { return { label: x.name || x.__id, value: x.__id }; })
+toOptions(filterBy(this.page, 'type', 'popup'), ['name', '__id'], '__id')
 ```
 
-This script filters all blocks on the page by type (`popup`) and maps the results to a list of options with `label` and `value` fields.
+This expression keeps the blocks of the page whose type is `popup` and turns them into options with `label` and `value` fields.
 
 The resulting list is **merged with the static options** provided via the `options` property, if any.
 
@@ -149,7 +149,7 @@ Extracts the actual `value` for each option from a server response.
             "id": "popupId",
             "label": "Select target popup",
             "type": "select",
-            "optionsSelector": "this.page.filter(x => x.type==='popup').map(x => ({ label: x.name || x.__id, value: x.__id }))"
+            "optionsSelector": "toOptions(filterBy(this.page, 'type', 'popup'), ['name', '__id'], '__id')"
         },
         ...
     ]

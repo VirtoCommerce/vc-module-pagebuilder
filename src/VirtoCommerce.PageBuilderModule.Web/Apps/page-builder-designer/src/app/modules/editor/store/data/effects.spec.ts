@@ -363,6 +363,30 @@ describe('TemplateEditorDataEffects', () => {
             expect(modal()).not.toHaveBeenCalled();
             expect(result.type).toBe(actions.getTemplatePublishStatusFails.type);
         });
+
+        it('tells the editor that a publish refused for lack of permission did not happen', async () => {
+            templatesService.publishTemplate.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 403 })));
+
+            actions$.next(actions.executeToolbarAction({ action: 'publish' }));
+            const results = await firstValueFrom(effects.publishTemplate$.pipe(take(2), toArray()));
+
+            expect(results.map(r => r.type)).toEqual([
+                actions.getTemplatePublishStatusFails.type,
+                sharedActions.showNotification.type,
+            ]);
+            expect(results[1]).toMatchObject({ msgType: 'error' });
+            expect((results[1] as any).message).toContain('permission');
+        });
+
+        it('passes on the reason the server gives for a refused publish', async () => {
+            templatesService.publishTemplate.mockReturnValue(throwError(() => ({ status: 409, error: { error: 'Checks failed.' } })));
+
+            actions$.next(actions.executeToolbarAction({ action: 'publish' }));
+            const results = await firstValueFrom(effects.publishTemplate$.pipe(take(2), toArray()));
+
+            expect(results[1]).toMatchObject({ type: sharedActions.showNotification.type, msgType: 'error' });
+            expect((results[1] as any).message).toContain('Checks failed.');
+        });
     });
 
     // ── unpublishTemplate$ ────────────────────────────────────────
@@ -374,6 +398,20 @@ describe('TemplateEditorDataEffects', () => {
             const types = results.map(r => r.type);
             expect(types).toContain(actions.getTemplatePublishStatusSuccess.type);
             expect(types).toContain(sharedActions.broadcastPlatformMessage.type);
+        });
+
+        it('tells the editor that an unpublish refused for lack of permission did not happen', async () => {
+            templatesService.unpublishTemplate.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 403 })));
+
+            actions$.next(actions.executeToolbarAction({ action: 'unpublish' }));
+            const results = await firstValueFrom(effects.unpublishTemplate$.pipe(take(2), toArray()));
+
+            expect(results.map(r => r.type)).toEqual([
+                actions.getTemplatePublishStatusFails.type,
+                sharedActions.showNotification.type,
+            ]);
+            expect(results[1]).toMatchObject({ msgType: 'error' });
+            expect((results[1] as any).message).toContain('permission');
         });
     });
 

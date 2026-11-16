@@ -30,7 +30,7 @@ Use this context in custom controls, dynamic sections, or when building interact
 
 ## Utility functions (`utils`)
 
-The `utils` object provides a collection of helper methods for working with data, text, paths, and more:
+The `utils` object provides a collection of helper methods for working with data, text, paths, and more. It is for custom controls written in code: an [expression](./template-syntax.md#expression-language) in a schema calls the helpers it supports by name, as `combine(…)`, never through `this.utils`.
 
 | Function                                                       | Description                                                        |
 | -------------------------------------------------------------- | ------------------------------------------------------------------ |
@@ -39,7 +39,7 @@ The `utils` object provides a collection of helper methods for working with data
 | `generateUniqueString(length)`                                 | Generates a random unique string of specified length.              |
 | `onlyLettersAndDigits(value)`                                  | Strips all characters except letters and digits.                   |
 | `template(value, ...args)`                                     | Replaces placeholders in a string with provided arguments.         |
-| `evalInContext(expr, context)`                                 | Evaluates a JavaScript expression within a given context.          |
+| `evalInContext(expr, context)`                                 | Evaluates an expression within a given context.                    |
 | `getValueOrDefault(value, defaultValue)`                       | Returns a value or a default if undefined.                         |
 | `getValueByPath(model, path)`                                  | Retrieves a nested value from an object using a string path.       |
 | `stripHtmlTags(str)`                                           | Removes HTML tags from a string.                                   |
@@ -49,6 +49,8 @@ The `utils` object provides a collection of helper methods for working with data
 | `getItemValue(item, descriptor)`                               | Extracts a value from an item using a descriptor or path.          |
 | `arrayCastByConfig(item, isArray)`                             | Ensures a value is treated as an array if configured.              |
 | `cutString(value, length)`                                     | Truncates a string to a specified length (default: 50 characters). |
+| `filterBy(list, field, value)`                                 | The items of a list whose own `field` equals `value`.              |
+| `toOptions(list, labelFields, valueField)`                     | Select options `{ label, value }` built from a list.               |
 
 <br>
 <br>

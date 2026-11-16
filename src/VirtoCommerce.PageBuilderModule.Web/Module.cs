@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -14,6 +15,7 @@ using VirtoCommerce.ContentModule.Core.Search;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Data.BackgroundJobs;
@@ -24,6 +26,7 @@ using VirtoCommerce.PageBuilderModule.Data.Handlers;
 using VirtoCommerce.PageBuilderModule.Data.Repositories;
 using VirtoCommerce.PageBuilderModule.Data.Search;
 using VirtoCommerce.PageBuilderModule.Data.Services;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Pages.Core.ContentProviders;
 using VirtoCommerce.Platform.Core.Events;
@@ -32,10 +35,6 @@ using VirtoCommerce.Platform.Core.Jobs;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Core.Settings;
-using VirtoCommerce.Platform.Data.MySql.Extensions;
-using VirtoCommerce.Platform.Data.PostgreSql.Extensions;
-using VirtoCommerce.Platform.Data.SqlServer.Extensions;
-using VirtoCommerce.StoreModule.Core.Model;
 
 namespace VirtoCommerce.PageBuilderModule.Web
 {
@@ -84,6 +83,8 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddBackgroundJob<PageBuilderSharedComponentContentPropagationJob, PageBuilderSharedComponentContentPropagationJobPayload>(triggerable: false);
 
             serviceCollection.AddTransient<IAuthorizationHandler, PageBuilderAuthorizationHandler>();
+            serviceCollection.AddTransient<IValidator<PageBuilderContentFile>, PageBuilderContentFileValidator>();
+            serviceCollection.AddTransient<IValidator<PageBuilderContentRequest>, PageBuilderContentRequestValidator>();
             serviceCollection.AddTransient<IPageContentProvider, PageBuilderContentProvider>();
             serviceCollection.AddTransient<IPagesMigrationService, PagesMigrationService>();
             serviceCollection.AddTransient<IPageBuilderAssetReferenceMigrationService, PageBuilderAssetReferenceMigrationService>();

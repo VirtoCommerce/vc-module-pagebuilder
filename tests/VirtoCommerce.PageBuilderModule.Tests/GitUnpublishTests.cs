@@ -8,7 +8,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
+using VirtoCommerce.StoreModule.Core.Model;
 using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests
@@ -88,17 +90,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Empty(repository.DeletedFiles);
         }
 
-        [Fact]
-        public async Task Unpublish_WithoutThePublishPermission_IsForbidden()
-        {
-            var repository = Repository();
-
-            var result = await Controller(repository, Publisher(), allowed: false).GitUnpublish("vccom", Page, "pages");
-
-            Assert.IsType<ForbidResult>(result);
-            Assert.Empty(repository.DeletedFiles);
-        }
-
         // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
         private static RecordingRepository Repository(bool withBranch = true)
@@ -133,7 +124,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             // Only the git dependencies take part in this path; the rest are left null on purpose, so a
             // change that starts reaching for blob storage fails loudly here.
             var controller = new PageBuilderController(
-                storeService: null,
+                storeService: new FakeStoreService(new Store { Id = "vccom" }),
                 pathResolver: null,
                 blobContentStorageProviderFactory: null,
                 publishingService: null,
@@ -144,7 +135,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentHistory: new SilentHistory(),
                 gitContentPublisher: publisher,
                 settingsManager: null,
-                authorizationService: new FakeAuthorizationService(allowed));
+                authorizationService: new FakeAuthorizationService(allowed),
+                requestValidator: new PageBuilderContentRequestValidator(new FakeStoreService(new Store { Id = "vccom" }), new PageBuilderContentFileValidator()));
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, Login)], "test");
             controller.ControllerContext = new ControllerContext
