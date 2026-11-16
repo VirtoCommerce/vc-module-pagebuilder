@@ -5,8 +5,10 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="VirtoCommerce.ContentModule.Data" Version="3.1003.0" />
-    <PackageReference Include="VirtoCommerce.Platform.Data" Version="3.1039.14" />
-    <PackageReference Include="VirtoCommerce.Platform.Security" Version="3.1039.14" />
+    <PackageReference Include="VirtoCommerce.Platform.Data" Version="3.1039.19" />
+    <PackageReference Include="VirtoCommerce.Platform.Security" Version="3.1039.19" />
+    <!-- Override vulnerable transitive version from Hangfire.MySqlStorage via VirtoCommerce.ContentModule.Data (GHSA-473q-m89c-ghf8) -->
+    <PackageReference Include="MySqlConnector" Version="2.6.2" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VirtoCommerce.PageBuilderModule.Core\VirtoCommerce.PageBuilderModule.Core.csproj" />

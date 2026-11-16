@@ -14,7 +14,7 @@
       <IncludeAssets>runtime; build; native; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     
-    <PackageReference Include="VirtoCommerce.Platform.Data.PostgreSql" Version="3.1039.14" />
+    <PackageReference Include="VirtoCommerce.Platform.Data.PostgreSql" Version="3.1039.19" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VirtoCommerce.PageBuilderModule.Data\VirtoCommerce.PageBuilderModule.Data.csproj" />
