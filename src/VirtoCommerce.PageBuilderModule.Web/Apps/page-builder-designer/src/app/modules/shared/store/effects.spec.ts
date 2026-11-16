@@ -136,6 +136,24 @@ describe('SharedEffects', () => {
         });
     });
 
+    // ── sendPreviewAuth$ ──────────────────────────────────────────
+
+    describe('sendPreviewAuth$', () => {
+        it('hands the preview the access token only', async () => {
+            (effects as any).impersonateService = {
+                getImpersonateToken: vi.fn().mockReturnValue(of({ access_token: 'access', refresh_token: 'refresh', expires_in: 3600 })),
+            };
+
+            actions$.next(actions.sendPreviewAuth({ userId: 'user-1' }));
+            await firstValueFrom(effects.sendPreviewAuth$);
+
+            expect(eventsBus.emit).toHaveBeenCalledWith({
+                target: 'preview',
+                payload: { type: 'auth', token: { access_token: 'access' }, userId: 'user-1' },
+            });
+        });
+    });
+
     // ── broadcastPlatformMessage$ ─────────────────────────────────
 
     describe('broadcastPlatformMessage$', () => {

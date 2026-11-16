@@ -11,6 +11,14 @@ import { JwtStorageService } from './jwt-storage.service';
 import { SessionService } from './session.service';
 import { DefaultConfig } from './app.default-config';
 
+const DEFAULT_SETTINGS_URL = 'data/settings.json';
+const BUNDLED_SETTINGS_URL = /^data\/[\w-]+(?:\.[\w-]+)*\.json$/;
+
+/** The settings choose every url called with the admin's token, so only bundled settings files are accepted. */
+export function bundledSettingsUrl(requested: unknown): string {
+    return typeof requested === 'string' && BUNDLED_SETTINGS_URL.test(requested) ? requested : DEFAULT_SETTINGS_URL;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -23,9 +31,8 @@ export class AppInitializator {
     private readonly session = inject(SessionService);
 
     init(): Promise<any> {
-        // todo: dangerous! check that this is security
         console.log(this.config.getContext());
-        const configUrl = this.config.getContext().location.params.configUrl || 'data/settings.json';
+        const configUrl = bundledSettingsUrl(this.config.getContext().location.params.configUrl);
         return firstValueFrom(this.ensureBearerToken().pipe(
             switchMap(() => this.loadSettingsFrom(configUrl, null, DefaultConfig)),
         ).pipe(

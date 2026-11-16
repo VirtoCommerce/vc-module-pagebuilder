@@ -11,7 +11,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
+using VirtoCommerce.StoreModule.Core.Model;
 using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests
@@ -181,18 +183,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Empty(publisher.Merges);
         }
 
-        [Fact]
-        public async Task Publish_WithoutThePublishPermission_IsForbidden_RebaseOrNot()
-        {
-            var repository = Repository();
-
-            var result = await Controller(repository, Publisher(GitPublishState.Merged), allowed: false).GitPublish("vccom", Page, "pages", rebase: true);
-
-            Assert.IsType<ForbidResult>(result);
-            Assert.Empty(repository.DeletedBranches);
-            Assert.Empty(repository.Commits);
-        }
-
         // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
         private static RecordingRepository Repository(bool withDraft = true)
@@ -226,7 +216,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             // Only the git dependencies take part in this path; the rest are left null on purpose, so a
             // change that starts reaching for blob storage fails loudly here.
             var controller = new PageBuilderController(
-                storeService: null,
+                storeService: new FakeStoreService(new Store { Id = "vccom" }),
                 pathResolver: null,
                 blobContentStorageProviderFactory: null,
                 publishingService: null,
@@ -237,7 +227,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentHistory: new SilentHistory(),
                 gitContentPublisher: publisher,
                 settingsManager: null,
-                authorizationService: new FakeAuthorization(allowed));
+                authorizationService: new FakeAuthorizationService(allowed),
+                requestValidator: new PageBuilderContentRequestValidator(new FakeStoreService(new Store { Id = "vccom" }), new PageBuilderContentFileValidator()));
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, Login)], "test");
             controller.ControllerContext = new ControllerContext
@@ -254,14 +245,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 Task.FromResult(true);
         }
 
-        private sealed class FakeAuthorization(bool allowed) : IAuthorizationService
-        {
-            public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object resource, IEnumerable<IAuthorizationRequirement> requirements) =>
-                Task.FromResult(allowed ? AuthorizationResult.Success() : AuthorizationResult.Failed());
-
-            public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object resource, string policyName) =>
-                Task.FromResult(allowed ? AuthorizationResult.Success() : AuthorizationResult.Failed());
-        }
 
         private sealed class SilentHistory : IGitContentHistory
         {

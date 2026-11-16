@@ -86,6 +86,17 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
+        public void Validate_AnObjectWhereAValueBelongs_ReportsErrorInsteadOfThrowing()
+        {
+            var page = JToken.Parse("""{"settings":{"type":{}},"content":[{"type":[],"id":{}}]}""");
+
+            var errors = PageEnvelopeValidator.Validate(page);
+
+            Assert.Contains(errors, e => e.Contains("settings.type"));
+            Assert.Contains(errors, e => e.Contains("missing type"));
+        }
+
+        [Fact]
         public void Validate_NullOrScalar_ReportsError()
         {
             Assert.NotEmpty(PageEnvelopeValidator.Validate(JValue.CreateNull()));
