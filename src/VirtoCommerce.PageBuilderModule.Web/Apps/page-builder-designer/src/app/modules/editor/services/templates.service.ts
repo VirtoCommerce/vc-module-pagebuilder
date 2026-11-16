@@ -62,14 +62,14 @@ export class TemplatesService {
     externalPreview(path: string, type: string, entry: TemplateEntry, groupId: string): void {
         const previewUrl = this.appConfig.getValue('externalPreview', { item: entry, type, path, groupId });
         // open new tab with the previewUrl
-        window.open(previewUrl.url, '_blank');
+        window.open(previewUrl.url, '_blank', 'noopener,noreferrer');
     }
 
     saveGroupedPage(groupId: string, pageContent: any): Observable<any> {
         const context = { groupId, content: pageContent };
         const saveGroupedPage = this.appConfig.getValue('saveGroupedPage', context);
         const request = this.http.generateRequest(saveGroupedPage, null, context);
-        return this.http.doRequest(request);
+        return this.http.doRequest(request, { nullWhenError: false }, null);
     }
 
     saveTemplates(templates: { entry: TemplateEntry, content: TemplateModel }[]): Observable<any> {
@@ -81,7 +81,7 @@ export class TemplatesService {
         const context = { templatesToSave };
         const saveTemplates = this.appConfig.getValue('saveTemplates', context);
         const request = this.http.generateRequest(saveTemplates, null, context);
-        return this.http.doRequest(request);
+        return this.http.doRequest(request, { nullWhenError: false }, null);
     }
 
 }

@@ -152,7 +152,13 @@ export class TemplateEditorUiEffects {
         tap(({ error }) => {
             console.log(error)
         }),
-        map(() => sharedActions.showNotification({ message: 'Could not save template', msgType: 'error', top: true }))
+        map(({ error }) => sharedActions.showNotification({
+            message: error?.status === 403
+                ? "You don't have permission to save these changes. Your changes have not been saved."
+                : 'Could not save template',
+            msgType: 'error',
+            top: true
+        }))
     ));
 
     previewItem$ = createEffect(() => this.actions$.pipe(

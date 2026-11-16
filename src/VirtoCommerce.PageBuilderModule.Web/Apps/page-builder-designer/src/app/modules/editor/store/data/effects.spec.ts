@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { HttpErrorResponse } from '@angular/common/http';
 import { provideMockActions } from '@ngrx/effects/testing';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
 import { ReplaySubject, of, firstValueFrom, throwError } from 'rxjs';
@@ -182,6 +183,30 @@ describe('TemplateEditorDataEffects', () => {
             expect(types).toContain(actions.getTemplatePublishStatusSuccess.type);
             expect(types).toContain(sharedActions.broadcastPlatformMessage.type);
         });
+
+        it('tells the editor that a publish refused for lack of permission did not happen', async () => {
+            templatesService.publishTemplate.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 403 })));
+
+            actions$.next(actions.executeToolbarAction({ action: 'publish' }));
+            const results = await firstValueFrom(effects.publishTemplate$.pipe(take(2), toArray()));
+
+            expect(results.map(r => r.type)).toEqual([
+                actions.getTemplatePublishStatusFails.type,
+                sharedActions.showNotification.type,
+            ]);
+            expect(results[1]).toMatchObject({ msgType: 'error' });
+            expect((results[1] as any).message).toContain('permission');
+        });
+
+        it('passes on the reason the server gives for a refused publish', async () => {
+            templatesService.publishTemplate.mockReturnValue(throwError(() => ({ status: 400, error: { error: 'Path is not a page document.' } })));
+
+            actions$.next(actions.executeToolbarAction({ action: 'publish' }));
+            const results = await firstValueFrom(effects.publishTemplate$.pipe(take(2), toArray()));
+
+            expect(results[1]).toMatchObject({ type: sharedActions.showNotification.type, msgType: 'error' });
+            expect((results[1] as any).message).toContain('Path is not a page document.');
+        });
     });
 
     // ── unpublishTemplate$ ────────────────────────────────────────
@@ -193,6 +218,20 @@ describe('TemplateEditorDataEffects', () => {
             const types = results.map(r => r.type);
             expect(types).toContain(actions.getTemplatePublishStatusSuccess.type);
             expect(types).toContain(sharedActions.broadcastPlatformMessage.type);
+        });
+
+        it('tells the editor that an unpublish refused for lack of permission did not happen', async () => {
+            templatesService.unpublishTemplate.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 403 })));
+
+            actions$.next(actions.executeToolbarAction({ action: 'unpublish' }));
+            const results = await firstValueFrom(effects.unpublishTemplate$.pipe(take(2), toArray()));
+
+            expect(results.map(r => r.type)).toEqual([
+                actions.getTemplatePublishStatusFails.type,
+                sharedActions.showNotification.type,
+            ]);
+            expect(results[1]).toMatchObject({ msgType: 'error' });
+            expect((results[1] as any).message).toContain('permission');
         });
     });
 

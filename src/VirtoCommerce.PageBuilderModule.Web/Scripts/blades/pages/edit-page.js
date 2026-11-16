@@ -162,7 +162,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                                 storeUrl = (storeUrl || blade.storeUrl).replace(/\/$/, '');
                                 if (storeUrl) {
                                     var documentId = filesDraftService.getDocumentId(blade, true);
-                                    window.open(`${storeUrl}/designer-preview?pageId=${encodeURIComponent(documentId)}`, '_blank');
+                                    window.open(`${storeUrl}/designer-preview?pageId=${encodeURIComponent(documentId)}`, '_blank', 'noopener,noreferrer');
                                 } else {
                                     var dialog = {
                                         id: "noUrlInStore",
@@ -192,38 +192,43 @@ angular.module('virtoCommerce.pageBuilderModule')
             var publishCommand = {
                 name: "pageBuilder.commands.publish", icon: 'fa fa-file',
                 executeMethod: function () {
-                    contentApi.publish({
-                        contentType: blade.contentType,
+                    pageBuilderApi.publish({
                         storeId: blade.storeId,
-                        relativeUrl: blade.currentEntity.relativeUrl
-                    }, function () {
+                        type: blade.contentType,
+                        path: blade.currentEntity.relativeUrl
+                    }, {}, function () {
                         blade.hasChanges = false;
                         blade.published = true;
                         getDocumentIndex();
                         updateToolbarCommands();
                         postMessageToPageBuilder({ source: 'platform', published: true, hasChanges: false });
                         blade.parentBlade.refresh();
-                    });
+                    }, publishError);
                 },
                 canExecuteMethod: function () { return !isDirty(); }
             };
             var unpublishCommand = {
                 name: "pageBuilder.commands.unpublish", icon: 'fa fa-file-alt',
                 executeMethod: function () {
-                    contentApi.unpublish({
-                        contentType: blade.contentType,
+                    pageBuilderApi.unpublish({
                         storeId: blade.storeId,
-                        relativeUrl: blade.currentEntity.relativeUrl
-                    }, function () {
+                        type: blade.contentType,
+                        path: blade.currentEntity.relativeUrl
+                    }, {}, function () {
                         blade.hasChanges = true;
                         blade.published = false;
                         updateToolbarCommands();
                         postMessageToPageBuilder({ source: 'platform', published: false, hasChanges: true });
                         blade.parentBlade.refresh();
-                    });
+                    }, publishError);
                 },
                 canExecuteMethod: function () { return !isDirty(); }
             };
+
+            function publishError(error) {
+                var message = error.data && error.data.error ? error.data.error : 'Error ' + error.status;
+                bladeNavigationService.setError(message, blade);
+            }
 
             function fillMetadata() {
                 var blobName = blade.currentEntity.name || '';

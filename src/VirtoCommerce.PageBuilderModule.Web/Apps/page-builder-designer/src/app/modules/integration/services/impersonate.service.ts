@@ -6,7 +6,7 @@ import { HttpHeaders } from '@angular/common/http';
 export interface ImpersonateTokenResponse {
     access_token: string;
     token_type: string;
-    refresh_token: string;
+    refresh_token?: string;
     expires_in: number;
 }
 
@@ -21,7 +21,8 @@ export class ImpersonateService {
         const headers = new HttpHeaders({
             'content-type': 'application/x-www-form-urlencoded'
         });
-        const body = `grant_type=impersonate&user_id=${encodeURIComponent(userId)}&scope=offline_access`;
+        // no offline_access: the preview gets the access token only, so a refresh token would only be thrown away
+        const body = `grant_type=impersonate&user_id=${encodeURIComponent(userId)}`;
         return this.http.post<ImpersonateTokenResponse>(url, body, { headers });
     }
 }

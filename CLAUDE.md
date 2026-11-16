@@ -99,11 +99,12 @@ Lives entirely in `Apps/page-builder-designer/`. The SPA runs as an `<iframe>` i
 - Preview iframe receives template data changes in real-time
 
 **Config system:**
-- Loads `data/settings.json` (or `?configUrl=` override)
+- Loads `data/settings.json` (or another bundled `data/*.json` named by `?configUrl=`)
 - Template syntax in values (evaluated by `appHelpers.template()` in `integration/helpers/utils.ts`):
   - `{{path}}` — substitutes value by dot-path from context (`location.*`, `config.*`, `settings.*`)
-  - `{{=expr}}` — evaluates JS expression, result is coerced to string (for use inside larger strings)
-  - `@{{expr}}` — evaluates JS expression, returns raw result preserving type (array, object, number). Must be the entire string value. Use for POST body fields that need non-string types.
+  - `{{=expr}}` — evaluates an expression, result is coerced to string (for use inside larger strings)
+  - `@{{expr}}` — evaluates an expression, returns raw result preserving type (array, object, number). Must be the entire string value. Use for POST body fields that need non-string types.
+  - Expressions are interpreted by `integration/helpers/safe-expression.ts`, not run as JS: no functions or callbacks, object literals, `new` or globals (see `docs/_template-syntax.md`, "Expression language"). Anything else evaluates to `null`.
 - `BuilderHttpClient` evaluates `ServerRequestDescriptor` objects with LRU cache + fallback chains
 
 **Internal libraries (`projects/`):**

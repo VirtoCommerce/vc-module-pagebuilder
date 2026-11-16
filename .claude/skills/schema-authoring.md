@@ -39,7 +39,7 @@ Every entry in `settings[]` is a `SectionPropertyDescriptor`:
 | `type`          | string                 | Control type (see below). Required. |
 | `label`         | string                 | Label shown in the editor sidebar. |
 | `default`       | any                    | Default value when a new section is created. |
-| `visibility`    | string (JS expression) | Show/hide this field. Evaluated in component context (`this.item`, `this.model`, etc.). |
+| `visibility`    | string (expression)    | Show/hide this field. Evaluated in component context (`this.item`, `this.model`, etc.). |
 | `tab`           | string                 | Groups fields under a named tab in the sidebar. |
 | `group`         | string                 | Groups fields under a collapsible group within a tab. |
 | `required`      | boolean                | Marks field as required in the form. |
@@ -97,7 +97,7 @@ Create a file like `shared/typography.json` with a `settings` array. Include it 
 
 ## Visibility Expressions
 
-`visibility` is a JavaScript expression evaluated in component context. Returns `true` to show the field.
+`visibility` is an expression evaluated in component context. Returns `true` to show the field. It is not JavaScript: only the expression language in `docs/_template-syntax.md` ("Expression language") is supported — no functions or callbacks, object literals, `Math`, `typeof` or other globals. An unsupported expression evaluates to `null` and hides the field.
 
 Available context variables:
 - `this.item` — the current item's data (in a list element)

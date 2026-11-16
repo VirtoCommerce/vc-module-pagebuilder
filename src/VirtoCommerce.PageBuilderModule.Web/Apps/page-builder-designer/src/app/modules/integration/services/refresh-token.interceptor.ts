@@ -5,14 +5,26 @@ import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { JwtStorageService } from './jwt-storage.service';
 import { AuthService } from './auth.service';
 import { TokenRefreshStateService } from './token-refresh-state.service';
+import { EnvironmentRef } from './environment.ref';
+
+/** The designer is served by the platform, so its own origin is the platform's. */
+export function isPlatformRequest(url: string, location: Pick<Location, 'href' | 'origin'>): boolean {
+  try {
+    return new URL(url, location.href).origin === location.origin;
+  } catch {
+    return false;
+  }
+}
 
 function addAuthData(
   request: HttpRequest<unknown>,
   jwt: JwtStorageService,
   auth: AuthService,
   state: TokenRefreshStateService,
+  location: Location,
 ): Observable<HttpRequest<unknown>> {
-  if (request.headers.get('x-refresh') === 'true') {
+  // urls also come from schemas and settings: the token goes to the platform only
+  if (request.headers.get('x-refresh') === 'true' || !isPlatformRequest(request.url, location)) {
     return of(request);
   }
 
@@ -50,7 +62,6 @@ function addAuthData(
 }
 
 function enrichRequest(request: HttpRequest<unknown>, token: string): HttpRequest<unknown> {
-  // todo: we need add header to local only requests
   return request.clone({ headers: request.headers.set('Authorization', 'Bearer ' + token) });
 }
 
@@ -58,8 +69,9 @@ export const refreshTokenInterceptor: HttpInterceptorFn = (req, next) => {
   const jwt = inject(JwtStorageService);
   const auth = inject(AuthService);
   const state = inject(TokenRefreshStateService);
+  const location = inject(EnvironmentRef).nativeWindow.location;
 
-  return addAuthData(req, jwt, auth, state).pipe(
+  return addAuthData(req, jwt, auth, state, location).pipe(
     switchMap(enrichedReq => next(enrichedReq).pipe(
       catchError(err => throwError(() => err)),
     )),

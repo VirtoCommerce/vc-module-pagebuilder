@@ -27,6 +27,15 @@ angular.module('virtoCommerce.contentModule')
                 // using transformResponse to:
                 // 1. avoid automatic response result string converting to array;
                 transformResponse: function (rawData) { return { data: rawData }; }
+            },
+            // The builder API checks the builder's publish permission and the store; the Content module's publishing does not.
+            publish: {
+                method: 'POST',
+                url: 'api/pagebuilder/git/publish'
+            },
+            unpublish: {
+                method: 'POST',
+                url: 'api/pagebuilder/git/unpublish'
             }
 			// ,
             // getStoreUrl: {

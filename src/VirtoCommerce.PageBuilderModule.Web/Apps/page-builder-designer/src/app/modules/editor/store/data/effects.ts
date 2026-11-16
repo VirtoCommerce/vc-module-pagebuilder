@@ -28,6 +28,14 @@ import { EditorModuleInfo } from "@models/modules";
 
 import { SchemasService, TemplatesService } from "@editor/services";
 
+const refusedPublishingNotification = (error: any, action: 'publish' | 'unpublish') => shared.showNotification({
+    message: error?.status === 403
+        ? `You don't have permission to ${action} this page.`
+        : `Could not ${action}: ${error?.error?.error ?? error?.message ?? 'request failed'}`,
+    msgType: 'error',
+    top: true,
+});
+
 @Injectable({
     providedIn: 'root'
 })
@@ -220,6 +228,10 @@ export class TemplateEditorDataEffects {
                     }
                 }),
             ]),
+            catchError(error => of(
+                actions.getTemplatePublishStatusFails({ error, templateKey }),
+                refusedPublishingNotification(error, 'publish'),
+            ))
         ))
     ));
 
@@ -243,6 +255,10 @@ export class TemplateEditorDataEffects {
                     }
                 }),
             ]),
+            catchError(error => of(
+                actions.getTemplatePublishStatusFails({ error, templateKey }),
+                refusedPublishingNotification(error, 'unpublish'),
+            ))
         ))
     ));
 

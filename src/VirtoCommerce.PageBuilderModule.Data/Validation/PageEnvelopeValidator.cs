@@ -1,0 +1,91 @@
+using Newtonsoft.Json.Linq;
+
+namespace VirtoCommerce.PageBuilderModule.Data.Validation
+{
+    /// <summary>
+    /// Structural validation of a .page document before it is saved: the checks that need no theme
+    /// schemas (envelope shape, settings.type, sections are typed objects, unique ids).
+    /// </summary>
+    public static class PageEnvelopeValidator
+    {
+        /// <summary>
+        /// Returns the list of errors; empty means the document can be saved.
+        /// Reads both the {settings, content} envelope and the legacy flat array.
+        /// </summary>
+        public static IList<string> Validate(JToken page)
+        {
+            var errors = new List<string>();
+
+            JToken settings;
+            JToken content;
+            switch (page)
+            {
+                // legacy flat array: [0] = settings, the rest = sections
+                case JArray array:
+                    settings = array.Count > 0 ? array[0] : null;
+                    content = new JArray(array.Skip(1));
+                    break;
+                case JObject envelope:
+                    settings = envelope["settings"];
+                    content = envelope["content"];
+                    break;
+                default:
+                    errors.Add("Page is neither a {settings, content} envelope nor a legacy array.");
+                    return errors;
+            }
+
+            if (settings is not JObject settingsObject)
+            {
+                errors.Add("Missing settings object (page-level settings).");
+            }
+            else if (TextOf(settingsObject["type"]) != "settings")
+            {
+                errors.Add($"settings.type must be \"settings\" (got: {settingsObject["type"]?.ToString() ?? "null"}).");
+            }
+
+            if (content is not JArray sections)
+            {
+                errors.Add("Missing content array (sections).");
+                return errors;
+            }
+
+            var seenIds = new Dictionary<string, int>();
+            for (var i = 0; i < sections.Count; i++)
+            {
+                var section = sections[i];
+                if (section is not JObject sectionObject)
+                {
+                    errors.Add($"content[{i}]: section is not an object.");
+                    continue;
+                }
+
+                var type = TextOf(sectionObject["type"]);
+                var label = $"content[{i}]{(string.IsNullOrEmpty(type) ? string.Empty : $" ({type})")}";
+
+                if (string.IsNullOrEmpty(type))
+                {
+                    errors.Add($"{label}: missing type field.");
+                }
+
+                var id = TextOf(sectionObject["id"]);
+                if (!string.IsNullOrEmpty(id))
+                {
+                    if (seenIds.TryGetValue(id, out var firstIndex))
+                    {
+                        errors.Add($"{label}: duplicate id \"{id}\" (already in content[{firstIndex}]).");
+                    }
+                    else
+                    {
+                        seenIds.Add(id, i);
+                    }
+                }
+            }
+
+            return errors;
+        }
+
+        // The document comes from whoever saves it: an object or an array where a value belongs reads as
+        // missing instead of throwing.
+        private static string TextOf(JToken token) => token is JValue value ? (string)value : null;
+    }
+}
