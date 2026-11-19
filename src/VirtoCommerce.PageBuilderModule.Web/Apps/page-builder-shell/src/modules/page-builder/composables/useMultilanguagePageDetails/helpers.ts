@@ -3,8 +3,9 @@ import type {
   MultilanguagePageLanguage,
 } from "../../../../api_client/virtocommerce.pagebuildermodule";
 
-// Matches MultilanguagePageBatchResult.FailedReason on the backend.
+// Match MultilanguagePageBatchResult.FailedReason and PermalinkConflictReason on the backend.
 const failedReason = "Failed";
+const permalinkConflictReason = "PermalinkConflict";
 
 /** A root with versions is archived like a Landing Page; only a root without versions is deleted. */
 export function hasLanguageVersions(languages?: MultilanguagePageLanguage[]): boolean {
@@ -49,7 +50,7 @@ export function summarizeBatchResult(result: MultilanguagePageBatchResult): {
     processed: result.processedCultureNames?.join(", ") || "—",
     skipped:
       skipped
-        .filter((x) => x.reason !== failedReason)
+        .filter((x) => x.reason !== failedReason && x.reason !== permalinkConflictReason)
         .map((x) => x.cultureName)
         .join(", ") || "—",
     failed: skipped
@@ -57,6 +58,14 @@ export function summarizeBatchResult(result: MultilanguagePageBatchResult): {
       .map((x) => x.cultureName)
       .join(", "),
   };
+}
+
+/** Languages not published because another published page would be replaced; empty when there are none. */
+export function getConflictedLanguages(result: MultilanguagePageBatchResult): string {
+  return (result.skipped ?? [])
+    .filter((x) => x.reason === permalinkConflictReason)
+    .map((x) => x.cultureName)
+    .join(", ");
 }
 
 /**

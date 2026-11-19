@@ -8,6 +8,7 @@ public class MultilanguagePageBatchResult
     public const string NoDraftReason = "NoDraft";
     public const string AlreadyArchivedReason = "AlreadyArchived";
     public const string FailedReason = "Failed";
+    public const string PermalinkConflictReason = "PermalinkConflict";
 
     public IList<string> ProcessedCultureNames { get; set; } = [];
 

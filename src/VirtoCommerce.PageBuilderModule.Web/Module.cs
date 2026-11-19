@@ -62,6 +62,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
                 ?? ActivatorUtilities.CreateInstance<GroupedPageService>(provider));
             serviceCollection.AddTransient<IGroupedPageSearchService, GroupedPageSearchService>();
             serviceCollection.AddTransient<IMultilanguagePageService, MultilanguagePageService>();
+            serviceCollection.AddTransient<IPageBuilderPublishConflictService, PageBuilderPublishConflictService>();
             serviceCollection.AddTransient<IMultilanguagePageSearchService, MultilanguagePageSearchService>();
             serviceCollection.AddTransient<IPageBuilderPageListService, PageBuilderPageListService>();
             serviceCollection.AddTransient<IPageBuilderAssetReferenceService, PageBuilderAssetReferenceService>();
